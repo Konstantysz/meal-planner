@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getRecipe } from '@/lib/db/recipes';
 import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
 import { MacroSummary } from '@/components/recipes/MacroSummary';
+import { RecipeActions } from '@/components/recipes/RecipeActions';
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,8 +21,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">{recipe.name}</h1>
-      <p className="text-sm text-gray-600">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">{recipe.name}</h1>
+        <RecipeActions recipeId={recipe.id} />
+      </div>
+      <p className="text-sm opacity-70">
         {recipe.servings_base} porcji
         {recipe.prep_time_min != null && ` · ${recipe.prep_time_min} min`}
       </p>
