@@ -34,32 +34,25 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
 
     // Utwórz gospodarstwo domowe dla nowego użytkownika, w przeciwnym razie
     // nie przejdzie kontroli is_member_of() w RLS na żadnej tabeli.
+    // Wykonywane atomowo przez funkcję RPC (insert households + insert
+    // household_members w jednej transakcji SECURITY DEFINER) — insert
+    // households.insert().select().single() od klienta zawodził, bo
+    // households_select wymaga is_member_of(), a wiersz household_members
+    // jeszcze nie istniał w momencie odczytu.
     // ponytail: jeśli Supabase wymaga potwierdzenia e-maila, data.user?.id jest
-    // dostępne, ale sesja jeszcze nie istnieje — inserty poniżej wymagają
-    // auth.uid() z ważnej sesji (RLS), więc w takim wypadku się nie powiodą;
+    // dostępne, ale sesja jeszcze nie istnieje — RPC poniżej wymaga
+    // auth.uid() z ważnej sesji, więc w takim wypadku się nie powiedzie;
     // gospodarstwo trzeba wtedy założyć po pierwszym logowaniu.
     const userId = data.user?.id;
     if (userId) {
       const householdName = email.split('@')[0] || 'Moje gospodarstwo';
-      const { data: household, error: householdError } = await supabase
-        .from('households')
-        .insert({ name: householdName })
-        .select('id')
-        .single();
+      const { error: householdError } = await supabase.rpc('create_household_with_owner', {
+        household_name: householdName,
+      });
 
       if (householdError) {
         setLoading(false);
         setError(householdError.message);
-        return;
-      }
-
-      const { error: memberError } = await supabase
-        .from('household_members')
-        .insert({ household_id: household.id, user_id: userId, role: 'owner' });
-
-      if (memberError) {
-        setLoading(false);
-        setError(memberError.message);
         return;
       }
     }
