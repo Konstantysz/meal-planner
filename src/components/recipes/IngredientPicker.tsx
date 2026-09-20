@@ -16,6 +16,7 @@ export function IngredientPicker({
 }: { value: PickedIngredient[]; onChange: (v: PickedIngredient[]) => void }) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     fetch('/api/ingredients').then((r) => r.json()).then(setIngredients).catch(() => {});
@@ -38,6 +39,26 @@ export function IngredientPicker({
     setQuery('');
   }
 
+  async function createAndAdd(name: string) {
+    setCreating(true);
+    try {
+      const res = await fetch('/api/ingredients', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, category: 'inne',
+          kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
+          default_unit: null, source: 'manual',
+        }),
+      });
+      if (!res.ok) return;
+      const ing: Ingredient = await res.json();
+      setIngredients((prev) => [...prev, ing]);
+      add(ing);
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <div className="space-y-2">
       <input
@@ -50,12 +71,22 @@ export function IngredientPicker({
         <ul className="border rounded divide-y">
           {filtered.map((i) => (
             <li key={i.id}>
-              <button type="button" onClick={() => add(i)} className="w-full text-left px-3 py-2 hover:bg-gray-100">
+              <button type="button" onClick={() => add(i)} className="w-full text-left px-3 py-2 hover:bg-gray-100 hover:text-black">
                 {i.name}
               </button>
             </li>
           ))}
         </ul>
+      )}
+      {query.length >= 2 && filtered.length === 0 && (
+        <button
+          type="button"
+          disabled={creating}
+          onClick={() => createAndAdd(query)}
+          className="w-full text-left px-3 py-2 border rounded opacity-80 hover:opacity-100"
+        >
+          {creating ? 'Dodaję…' : `+ Dodaj nowy składnik "${query}"`}
+        </button>
       )}
       <ul className="space-y-1">
         {value.map((v, idx) => (
