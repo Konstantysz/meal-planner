@@ -29,8 +29,8 @@ export default function NewRecipePage() {
         </button>
       </div>
       <RecipeForm />
-      {showImport && <ImportDialog onClose={() => setShowImport(false)} onExtracted={(data) => {
-        setExtracted({ data, url: '' });
+      {showImport && <ImportDialog onClose={() => setShowImport(false)} onExtracted={(data, url) => {
+        setExtracted({ data, url });
         setShowImport(false);
       }} />}
     </div>

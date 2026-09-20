@@ -24,7 +24,7 @@ export function ImportReviewForm({
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name, servings_base: servings, prep_time_min: null,
-        source_url: sourceUrl, visibility: 'household',
+        source_url: sourceUrl || null, visibility: 'household',
         diet_tags: [], allergens: [],
         ingredients: ingredients.map((i) => ({
           ingredient_id: i.ingredient_id, amount: i.amount, unit: i.unit,

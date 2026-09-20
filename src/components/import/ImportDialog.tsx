@@ -5,7 +5,7 @@ import type { RecipeJsonLd } from '@/lib/schemas';
 
 export function ImportDialog({
   onClose, onExtracted,
-}: { onClose: () => void; onExtracted: (r: RecipeJsonLd) => void }) {
+}: { onClose: () => void; onExtracted: (r: RecipeJsonLd, url: string) => void }) {
   const [url, setUrl] = useState('');
   const [stage, setStage] = useState<'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export function ImportDialog({
       setStage('extract');
       const recipe = await extractWithWebLlm(markdown);
       setStage('done');
-      onExtracted(recipe);
+      onExtracted(recipe, url);
     } catch (e) {
       setError(String(e));
       setStage('error');
