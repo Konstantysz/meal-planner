@@ -4,8 +4,12 @@ import { listIngredients, createIngredient } from '@/lib/db/ingredients';
 
 export async function GET() {
   const supabase = await createServerSupabase();
-  try { return NextResponse.json(await listIngredients(supabase)); }
-  catch (e) { return NextResponse.json({ error: String(e) }, { status: 500 }); }
+  try {
+    return NextResponse.json(await listIngredients(supabase));
+  } catch (e) {
+    console.error('Failed to list ingredients:', e);
+    return NextResponse.json({ error: 'Failed to fetch ingredients' }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -13,5 +17,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     return NextResponse.json(await createIngredient(supabase, body), { status: 201 });
-  } catch (e) { return NextResponse.json({ error: String(e) }, { status: 400 }); }
+  } catch (e) {
+    console.error('Failed to create ingredient:', e);
+    return NextResponse.json({ error: 'Failed to create ingredient' }, { status: 400 });
+  }
 }

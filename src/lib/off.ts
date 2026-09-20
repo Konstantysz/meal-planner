@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { IngredientInput } from './schemas';
 import type { IngredientCategory } from './types';
 
@@ -8,6 +9,11 @@ export interface OffProduct {
 }
 
 const OFF_BASE = 'https://world.openfoodfacts.org';
+
+// Minimal schema for OFF API response validation
+const OffResponseSchema = z.object({
+  products: z.array(z.object({}).passthrough()).optional(),
+}).passthrough();
 
 export function mapOffProduct(p: OffProduct): IngredientInput | null {
   if (!p.product_name) return null;
@@ -29,7 +35,7 @@ export function mapOffProduct(p: OffProduct): IngredientInput | null {
   };
 }
 
-function guessCategory(tags: string[]): IngredientCategory {
+export function guessCategory(tags: string[]): IngredientCategory {
   const t = tags.join(' ').toLowerCase();
   if (t.includes('vegetable')) return 'warzywa';
   if (t.includes('fruit')) return 'owoce';
@@ -48,7 +54,14 @@ export async function searchOff(query: string): Promise<IngredientInput[]> {
   const url = `${OFF_BASE}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5&fields=product_name,nutriments,categories_tags`;
   const res = await fetch(url, { headers: { 'User-Agent': 'MealPlanner/1.0' } });
   if (!res.ok) return [];
-  const data = await res.json();
-  const products: OffProduct[] = data.products ?? [];
-  return products.map(mapOffProduct).filter((x): x is IngredientInput => x !== null);
+
+  try {
+    const data = await res.json();
+    const parsed = OffResponseSchema.parse(data);
+    const products: OffProduct[] = parsed.products ?? [];
+    return products.map(mapOffProduct).filter((x): x is IngredientInput => x !== null);
+  } catch {
+    // Parsing failed, return empty array safely
+    return [];
+  }
 }
