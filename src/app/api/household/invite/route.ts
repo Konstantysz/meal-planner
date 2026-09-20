@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'household_id and user_id required' }, { status: 400 });
   }
   try {
-    await inviteMember(supabase, household_id, user_id);
+    await inviteMember(supabase, household_id, user_id, user.id);
     return NextResponse.json({ ok: true });
   } catch (e) { return NextResponse.json({ error: String(e) }, { status: 400 }); }
 }

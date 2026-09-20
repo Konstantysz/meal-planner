@@ -17,10 +17,11 @@ export async function createShareToken(supabase: SupabaseClient, planId: string,
 // accept the already-resolved userId directly; caller is responsible for having it
 // (e.g. the invitee is already a known member/user). Upgrade path: add a service-role
 // client + admin.listUsers()/getUserByEmail lookup and restore an email-based API.
-export async function inviteMember(supabase: SupabaseClient, householdId: string, userId: string) {
-  const { data: memberRow } = await supabase.from('household_members')
-    .select('household_id').eq('household_id', householdId).limit(1).single();
-  if (!memberRow) throw new Error('not a member');
+export async function inviteMember(supabase: SupabaseClient, householdId: string, userId: string, callerId: string) {
+  // Explicitly check that the caller is a member of this household (not relying on RLS alone)
+  const { data: callerMemberRow } = await supabase.from('household_members')
+    .select('household_id').eq('household_id', householdId).eq('user_id', callerId).limit(1).single();
+  if (!callerMemberRow) throw new Error('not a member');
   const { error } = await supabase.from('household_members')
     .insert({ household_id: householdId, user_id: userId, role: 'member' });
   if (error) throw error;
