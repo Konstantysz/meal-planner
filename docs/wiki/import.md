@@ -28,3 +28,9 @@ The cleaned Markdown is turned into a `RecipeJsonLd` by an in-browser LLM (WebLL
 `/recipes/new` (`src/app/(app)/recipes/new/page.tsx`) is a client component holding `showImport` and `extracted` state: while `extracted` is null it renders `RecipeForm` plus the import button/dialog; once `ImportDialog` calls back with extracted data, the page swaps to `ImportReviewForm` instead.
 
 `ImportReviewForm` (`src/components/import/ImportReviewForm.tsx`) lets the user edit the extracted name/servings/steps, but **does not** auto-match or auto-create ingredients from the extracted `recipeIngredient` strings — those are only shown as a read-only reference list. The user must manually re-add each ingredient through `IngredientPicker` (search-and-select against the ingredient database), building up the `ingredients` array from scratch before saving via `POST /api/recipes`.
+
+## Gemini fallback (Task 17)
+
+Browsers without WebGPU (e.g. Safari/iOS) can't run WebLLM. `ImportDialog`'s `run()` checks `hasWebGpu()`: when false, instead of throwing it POSTs the already-cleaned `markdown` to `/api/import/extract` (`src/app/api/import/extract/route.ts`) and calls `onExtracted(recipe, url)` with the result, same as the WebLLM path.
+
+The route (server-side, so the API key never reaches the browser) calls `extractRecipe(markdown, callGemini, SYSTEM_PROMPT, 2)` — the exact same retry/validation orchestrator from `src/lib/import/extract.ts` used by the in-browser path, just with a different `LlmFn`. `callGemini` (`src/lib/import/gemini.ts`) hits `gemini-2.0-flash-exp` via `generateContent` with `responseMimeType: 'application/json'` and reads `process.env.GEMINI_API_KEY`, throwing if it's unset. Set `GEMINI_API_KEY` in `.env.local` locally and as a Vercel env var in production; without it the route returns a 502 with the error message.

@@ -21,7 +21,18 @@ export function ImportDialog({
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
       const { markdown } = await fr.json();
 
-      if (!hasWebGpu()) throw new Error('Brak WebGPU — użyj fallbacku Gemini (skonfiguruj klucz)');
+      if (!hasWebGpu()) {
+        setStage('extract');
+        const er = await fetch('/api/import/extract', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markdown }),
+        });
+        if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
+        const recipe = await er.json();
+        setStage('done');
+        onExtracted(recipe, url);
+        return;
+      }
 
       setStage('model');
       await ensureEngineReady();
