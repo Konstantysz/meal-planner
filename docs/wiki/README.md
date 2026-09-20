@@ -13,3 +13,4 @@ Keep entries short and factual — what's true now and why, not a changelog. Del
 | [shopping.md](shopping.md) | Shopping list aggregation, offline store |
 | [sharing.md](sharing.md) | Household invites, share links |
 | [import.md](import.md) | URL import pipeline (fetch → clean → LLM extract) |
+| [ci.md](ci.md) | GitHub Actions: backup and keepalive workflows, secret configuration |

@@ -1,0 +1,26 @@
+name: Weekly backup
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin supabase
+      - name: Dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p backups
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "backups/backup-$(date +%F).sql"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backups/
+          retention-days: 90
