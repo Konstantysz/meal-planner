@@ -9,9 +9,23 @@ export function ImportDialog({
   const [url, setUrl] = useState('');
   const [stage, setStage] = useState<'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [modelProgress, setModelProgress] = useState<{ text: string; progress: number } | null>(null);
+
+  async function extractOnServer(markdown: string) {
+    setStage('extract');
+    const er = await fetch('/api/import/extract', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown }),
+    });
+    if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
+    const recipe = await er.json();
+    setStage('done');
+    onExtracted(recipe, url);
+  }
 
   async function run() {
     setError(null);
+    setModelProgress(null);
     try {
       setStage('fetch');
       const fr = await fetch('/api/import/fetch', {
@@ -21,21 +35,21 @@ export function ImportDialog({
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
       const { markdown } = await fr.json();
 
-      if (!hasWebGpu()) {
-        setStage('extract');
-        const er = await fetch('/api/import/extract', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ markdown }),
-        });
-        if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
-        const recipe = await er.json();
-        setStage('done');
-        onExtracted(recipe, url);
+      if (!(await hasWebGpu())) {
+        await extractOnServer(markdown);
         return;
       }
 
       setStage('model');
-      await ensureEngineReady();
+      try {
+        await ensureEngineReady((p) => {
+          setModelProgress({ text: p.text, progress: p.progress });
+        });
+      } catch (e) {
+        console.error('WebGPU/Gemma init failed, falling back to server extraction:', e);
+        await extractOnServer(markdown);
+        return;
+      }
 
       setStage('extract');
       const recipe = await extractWithWebLlm(markdown);
@@ -58,10 +72,18 @@ export function ImportDialog({
         />
         <div className="text-sm text-gray-600 mb-2">
           {stage === 'fetch' && 'Pobieram stronę…'}
-          {stage === 'model' && 'Ładuję model (pierwszy raz może potrwać 1-2 min)…'}
+          {stage === 'model' && (modelProgress?.text ?? 'Ładuję model (pierwszy raz może potrwać kilka minut)…')}
           {stage === 'extract' && 'Wyciągam przepis…'}
           {stage === 'done' && 'Gotowe'}
         </div>
+        {stage === 'model' && modelProgress && (
+          <div className="w-full h-2 bg-gray-200 rounded mb-2 overflow-hidden">
+            <div
+              className="h-full bg-green-600 transition-all"
+              style={{ width: `${Math.round(modelProgress.progress * 100)}%` }}
+            />
+          </div>
+        )}
         {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1">Anuluj</button>
