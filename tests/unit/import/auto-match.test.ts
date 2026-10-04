@@ -4,23 +4,22 @@ import type { Ingredient } from '@/lib/types';
 
 function ing(name: string, withMacros = false): Ingredient {
   return {
-    id: name, name, category: 'inne',
+    id: name,
+    name,
+    category: 'inne',
     kcal_per_100g: withMacros ? 40 : null,
     protein_per_100g: withMacros ? 1 : null,
     fat_per_100g: withMacros ? 0 : null,
     carbs_per_100g: withMacros ? 9 : null,
-    default_unit: null, source: 'manual',
+    default_unit: null,
+    source: 'manual',
   };
 }
 
 describe('autoMatchIngredients', () => {
   it('uses local match when found and it has macro data, skipping OFF lookup', async () => {
     const searchOff = vi.fn().mockResolvedValue([]);
-    const results = await autoMatchIngredients(
-      ['cebula np. cukrowa 300 g'],
-      [ing('cebula', true)],
-      { searchOff }
-    );
+    const results = await autoMatchIngredients(['cebula np. cukrowa 300 g'], [ing('cebula', true)], { searchOff });
     expect(results[0].ingredient?.name).toBe('cebula');
     expect(results[0].amount).toBe(300);
     expect(results[0].unit).toBe('g');
@@ -28,14 +27,18 @@ describe('autoMatchIngredients', () => {
   });
 
   it('falls through to OFF when local match has no macro data', async () => {
-    const offResult = { name: 'Cebula', category: 'inne' as const, kcal_per_100g: 40,
-      protein_per_100g: 1, fat_per_100g: 0, carbs_per_100g: 9, default_unit: 'g', source: 'off' as const };
+    const offResult = {
+      name: 'Cebula',
+      category: 'inne' as const,
+      kcal_per_100g: 40,
+      protein_per_100g: 1,
+      fat_per_100g: 0,
+      carbs_per_100g: 9,
+      default_unit: 'g',
+      source: 'off' as const,
+    };
     const searchOff = vi.fn().mockResolvedValue([offResult]);
-    const results = await autoMatchIngredients(
-      ['cebula np. cukrowa 300 g'],
-      [ing('cebula', false)],
-      { searchOff }
-    );
+    const results = await autoMatchIngredients(['cebula np. cukrowa 300 g'], [ing('cebula', false)], { searchOff });
     expect(searchOff).toHaveBeenCalled();
     expect(results[0].offCandidate?.name).toBe('Cebula');
     expect(results[0].ingredient).toBeNull();
@@ -51,14 +54,18 @@ describe('autoMatchIngredients', () => {
   });
 
   it('falls back to OFF candidate when no local match', async () => {
-    const offResult = { name: 'Chorizo', category: 'mieso' as const, kcal_per_100g: 300,
-      protein_per_100g: 20, fat_per_100g: 25, carbs_per_100g: 1, default_unit: 'g', source: 'off' as const };
+    const offResult = {
+      name: 'Chorizo',
+      category: 'mieso' as const,
+      kcal_per_100g: 300,
+      protein_per_100g: 20,
+      fat_per_100g: 25,
+      carbs_per_100g: 1,
+      default_unit: 'g',
+      source: 'off' as const,
+    };
     const searchOff = vi.fn().mockResolvedValue([offResult]);
-    const results = await autoMatchIngredients(
-      ['kiełbasa hiszpańska chorizo np. dulce 200 g'],
-      [],
-      { searchOff }
-    );
+    const results = await autoMatchIngredients(['kiełbasa hiszpańska chorizo np. dulce 200 g'], [], { searchOff });
     expect(results[0].ingredient).toBeNull();
     expect(results[0].offCandidate).toEqual(offResult);
     expect(searchOff).toHaveBeenCalled();
@@ -87,9 +94,7 @@ describe('autoMatchIngredients', () => {
 
   it('sets raw_text to the clean ingredient name only, not amount/unit/raw noise', async () => {
     const searchOff = vi.fn().mockResolvedValue([]);
-    const results = await autoMatchIngredients(
-      ['cebula np. cukrowa 300 g'], [ing('cebula')], { searchOff }
-    );
+    const results = await autoMatchIngredients(['cebula np. cukrowa 300 g'], [ing('cebula')], { searchOff });
     expect(results[0].raw_text).toBe('cebula');
     expect(results[0].amount).toBe(300);
     expect(results[0].unit).toBe('g');
@@ -97,9 +102,7 @@ describe('autoMatchIngredients', () => {
 
   it('splits a compound line into two separate results', async () => {
     const searchOff = vi.fn().mockResolvedValue([]);
-    const results = await autoMatchIngredients(
-      ['chili i kumin po 1/4 łyżeczki'], [], { searchOff }
-    );
+    const results = await autoMatchIngredients(['chili i kumin po 1/4 łyżeczki'], [], { searchOff });
     expect(results).toHaveLength(2);
     expect(results[0].fallbackCandidate?.name).toBe('chili');
     expect(results[1].fallbackCandidate?.name).toBe('kumin');

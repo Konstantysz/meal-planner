@@ -13,7 +13,11 @@ export function ShoppingList({ week }: { week: string }) {
 
   return (
     <div className="p-4 pb-24">
-      {offline && <div className="bg-amber-100 text-amber-900 text-sm p-2 rounded mb-3">Tryb offline — zmiany zsynchronizują się po powrocie online</div>}
+      {offline && (
+        <div className="bg-amber-100 text-amber-900 text-sm p-2 rounded mb-3">
+          Tryb offline — zmiany zsynchronizują się po powrocie online
+        </div>
+      )}
       {Object.entries(grouped).map(([cat, list]) => (
         <CategoryGroup key={cat} category={cat} items={list} have={have} onToggle={toggleHave} />
       ))}

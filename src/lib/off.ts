@@ -11,9 +11,11 @@ export interface OffProduct {
 const OFF_BASE = 'https://world.openfoodfacts.org';
 
 // Minimal schema for OFF API response validation
-const OffResponseSchema = z.object({
-  products: z.array(z.object({}).passthrough()).optional(),
-}).passthrough();
+const OffResponseSchema = z
+  .object({
+    products: z.array(z.object({}).passthrough()).optional(),
+  })
+  .passthrough();
 
 export function mapOffProduct(p: OffProduct): IngredientInput | null {
   if (!p.product_name) return null;

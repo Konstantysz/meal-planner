@@ -11,7 +11,10 @@ export default function SettingsPage() {
     // W v1: plan bieżącego tygodnia
     const week = new Date().toISOString().slice(0, 10);
     const r = await fetch('/api/plans?week=' + week);
-    if (!r.ok) { setLoading(false); return; }
+    if (!r.ok) {
+      setLoading(false);
+      return;
+    }
     const plan = await r.json();
     const tr = await fetch('/api/share', {
       method: 'POST',
@@ -47,10 +50,13 @@ export default function SettingsPage() {
       <section>
         <h2 className="font-semibold mb-2">Zaproś do gospodarstwa</h2>
         <p className="text-sm text-gray-500">
-          Zapraszanie po e-mailu nie jest jeszcze wspierane — zaproszona osoba musi już mieć konto i zostać dodana ręcznie (user_id).
+          Zapraszanie po e-mailu nie jest jeszcze wspierane — zaproszona osoba musi już mieć konto i zostać dodana
+          ręcznie (user_id).
         </p>
       </section>
-      <button onClick={logout} className="text-red-600">Wyloguj</button>
+      <button onClick={logout} className="text-red-600">
+        Wyloguj
+      </button>
     </div>
   );
 }

@@ -22,7 +22,7 @@ export interface AutoMatchDeps {
 export async function autoMatchIngredients(
   rawLines: string[],
   localIngredients: Ingredient[],
-  deps: AutoMatchDeps
+  deps: AutoMatchDeps,
 ): Promise<AutoMatchResult[]> {
   const results: AutoMatchResult[] = [];
   for (const raw of rawLines) {
@@ -30,16 +30,25 @@ export async function autoMatchIngredients(
       const cleanName = cleanIngredientName(name) || name;
 
       const local = findBestMatch(cleanName, localIngredients);
-      const hasMacros = !!local && [local.kcal_per_100g, local.protein_per_100g, local.fat_per_100g, local.carbs_per_100g]
-        .some((v) => v != null);
-      const offCandidate = hasMacros ? null : (await deps.searchOff(cleanName).catch(() => []))[0] ?? null;
+      const hasMacros =
+        !!local &&
+        [local.kcal_per_100g, local.protein_per_100g, local.fat_per_100g, local.carbs_per_100g].some((v) => v != null);
+      const offCandidate = hasMacros ? null : ((await deps.searchOff(cleanName).catch(() => []))[0] ?? null);
       // A macro-less local match is kept only when OFF has nothing better.
       const ingredient = offCandidate ? null : local;
-      const fallbackCandidate: IngredientInput | null = ingredient || offCandidate ? null : {
-        name: cleanName, category: 'inne',
-        kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
-        default_unit: null, source: 'manual',
-      };
+      const fallbackCandidate: IngredientInput | null =
+        ingredient || offCandidate
+          ? null
+          : {
+              name: cleanName,
+              category: 'inne',
+              kcal_per_100g: null,
+              protein_per_100g: null,
+              fat_per_100g: null,
+              carbs_per_100g: null,
+              default_unit: null,
+              source: 'manual',
+            };
       results.push({ raw_text: cleanName, amount, unit, ingredient, offCandidate, fallbackCandidate });
     }
   }

@@ -38,7 +38,10 @@ export function cleanHtml(html: string): string {
     }
   }
   if (!content) content = $('body').html() ?? '';
-  const md = turndown.turndown(content).replace(/\n{3,}/g, '\n\n').trim();
+  const md = turndown
+    .turndown(content)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
   return cropToRecipe(polishQuotes(md));
 }
 
@@ -61,7 +64,10 @@ export function cropToRecipe(md: string): string {
   let bestScore = -1;
   for (const m of md.matchAll(INGREDIENTS_HEADER)) {
     const score = (md.slice(m.index, m.index + 600).match(/\d/g) ?? []).length;
-    if (score > bestScore) { best = m.index; bestScore = score; }
+    if (score > bestScore) {
+      best = m.index;
+      bestScore = score;
+    }
   }
   const body = best >= 0 ? md.slice(best) : md;
   const head = title && !body.startsWith(title) ? `${title}\n\n` : '';

@@ -18,7 +18,9 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
           .sort((a, b) => a.date.localeCompare(b.date) || a.position - b.position)
           .map((s) => (
             <li key={s.id} className="border rounded p-2">
-              <span className="text-xs text-gray-500">{s.date} · {s.label ?? `posiłek ${s.position + 1}`}</span>
+              <span className="text-xs text-gray-500">
+                {s.date} · {s.label ?? `posiłek ${s.position + 1}`}
+              </span>
               <div>{s.recipe?.name ?? '—'}</div>
             </li>
           ))}

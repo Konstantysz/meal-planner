@@ -4,9 +4,12 @@ import { SYSTEM_PROMPT } from '@/lib/import/schema';
 
 describe('extractRecipe', () => {
   it('returns parsed recipe on valid JSON', async () => {
-    const llm: LlmFn = async () => JSON.stringify({
-      name: 'Zupa', recipeIngredient: ['x'], recipeInstructions: ['y'],
-    });
+    const llm: LlmFn = async () =>
+      JSON.stringify({
+        name: 'Zupa',
+        recipeIngredient: ['x'],
+        recipeInstructions: ['y'],
+      });
     const r = await extractRecipe('md', llm, SYSTEM_PROMPT);
     expect(r.name).toBe('Zupa');
   });

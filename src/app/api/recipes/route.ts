@@ -9,12 +9,16 @@ export async function GET(req: Request) {
   const exclude = url.searchParams.getAll('exclude');
   try {
     return NextResponse.json(await listRecipes(supabase, { diet, exclude }));
-  } catch (e) { return NextResponse.json({ error: String(e) }, { status: 500 }); }
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauth' }, { status: 401 });
   const { data: household } = await supabase
     .from('household_members')
@@ -27,5 +31,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const recipe = await createRecipe(supabase, body, user.id, household.household_id);
     return NextResponse.json(recipe, { status: 201 });
-  } catch (e) { return NextResponse.json({ error: String(e) }, { status: 400 }); }
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 400 });
+  }
 }

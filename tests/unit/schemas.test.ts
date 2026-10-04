@@ -18,7 +18,7 @@ describe('RecipeJsonLdSchema', () => {
       RecipeJsonLdSchema.parse({
         recipeIngredient: ['x'],
         recipeInstructions: ['y'],
-      })
+      }),
     ).toThrow();
   });
 

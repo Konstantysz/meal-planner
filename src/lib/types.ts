@@ -3,8 +3,17 @@ export type DietTag = 'wegetarianska' | 'ketogeniczna' | 'bezglutenowa';
 export type Allergen = 'gluten' | 'mieso' | 'nabial' | 'orzechy' | 'ryby';
 export type MacroSource = 'off' | 'manual' | 'ai_estimate';
 export type IngredientCategory =
-  | 'warzywa' | 'owoce' | 'mieso' | 'ryby' | 'nabial' | 'pieczywo'
-  | 'makarony' | 'przyprawy' | 'tluszcze' | 'napoje' | 'inne';
+  | 'warzywa'
+  | 'owoce'
+  | 'mieso'
+  | 'ryby'
+  | 'nabial'
+  | 'pieczywo'
+  | 'makarony'
+  | 'przyprawy'
+  | 'tluszcze'
+  | 'napoje'
+  | 'inne';
 
 export interface Macros {
   kcal: number;

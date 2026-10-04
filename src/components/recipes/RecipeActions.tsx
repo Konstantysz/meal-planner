@@ -28,7 +28,9 @@ export function RecipeActions({ recipeId }: { recipeId: string }) {
         Edytuj
       </Link>
       <button
-        type="button" onClick={del} disabled={deleting}
+        type="button"
+        onClick={del}
+        disabled={deleting}
         className="text-sm text-red-600 underline disabled:opacity-50"
       >
         {deleting ? 'Usuwam…' : 'Usuń'}

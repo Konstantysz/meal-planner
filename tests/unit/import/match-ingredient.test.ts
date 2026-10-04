@@ -4,9 +4,15 @@ import type { Ingredient } from '@/lib/types';
 
 function ing(name: string): Ingredient {
   return {
-    id: name, name, category: 'inne',
-    kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
-    default_unit: null, source: 'manual',
+    id: name,
+    name,
+    category: 'inne',
+    kcal_per_100g: null,
+    protein_per_100g: null,
+    fat_per_100g: null,
+    carbs_per_100g: null,
+    default_unit: null,
+    source: 'manual',
   };
 }
 

@@ -7,10 +7,7 @@ export interface IngredientMacroInput {
   carbs_per_100g: number | null;
 }
 
-export function calculateIngredientMacros(
-  ingredient: IngredientMacroInput,
-  grams: number
-): Macros | null {
+export function calculateIngredientMacros(ingredient: IngredientMacroInput, grams: number): Macros | null {
   const { kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g } = ingredient;
   if (kcal_per_100g === null && protein_per_100g === null && fat_per_100g === null && carbs_per_100g === null) {
     return null;
@@ -26,13 +23,16 @@ export function calculateIngredientMacros(
 
 export function sumMacros(list: (Macros | null)[]): Macros {
   return list.reduce<Macros>(
-    (acc, m) => m === null ? acc : {
-      kcal: acc.kcal + m.kcal,
-      protein: acc.protein + m.protein,
-      fat: acc.fat + m.fat,
-      carbs: acc.carbs + m.carbs,
-    },
-    { kcal: 0, protein: 0, fat: 0, carbs: 0 }
+    (acc, m) =>
+      m === null
+        ? acc
+        : {
+            kcal: acc.kcal + m.kcal,
+            protein: acc.protein + m.protein,
+            fat: acc.fat + m.fat,
+            carbs: acc.carbs + m.carbs,
+          },
+    { kcal: 0, protein: 0, fat: 0, carbs: 0 },
   );
 }
 

@@ -3,21 +3,26 @@ import { PlanSlotInputSchema } from '@/lib/schemas';
 import type { Plan, PlanSlot } from '@/lib/types';
 
 export interface PlanWithSlots extends Plan {
-  slots: Array<PlanSlot & {
-    recipe: { id: string; name: string; servings_base: number } | null;
-  }>;
+  slots: Array<
+    PlanSlot & {
+      recipe: { id: string; name: string; servings_base: number } | null;
+    }
+  >;
 }
 
-export async function getOrCreatePlan(
-  supabase: SupabaseClient, householdId: string, weekStart: string
-): Promise<Plan> {
+export async function getOrCreatePlan(supabase: SupabaseClient, householdId: string, weekStart: string): Promise<Plan> {
   const { data: existing } = await supabase
-    .from('plans').select('*')
-    .eq('household_id', householdId).eq('week_start_date', weekStart).maybeSingle();
+    .from('plans')
+    .select('*')
+    .eq('household_id', householdId)
+    .eq('week_start_date', weekStart)
+    .maybeSingle();
   if (existing) return existing as Plan;
   const { data, error } = await supabase
-    .from('plans').insert({ household_id: householdId, week_start_date: weekStart })
-    .select().single();
+    .from('plans')
+    .insert({ household_id: householdId, week_start_date: weekStart })
+    .select()
+    .single();
   if (error) throw error;
   return data as Plan;
 }
@@ -26,7 +31,8 @@ export async function getWeekPlan(supabase: SupabaseClient, planId: string): Pro
   const { data, error } = await supabase
     .from('plans')
     .select('*, slots:plan_slots(*, recipe:recipes(id, name, servings_base))')
-    .eq('id', planId).single();
+    .eq('id', planId)
+    .single();
   if (error) throw error;
   return data as unknown as PlanWithSlots;
 }
@@ -36,7 +42,8 @@ export async function upsertSlot(supabase: SupabaseClient, input: unknown): Prom
   const { data, error } = await supabase
     .from('plan_slots')
     .upsert(parsed, { onConflict: 'plan_id,date,position' })
-    .select().single();
+    .select()
+    .single();
   if (error) throw error;
   return data as PlanSlot;
 }

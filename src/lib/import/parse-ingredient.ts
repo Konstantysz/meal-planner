@@ -5,13 +5,29 @@ export interface ParsedIngredient {
 }
 
 const UNIT_WORDS = [
-  'g', 'kg', 'ml', 'l', 'szt', 'sztuki', 'sztuka', 'ząbki', 'ząbków', 'ząbek',
-  'łyżeczki', 'łyżeczka', 'łyżki', 'łyżka', 'szklanki', 'szklanka', 'opakowanie', 'opakowania',
+  'g',
+  'kg',
+  'ml',
+  'l',
+  'szt',
+  'sztuki',
+  'sztuka',
+  'ząbki',
+  'ząbków',
+  'ząbek',
+  'łyżeczki',
+  'łyżeczka',
+  'łyżki',
+  'łyżka',
+  'szklanki',
+  'szklanka',
+  'opakowanie',
+  'opakowania',
 ];
 
 const AMOUNT_UNIT_RE = new RegExp(
   `(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć)\\s*(${UNIT_WORDS.join('|')})\\b`,
-  'i'
+  'i',
 );
 
 // "chili i kumin po 1/4 łyżeczki" — two ingredient names sharing one trailing amount+unit.
@@ -27,7 +43,11 @@ export function parseIngredientLine(raw: string): ParsedIngredient {
   }
   const amount = parseAmount(match[1]);
   const unit = normalizeUnit(match[2]);
-  const name = raw.slice(0, match.index).replace(/[-–,]\s*$/, '').trim() || raw.trim();
+  const name =
+    raw
+      .slice(0, match.index)
+      .replace(/[-–,]\s*$/, '')
+      .trim() || raw.trim();
   return { name, amount, unit };
 }
 

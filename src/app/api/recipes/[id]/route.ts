@@ -5,8 +5,11 @@ import { getRecipe } from '@/lib/db/recipes';
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
-  try { return NextResponse.json(await getRecipe(supabase, id)); }
-  catch (e) { return NextResponse.json({ error: String(e) }, { status: 404 }); }
+  try {
+    return NextResponse.json(await getRecipe(supabase, id));
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 404 });
+  }
 }
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {

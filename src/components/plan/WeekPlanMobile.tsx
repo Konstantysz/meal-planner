@@ -6,7 +6,10 @@ import { PlanSlot } from './PlanSlot';
 import { DayMacroSummary } from './DayMacroSummary';
 
 export function WeekPlanMobile({
-  plan, onAdd, onRemove, dayMacros,
+  plan,
+  onAdd,
+  onRemove,
+  dayMacros,
 }: {
   plan: PlanWithSlots;
   onAdd: (date: string, position: number) => void;
@@ -34,8 +37,10 @@ export function WeekPlanMobile({
                   onRemove={() => onRemove(s.id)}
                 />
               ))}
-              <button onClick={() => onAdd(dateStr, maxPos)}
-                className="w-full text-sm text-green-700 border border-dashed rounded py-1">
+              <button
+                onClick={() => onAdd(dateStr, maxPos)}
+                className="w-full text-sm text-green-700 border border-dashed rounded py-1"
+              >
                 + dodaj posiłek
               </button>
             </div>

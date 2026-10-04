@@ -10,14 +10,19 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const supabase = await createServerSupabase();
   let recipe;
-  try { recipe = await getRecipe(supabase, id); }
-  catch { notFound(); }
+  try {
+    recipe = await getRecipe(supabase, id);
+  } catch {
+    notFound();
+  }
 
-  const total = sumMacros(recipe.ingredients.map((ri) => {
-    if (!ri.ingredients) return null;
-    const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
-    return calculateIngredientMacros(ri.ingredients, grams);
-  }));
+  const total = sumMacros(
+    recipe.ingredients.map((ri) => {
+      if (!ri.ingredients) return null;
+      const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
+      return calculateIngredientMacros(ri.ingredients, grams);
+    }),
+  );
   const per = perServing(total, recipe.servings_base);
 
   return (
@@ -35,7 +40,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         <MacroSummary macros={per} />
       </div>
       {recipe.source_url && (
-        <a href={recipe.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm underline">
+        <a
+          href={recipe.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 text-sm underline"
+        >
           Źródło
         </a>
       )}
@@ -59,7 +69,9 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           {recipe.steps
             .slice()
             .sort((a, b) => a.position - b.position)
-            .map((s) => <li key={s.id}>{s.text}</li>)}
+            .map((s) => (
+              <li key={s.id}>{s.text}</li>
+            ))}
         </ol>
       </section>
     </div>

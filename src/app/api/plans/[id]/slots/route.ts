@@ -8,5 +8,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await req.json();
   try {
     return NextResponse.json(await upsertSlot(supabase, { ...body, plan_id: id }), { status: 200 });
-  } catch (e) { return NextResponse.json({ error: String(e) }, { status: 400 }); }
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 400 });
+  }
 }

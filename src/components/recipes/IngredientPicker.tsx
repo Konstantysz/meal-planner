@@ -12,30 +12,39 @@ export interface PickedIngredient {
 }
 
 export function IngredientPicker({
-  value, onChange,
-}: { value: PickedIngredient[]; onChange: (v: PickedIngredient[]) => void }) {
+  value,
+  onChange,
+}: {
+  value: PickedIngredient[];
+  onChange: (v: PickedIngredient[]) => void;
+}) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    fetch('/api/ingredients').then((r) => r.json()).then(setIngredients).catch(() => {});
+    fetch('/api/ingredients')
+      .then((r) => r.json())
+      .then(setIngredients)
+      .catch(() => {});
   }, []);
 
-  const filtered = query.length >= 2
-    ? ingredients.filter((i) => i.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
-    : [];
+  const filtered =
+    query.length >= 2 ? ingredients.filter((i) => i.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8) : [];
 
   function add(ing: Ingredient) {
     const raw = `${ing.name}`;
-    onChange([...value, {
-      ingredient_id: ing.id,
-      ingredient_name: ing.name,
-      amount: null,
-      unit: ing.default_unit,
-      raw_text: raw,
-      position: value.length,
-    }]);
+    onChange([
+      ...value,
+      {
+        ingredient_id: ing.id,
+        ingredient_name: ing.name,
+        amount: null,
+        unit: ing.default_unit,
+        raw_text: raw,
+        position: value.length,
+      },
+    ]);
     setQuery('');
   }
 
@@ -43,11 +52,17 @@ export function IngredientPicker({
     setCreating(true);
     try {
       const res = await fetch('/api/ingredients', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name, category: 'inne',
-          kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
-          default_unit: null, source: 'manual',
+          name,
+          category: 'inne',
+          kcal_per_100g: null,
+          protein_per_100g: null,
+          fat_per_100g: null,
+          carbs_per_100g: null,
+          default_unit: null,
+          source: 'manual',
         }),
       });
       if (!res.ok) return;
@@ -71,7 +86,11 @@ export function IngredientPicker({
         <ul className="border rounded divide-y">
           {filtered.map((i) => (
             <li key={i.id}>
-              <button type="button" onClick={() => add(i)} className="w-full text-left px-3 py-2 hover:bg-gray-100 hover:text-black">
+              <button
+                type="button"
+                onClick={() => add(i)}
+                className="w-full text-left px-3 py-2 hover:bg-gray-100 hover:text-black"
+              >
                 {i.name}
               </button>
             </li>
@@ -94,7 +113,9 @@ export function IngredientPicker({
             <input
               value={v.raw_text}
               onChange={(e) => {
-                const next = [...value]; next[idx] = { ...v, raw_text: e.target.value }; onChange(next);
+                const next = [...value];
+                next[idx] = { ...v, raw_text: e.target.value };
+                onChange(next);
               }}
               className="flex-1 border rounded px-2 py-1"
             />
@@ -111,7 +132,9 @@ export function IngredientPicker({
             <input
               value={v.unit ?? ''}
               onChange={(e) => {
-                const next = [...value]; next[idx] = { ...v, unit: e.target.value || null }; onChange(next);
+                const next = [...value];
+                next[idx] = { ...v, unit: e.target.value || null };
+                onChange(next);
               }}
               className="w-16 border rounded px-2 py-1"
             />
@@ -119,7 +142,9 @@ export function IngredientPicker({
               type="button"
               onClick={() => onChange(value.filter((_, i) => i !== idx))}
               className="text-red-600 px-2"
-            >×</button>
+            >
+              ×
+            </button>
           </li>
         ))}
       </ul>

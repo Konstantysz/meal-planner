@@ -6,9 +6,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('callOllama', () => {
   it('posts system+user to /api/chat in JSON mode and returns message content', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify({ message: { content: '{"name":"Zupa"}' } }))
-    );
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ message: { content: '{"name":"Zupa"}' } })));
     vi.stubGlobal('fetch', fetchMock);
 
     const out = await callOllama('sys', 'usr');
@@ -22,12 +20,18 @@ describe('callOllama', () => {
       model: 'gemma2:2b',
       stream: false,
       format: LLM_OUTPUT_SCHEMA,
-      messages: [{ role: 'system', content: 'sys' }, { role: 'user', content: 'usr' }],
+      messages: [
+        { role: 'system', content: 'sys' },
+        { role: 'user', content: 'usr' },
+      ],
     });
   });
 
   it('throws with status on non-2xx', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('model not found', { status: 404 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('model not found', { status: 404 })),
+    );
     await expect(callOllama('s', 'u')).rejects.toThrow(/Ollama 404: model not found/);
   });
 });

@@ -15,9 +15,11 @@ export async function updateSession(request: NextRequest) {
           list.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
-    }
+    },
   );
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
   const isAuthRoute = path.startsWith('/login') || path.startsWith('/signup');
   const isPublic = path.startsWith('/share/') || path === '/manifest.json';
