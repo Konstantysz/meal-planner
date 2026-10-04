@@ -34,8 +34,7 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
 ## Prerequisites
 
 - Node.js `^22.22`, `^24.15` or `>=26`. vitest 5 and jsdom 30 require it, so the plan's "Node 20+" is out of date: on Node 20 the test runner fails to start. CI uses Node 24. `pnpm build` was verified on Node 26.
-- pnpm `9.15.9` (pinned in `packageManager`; `corepack enable` picks it up). On Windows, `corepack enable` writes to `C:Program Files
-odejs` and fails with `EPERM` unless the terminal runs as administrator. Without admin: `npm install -g pnpm@9.15.9`.
+- pnpm `9.15.9` (pinned in `packageManager`; `corepack enable` picks it up). On Windows, `corepack enable` writes to `C:\Program Files\nodejs` and fails with `EPERM` unless the terminal runs as administrator. Without admin: `npm install -g pnpm@9.15.9`.
 - Windows, Node upgrade: `winget install OpenJS.NodeJS.LTS`, then open a new terminal.
 - The Supabase project URL and anon key, from the dashboard under Settings → API.
 
