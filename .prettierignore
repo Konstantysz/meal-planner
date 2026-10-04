@@ -1,0 +1,7 @@
+# Markdown is owned by markdownlint (docs/wiki) or left as written (plans, READMEs)
+*.md
+pnpm-lock.yaml
+.next/
+.bench-chrome/
+tests/fixtures/
+supabase/.temp/

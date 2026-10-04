@@ -13,7 +13,10 @@
     "bench:llm": "tsx scripts/bench-llm.ts",
     "wiki:check": "tsx scripts/wiki-check.ts && markdownlint-cli2",
     "prepare": "git config core.hooksPath .githooks",
-    "wiki:fix": "markdownlint-cli2 --fix"
+    "wiki:fix": "markdownlint-cli2 --fix",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -41,9 +44,12 @@
     "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^6.1.1",
     "dotenv": "^18.0.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.3.5",
     "jsdom": "^30.1.0",
     "markdownlint-cli2": "^0.23.3",
     "playwright-core": "^1.63.0",
+    "prettier": "^3.9.9",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

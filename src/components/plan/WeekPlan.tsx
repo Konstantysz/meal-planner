@@ -1,10 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { addDays, format, startOfWeek } from 'date-fns';
 import { usePlan } from '@/hooks/usePlan';
 import { WeekPlanDesktop } from './WeekPlanDesktop';
 import { WeekPlanMobile } from './WeekPlanMobile';
-import { calculateIngredientMacros, sumMacros } from '@/lib/macros';
 import type { Macros } from '@/lib/types';
 
 export function WeekPlan({ weekStart }: { weekStart: string }) {

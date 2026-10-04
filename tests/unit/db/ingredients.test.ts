@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { listIngredients, createIngredient } from '@/lib/db/ingredients';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 describe('listIngredients', () => {
   it('fetches and returns ingredients ordered by name', async () => {
@@ -16,7 +17,7 @@ describe('listIngredients', () => {
       }),
     };
 
-    const result = await listIngredients(mockSupabase as any);
+    const result = await listIngredients(mockSupabase as unknown as SupabaseClient);
     expect(result).toEqual(mockData);
     expect(mockSupabase.from).toHaveBeenCalledWith('ingredients');
   });
@@ -31,7 +32,7 @@ describe('listIngredients', () => {
       }),
     };
 
-    await expect(listIngredients(mockSupabase as any)).rejects.toThrow('DB connection failed');
+    await expect(listIngredients(mockSupabase as unknown as SupabaseClient)).rejects.toThrow('DB connection failed');
   });
 });
 
@@ -60,7 +61,7 @@ describe('createIngredient', () => {
       }),
     };
 
-    const result = await createIngredient(mockSupabase as any, mockInput);
+    const result = await createIngredient(mockSupabase as unknown as SupabaseClient, mockInput);
     expect(result).toEqual(mockResult);
     expect(mockSupabase.from).toHaveBeenCalledWith('ingredients');
   });
@@ -69,7 +70,7 @@ describe('createIngredient', () => {
     const mockSupabase = { from: vi.fn() };
 
     await expect(
-      createIngredient(mockSupabase as any, { name: 'Test' })
+      createIngredient(mockSupabase as unknown as SupabaseClient, { name: 'Test' })
     ).rejects.toThrow();
   });
 
@@ -96,6 +97,6 @@ describe('createIngredient', () => {
       }),
     };
 
-    await expect(createIngredient(mockSupabase as any, mockInput)).rejects.toThrow('Duplicate entry');
+    await expect(createIngredient(mockSupabase as unknown as SupabaseClient, mockInput)).rejects.toThrow('Duplicate entry');
   });
 });
