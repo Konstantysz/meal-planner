@@ -33,13 +33,13 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
 
 ## Prerequisites
 
-- Node.js. The plan says 20+. `pnpm build` was verified on Node 26. On Node 20, see [[offline-shopping-store#Invariants and gotchas]].
+- Node.js `^22.22`, `^24.15` or `>=26`. vitest 5 and jsdom 30 require it, so the plan's "Node 20+" is out of date: on Node 20 the test runner fails to start. CI uses Node 24. `pnpm build` was verified on Node 26.
 - pnpm `9.15.9` (pinned in `packageManager`; `corepack enable` picks it up).
 - The Supabase project URL and anon key, from the dashboard under Settings → API.
 
 ## Steps
 
-1. Install dependencies. This also enables the repo's git hooks (`core.hooksPath = .githooks`), which run `pnpm wiki:check` when you commit wiki changes:
+1. Install dependencies. This also enables the repo's git hooks (`core.hooksPath = .githooks`), which check formatting (Prettier) and lint (ESLint) on staged code files and run `pnpm wiki:check` when you commit wiki changes:
 
    ```bash
    pnpm install
@@ -58,6 +58,8 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
 ## Verify
 
 ```bash
+pnpm lint        # ESLint (CI fails on errors, not warnings)
+pnpm format      # Prettier: rewrite; CI runs format:check
 pnpm test        # 120 tests, all green
 pnpm typecheck
 pnpm build       # also shows which routes are static (○) vs dynamic (ƒ)

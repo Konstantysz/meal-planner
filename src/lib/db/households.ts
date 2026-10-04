@@ -19,10 +19,16 @@ export async function createShareToken(supabase: SupabaseClient, planId: string,
 // client + admin.listUsers()/getUserByEmail lookup and restore an email-based API.
 export async function inviteMember(supabase: SupabaseClient, householdId: string, userId: string, callerId: string) {
   // Explicitly check that the caller is a member of this household (not relying on RLS alone)
-  const { data: callerMemberRow } = await supabase.from('household_members')
-    .select('household_id').eq('household_id', householdId).eq('user_id', callerId).limit(1).single();
+  const { data: callerMemberRow } = await supabase
+    .from('household_members')
+    .select('household_id')
+    .eq('household_id', householdId)
+    .eq('user_id', callerId)
+    .limit(1)
+    .single();
   if (!callerMemberRow) throw new Error('not a member');
-  const { error } = await supabase.from('household_members')
+  const { error } = await supabase
+    .from('household_members')
     .insert({ household_id: householdId, user_id: userId, role: 'member' });
   if (error) throw error;
 }

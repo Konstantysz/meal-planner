@@ -21,17 +21,28 @@ const LECZO_LINES = [
 
 function ing(name: string): Ingredient {
   return {
-    id: name, name, category: 'inne',
-    kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
-    default_unit: null, source: 'manual',
+    id: name,
+    name,
+    category: 'inne',
+    kcal_per_100g: null,
+    protein_per_100g: null,
+    fat_per_100g: null,
+    carbs_per_100g: null,
+    default_unit: null,
+    source: 'manual',
   };
 }
 
 function off(name: string): IngredientInput {
   return {
-    name, category: 'inne',
-    kcal_per_100g: 100, protein_per_100g: 5, fat_per_100g: 5, carbs_per_100g: 10,
-    default_unit: 'g', source: 'off',
+    name,
+    category: 'inne',
+    kcal_per_100g: 100,
+    protein_per_100g: 5,
+    fat_per_100g: 5,
+    carbs_per_100g: 10,
+    default_unit: 'g',
+    source: 'off',
   };
 }
 

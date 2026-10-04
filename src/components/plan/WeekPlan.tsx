@@ -1,10 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { addDays, format, startOfWeek } from 'date-fns';
 import { usePlan } from '@/hooks/usePlan';
 import { WeekPlanDesktop } from './WeekPlanDesktop';
 import { WeekPlanMobile } from './WeekPlanMobile';
-import { calculateIngredientMacros, sumMacros } from '@/lib/macros';
 import type { Macros } from '@/lib/types';
 
 export function WeekPlan({ weekStart }: { weekStart: string }) {
@@ -35,7 +33,11 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
     dayMacros[slot.date] = dayMacros[slot.date] ?? null;
   }
 
-  const commonProps = { plan, onAdd: (d: string, p: number) => setPickerFor({ date: d, position: p }), onRemove: remove };
+  const commonProps = {
+    plan,
+    onAdd: (d: string, p: number) => setPickerFor({ date: d, position: p }),
+    onRemove: remove,
+  };
 
   return (
     <div>
@@ -43,42 +45,52 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
         <button onClick={() => reload()}>Odśwież</button>
         <h2 className="font-semibold">Tydzień od {weekStart}</h2>
       </div>
-      {isDesktop
-        ? <WeekPlanDesktop {...commonProps} />
-        : <WeekPlanMobile {...commonProps} dayMacros={dayMacros} />}
-      {pickerFor && (
-        <RecipePickerDialog
-          date={pickerFor.date}
-          onPick={handlePick}
-          onClose={() => setPickerFor(null)}
-        />
-      )}
+      {isDesktop ? <WeekPlanDesktop {...commonProps} /> : <WeekPlanMobile {...commonProps} dayMacros={dayMacros} />}
+      {pickerFor && <RecipePickerDialog date={pickerFor.date} onPick={handlePick} onClose={() => setPickerFor(null)} />}
     </div>
   );
 }
 
 function RecipePickerDialog({
-  date, onPick, onClose,
-}: { date: string; onPick: (id: string) => void; onClose: () => void }) {
+  date,
+  onPick,
+  onClose,
+}: {
+  date: string;
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
   const [recipes, setRecipes] = useState<Array<{ id: string; name: string }>>([]);
   const [q, setQ] = useState('');
 
   useEffect(() => {
-    fetch('/api/recipes').then((r) => r.json()).then(setRecipes).catch(() => {});
+    fetch('/api/recipes')
+      .then((r) => r.json())
+      .then(setRecipes)
+      .catch(() => {});
   }, []);
 
   const filtered = recipes.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl md:rounded-xl w-full md:max-w-md p-4 max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-white rounded-t-2xl md:rounded-xl w-full md:max-w-md p-4 max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="font-semibold mb-2">Wybierz przepis na {date}</h3>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Szukaj…"
-          className="w-full border rounded px-3 py-2 mb-2" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Szukaj…"
+          className="w-full border rounded px-3 py-2 mb-2"
+        />
         <ul className="divide-y">
           {filtered.map((r) => (
             <li key={r.id}>
-              <button className="w-full text-left py-2" onClick={() => onPick(r.id)}>{r.name}</button>
+              <button className="w-full text-left py-2" onClick={() => onPick(r.id)}>
+                {r.name}
+              </button>
             </li>
           ))}
         </ul>

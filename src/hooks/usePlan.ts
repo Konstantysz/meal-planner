@@ -13,7 +13,9 @@ export function usePlan(weekStart: string) {
     setLoading(false);
   }, [weekStart]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   async function assign(date: string, position: number, recipeId: string | null, servings: number) {
     if (!plan) return;

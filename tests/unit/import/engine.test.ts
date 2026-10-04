@@ -7,7 +7,12 @@ vi.mock('@mlc-ai/web-llm', () => ({
 }));
 
 const terminate = vi.fn();
-vi.stubGlobal('Worker', class { terminate = terminate; });
+vi.stubGlobal(
+  'Worker',
+  class {
+    terminate = terminate;
+  },
+);
 
 // engine.ts keeps the engine in module state — fresh module per test.
 async function loadEngine() {

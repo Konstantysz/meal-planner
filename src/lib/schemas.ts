@@ -3,11 +3,7 @@ import { z } from 'zod';
 export const RecipeJsonLdSchema = z.object({
   name: z.string().min(1),
   recipeIngredient: z.array(z.string()).default([]),
-  recipeInstructions: z.union([
-    z.string(),
-    z.array(z.string()),
-    z.array(z.object({ text: z.string() })),
-  ]).default([]),
+  recipeInstructions: z.union([z.string(), z.array(z.string()), z.array(z.object({ text: z.string() }))]).default([]),
   recipeYield: z.union([z.string(), z.number()]).optional(),
   prepTime: z.string().optional(),
   cookTime: z.string().optional(),
@@ -18,8 +14,17 @@ export const RecipeJsonLdSchema = z.object({
 export const IngredientInputSchema = z.object({
   name: z.string().min(1).max(200),
   category: z.enum([
-    'warzywa','owoce','mieso','ryby','nabial','pieczywo',
-    'makarony','przyprawy','tluszcze','napoje','inne',
+    'warzywa',
+    'owoce',
+    'mieso',
+    'ryby',
+    'nabial',
+    'pieczywo',
+    'makarony',
+    'przyprawy',
+    'tluszcze',
+    'napoje',
+    'inne',
   ]),
   kcal_per_100g: z.number().nonnegative().nullable(),
   protein_per_100g: z.number().nonnegative().nullable(),
@@ -43,8 +48,8 @@ export const RecipeInputSchema = z.object({
   prep_time_min: z.number().int().nonnegative().nullable(),
   source_url: z.string().url().nullable(),
   visibility: z.enum(['private', 'household', 'public_link']).default('household'),
-  diet_tags: z.array(z.enum(['wegetarianska','ketogeniczna','bezglutenowa'])).default([]),
-  allergens: z.array(z.enum(['gluten','mieso','nabial','orzechy','ryby'])).default([]),
+  diet_tags: z.array(z.enum(['wegetarianska', 'ketogeniczna', 'bezglutenowa'])).default([]),
+  allergens: z.array(z.enum(['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'])).default([]),
   ingredients: z.array(RecipeIngredientInputSchema).min(1),
   steps: z.array(z.object({ position: z.number().int(), text: z.string().min(1) })).min(1),
 });

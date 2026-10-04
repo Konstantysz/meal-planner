@@ -28,10 +28,14 @@ export function RecipeList() {
       <div className="p-4 space-y-2">
         {loading && <p className="text-gray-500">Ładuję…</p>}
         {!loading && recipes.length === 0 && <p className="text-gray-500">Brak przepisów. Dodaj pierwszy.</p>}
-        {recipes.map((r) => <RecipeCard key={r.id} recipe={r} />)}
+        {recipes.map((r) => (
+          <RecipeCard key={r.id} recipe={r} />
+        ))}
       </div>
-      <Link href="/recipes/new"
-        className="fixed bottom-20 right-4 bg-green-600 text-white rounded-full w-14 h-14 flex items-center justify-center text-2xl shadow-lg">
+      <Link
+        href="/recipes/new"
+        className="fixed bottom-20 right-4 bg-green-600 text-white rounded-full w-14 h-14 flex items-center justify-center text-2xl shadow-lg"
+      >
         +
       </Link>
     </div>

@@ -26,13 +26,21 @@ export function useShoppingList(week: string) {
     setLoading(false);
   }, [week]);
 
-  useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    const on = () => { setOffline(false); load(); };
+    load();
+  }, [load]);
+  useEffect(() => {
+    const on = () => {
+      setOffline(false);
+      load();
+    };
     const off = () => setOffline(true);
     window.addEventListener('online', on);
     window.addEventListener('offline', off);
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
   }, [load]);
 
   async function toggleHave(item: ShoppingItem) {

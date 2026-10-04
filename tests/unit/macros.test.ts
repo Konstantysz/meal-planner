@@ -5,7 +5,7 @@ describe('calculateIngredientMacros', () => {
   it('computes macros for grams', () => {
     const r = calculateIngredientMacros(
       { kcal_per_100g: 364, protein_per_100g: 10.3, fat_per_100g: 1, carbs_per_100g: 76.3 },
-      200
+      200,
     );
     expect(r?.kcal).toBe(728);
     expect(r?.protein).toBeCloseTo(20.6);
@@ -14,7 +14,7 @@ describe('calculateIngredientMacros', () => {
   it('returns null when ingredient has no macro data', () => {
     const r = calculateIngredientMacros(
       { kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null },
-      100
+      100,
     );
     expect(r).toBeNull();
   });
@@ -22,7 +22,7 @@ describe('calculateIngredientMacros', () => {
   it('treats missing fields as zero', () => {
     const r = calculateIngredientMacros(
       { kcal_per_100g: 100, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null },
-      100
+      100,
     );
     expect(r?.kcal).toBe(100);
     expect(r?.protein).toBe(0);

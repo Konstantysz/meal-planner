@@ -4,8 +4,12 @@ import { ensureEngineReady, extractWithWebLlm, hasWebGpu } from '@/lib/import/en
 import type { RecipeJsonLd } from '@/lib/schemas';
 
 export function ImportDialog({
-  onClose, onExtracted,
-}: { onClose: () => void; onExtracted: (r: RecipeJsonLd, url: string) => void }) {
+  onClose,
+  onExtracted,
+}: {
+  onClose: () => void;
+  onExtracted: (r: RecipeJsonLd, url: string) => void;
+}) {
   const [url, setUrl] = useState('');
   const [stage, setStage] = useState<'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +21,8 @@ export function ImportDialog({
     try {
       setStage('fetch');
       const fr = await fetch('/api/import/fetch', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
@@ -31,14 +36,17 @@ export function ImportDialog({
       if (mode === 'server') {
         setStage('extract');
         const er = await fetch('/api/import/extract', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ markdown }),
         });
         if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
         recipe = await er.json();
       } else {
         if (!(await hasWebGpu())) {
-          throw new Error('Ta przeglądarka nie obsługuje WebGPU. Import działa tu tylko z serwerem uruchomionym z LLM_MODE=server.');
+          throw new Error(
+            'Ta przeglądarka nie obsługuje WebGPU. Import działa tu tylko z serwerem uruchomionym z LLM_MODE=server.',
+          );
         }
         setStage('model');
         await ensureEngineReady((p) => {
@@ -60,8 +68,10 @@ export function ImportDialog({
       <div className="bg-white rounded-xl p-4 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-semibold mb-3">Import przepisu z URL</h3>
         <input
-          value={url} onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://www.jadlonomia.com/..." type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://www.jadlonomia.com/..."
+          type="url"
           className="w-full border rounded px-3 py-2 mb-3"
         />
         <div className="text-sm text-gray-600 mb-2">
@@ -80,9 +90,14 @@ export function ImportDialog({
         )}
         {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1">Anuluj</button>
-          <button onClick={run} disabled={!url || stage !== 'idle' && stage !== 'error' && stage !== 'done'}
-            className="bg-green-600 text-white rounded px-3 py-1">
+          <button onClick={onClose} className="px-3 py-1">
+            Anuluj
+          </button>
+          <button
+            onClick={run}
+            disabled={!url || (stage !== 'idle' && stage !== 'error' && stage !== 'done')}
+            className="bg-green-600 text-white rounded px-3 py-1"
+          >
             Importuj
           </button>
         </div>

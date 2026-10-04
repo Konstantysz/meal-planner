@@ -40,7 +40,10 @@ describe('checkWiki', () => {
   it('reports broken links, bad anchors, orphans and unknown tags', () => {
     const files = valid();
     files[1].content = page('Concepts', '[[README]] [[nope]] [[week-plan#Missing]]');
-    files.push({ path: 'concepts/lonely.md', content: page('Lonely', '[[concepts]]').replace('tags: [meta]', 'tags: [bogus]') });
+    files.push({
+      path: 'concepts/lonely.md',
+      content: page('Lonely', '[[concepts]]').replace('tags: [meta]', 'tags: [bogus]'),
+    });
     const errors = checkWiki(files, exists).join('\n');
     expect(errors).toContain('broken link [[nope]]');
     expect(errors).toContain('[[week-plan#Missing]] anchor not found');
@@ -61,7 +64,11 @@ describe('checkWiki', () => {
 
   it('ignores links inside code and resolves aliases', () => {
     const files = valid();
-    files[2].content = page('Week plan', '[[concepts]] `[[ghost]]`\n\n```md\n[[ghost]]\n```\n\n## Slots', 'aliases: [plan]\n');
+    files[2].content = page(
+      'Week plan',
+      '[[concepts]] `[[ghost]]`\n\n```md\n[[ghost]]\n```\n\n## Slots',
+      'aliases: [plan]\n',
+    );
     files[1].content = page('Concepts', '[[README]] [[plan|Week plan]]');
     expect(checkWiki(files, exists)).toEqual([]);
   });

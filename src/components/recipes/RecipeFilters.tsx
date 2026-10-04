@@ -4,10 +4,15 @@ const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'];
 const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'];
 
 export function RecipeFilters({
-  diet, exclude, onDiet, onExclude,
+  diet,
+  exclude,
+  onDiet,
+  onExclude,
 }: {
-  diet: string[]; exclude: string[];
-  onDiet: (v: string[]) => void; onExclude: (v: string[]) => void;
+  diet: string[];
+  exclude: string[];
+  onDiet: (v: string[]) => void;
+  onExclude: (v: string[]) => void;
 }) {
   function toggle(list: string[], v: string, setter: (x: string[]) => void) {
     setter(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);

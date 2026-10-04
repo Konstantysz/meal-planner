@@ -19,7 +19,10 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
     if (mode === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
-      if (error) { setError(error.message); return; }
+      if (error) {
+        setError(error.message);
+        return;
+      }
       router.push('/recipes');
       router.refresh();
       return;
@@ -66,12 +69,20 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
     <form onSubmit={submit} className="space-y-4 max-w-sm mx-auto mt-20">
       <h1 className="text-2xl font-bold">{mode === 'login' ? 'Zaloguj się' : 'Zarejestruj się'}</h1>
       <input
-        type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-        placeholder="email" className="w-full border rounded px-3 py-2"
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="email"
+        className="w-full border rounded px-3 py-2"
       />
       <input
-        type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-        placeholder="hasło" className="w-full border rounded px-3 py-2"
+        type="password"
+        required
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="hasło"
+        className="w-full border rounded px-3 py-2"
       />
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <button type="submit" disabled={loading} className="w-full bg-green-600 text-white rounded py-2">

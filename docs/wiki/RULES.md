@@ -161,7 +161,7 @@ sources:
 
 ## 11. CI / automation
 
-`pnpm wiki:check` runs `scripts/wiki-check.ts` and then `markdownlint-cli2`. Two things run it automatically: the `.githooks/pre-commit` hook, on any commit that stages wiki files (`pnpm install` enables it through `core.hooksPath`), and the `Wiki` GitHub workflow, on every PR that touches the wiki. `pnpm wiki:fix` auto-fixes markdown style. `.gitattributes` stores every text file with LF endings. The check enforces:
+`pnpm wiki:check` runs `scripts/wiki-check.ts` and then `markdownlint-cli2`. Two things run it automatically: the `.githooks/pre-commit` hook (which also checks Prettier formatting and ESLint on staged code files), on any commit that stages wiki files (`pnpm install` enables it through `core.hooksPath`), and the `Wiki` GitHub workflow, on every PR that touches the wiki. `pnpm wiki:fix` auto-fixes markdown style. `.gitattributes` stores every text file with LF endings. The check enforces:
 
 - the frontmatter schema, including the `stable` and `llm_generated` invariants and repo `path:` sources that exist
 - the required sections and the TL;DR callout

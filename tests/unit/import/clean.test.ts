@@ -5,7 +5,9 @@ import { MAX_MARKDOWN_CHARS } from '@/lib/import/schema';
 
 describe('cleanHtml', () => {
   it('removes scripts, styles, nav, footer', () => {
-    const md = cleanHtml('<html><head><style>x</style></head><body><nav>n</nav><article><h1>T</h1><p>Body</p></article><footer>f</footer></body></html>');
+    const md = cleanHtml(
+      '<html><head><style>x</style></head><body><nav>n</nav><article><h1>T</h1><p>Body</p></article><footer>f</footer></body></html>',
+    );
     expect(md).toContain('T');
     expect(md).toContain('Body');
     expect(md).not.toContain('<style>');
@@ -26,7 +28,9 @@ describe('cleanHtml', () => {
   });
 
   it('drops images and keeps only link text (no URLs reach the model)', () => {
-    const md = cleanHtml('<article><h1>T</h1><img src="data:image/png;base64,AAAA" alt="long alt"><p>Use <a href="https://x.pl/cebula">cebula</a> here</p></article>');
+    const md = cleanHtml(
+      '<article><h1>T</h1><img src="data:image/png;base64,AAAA" alt="long alt"><p>Use <a href="https://x.pl/cebula">cebula</a> here</p></article>',
+    );
     expect(md).toContain('Use cebula here');
     expect(md).not.toMatch(/https?:|data:|long alt/);
   });

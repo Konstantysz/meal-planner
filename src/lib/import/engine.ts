@@ -26,7 +26,7 @@ export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => 
   await Promise.race([
     enginePromise,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Ładowanie modelu trwa zbyt długo (timeout 10 min)')), INIT_TIMEOUT_MS)
+      setTimeout(() => reject(new Error('Ładowanie modelu trwa zbyt długo (timeout 10 min)')), INIT_TIMEOUT_MS),
     ),
   ]);
 }
@@ -61,7 +61,9 @@ export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd>
 export async function hasWebGpu(): Promise<boolean> {
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) return false;
   try {
-    const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<unknown> } }).gpu.requestAdapter();
+    const adapter = await (
+      navigator as unknown as { gpu: { requestAdapter(): Promise<unknown> } }
+    ).gpu.requestAdapter();
     return adapter != null;
   } catch (e) {
     console.error('WebGPU adapter request failed:', e);

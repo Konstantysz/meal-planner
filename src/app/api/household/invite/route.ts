@@ -6,7 +6,9 @@ import { inviteMember } from '@/lib/db/households';
 // (see households.ts). This accepts an already-known user_id (uuid) instead of email.
 export async function POST(req: Request) {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauth' }, { status: 401 });
   const { household_id, user_id } = await req.json();
   if (!household_id || !user_id) {
@@ -15,5 +17,7 @@ export async function POST(req: Request) {
   try {
     await inviteMember(supabase, household_id, user_id, user.id);
     return NextResponse.json({ ok: true });
-  } catch (e) { return NextResponse.json({ error: String(e) }, { status: 400 }); }
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 400 });
+  }
 }

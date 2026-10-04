@@ -21,9 +21,11 @@ pnpm dev          # localhost:3000
 pnpm test         # vitest run
 pnpm typecheck    # tsc --noEmit
 pnpm build        # production build
+pnpm lint         # ESLint (flat config, eslint-config-next)
+pnpm format       # Prettier write (CI runs format:check)
 pnpm wiki:check   # validate docs/wiki (frontmatter, links, markdownlint)
 ```
-No code lint script configured (scaffolded with `--no-eslint`).
+CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck and test on every PR. The pre-commit hook checks staged files the same way.
 
 ## Conventions
 - Shared types in `src/lib/types.ts`; Zod schemas in `src/lib/schemas.ts`. No `any` — use `unknown` + Zod parsing at boundaries.

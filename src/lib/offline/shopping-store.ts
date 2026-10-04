@@ -10,7 +10,9 @@ interface DB {
 
 async function db(): Promise<IDBPDatabase<DB>> {
   return openDB<DB>(DB_NAME, 1, {
-    upgrade(d) { if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'week' }); },
+    upgrade(d) {
+      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'week' });
+    },
   });
 }
 

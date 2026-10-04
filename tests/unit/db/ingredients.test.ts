@@ -1,11 +1,32 @@
 import { describe, it, expect, vi } from 'vitest';
 import { listIngredients, createIngredient } from '@/lib/db/ingredients';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 describe('listIngredients', () => {
   it('fetches and returns ingredients ordered by name', async () => {
     const mockData = [
-      { id: '1', name: 'Mąka', category: 'pieczywo', kcal_per_100g: 364, protein_per_100g: 10, fat_per_100g: 1, carbs_per_100g: 76, default_unit: 'g', source: 'off' },
-      { id: '2', name: 'Cukier', category: 'inne', kcal_per_100g: 387, protein_per_100g: 0, fat_per_100g: 0, carbs_per_100g: 100, default_unit: 'g', source: 'off' },
+      {
+        id: '1',
+        name: 'Mąka',
+        category: 'pieczywo',
+        kcal_per_100g: 364,
+        protein_per_100g: 10,
+        fat_per_100g: 1,
+        carbs_per_100g: 76,
+        default_unit: 'g',
+        source: 'off',
+      },
+      {
+        id: '2',
+        name: 'Cukier',
+        category: 'inne',
+        kcal_per_100g: 387,
+        protein_per_100g: 0,
+        fat_per_100g: 0,
+        carbs_per_100g: 100,
+        default_unit: 'g',
+        source: 'off',
+      },
     ];
 
     const mockSupabase = {
@@ -16,7 +37,7 @@ describe('listIngredients', () => {
       }),
     };
 
-    const result = await listIngredients(mockSupabase as any);
+    const result = await listIngredients(mockSupabase as unknown as SupabaseClient);
     expect(result).toEqual(mockData);
     expect(mockSupabase.from).toHaveBeenCalledWith('ingredients');
   });
@@ -31,7 +52,7 @@ describe('listIngredients', () => {
       }),
     };
 
-    await expect(listIngredients(mockSupabase as any)).rejects.toThrow('DB connection failed');
+    await expect(listIngredients(mockSupabase as unknown as SupabaseClient)).rejects.toThrow('DB connection failed');
   });
 });
 
@@ -60,7 +81,7 @@ describe('createIngredient', () => {
       }),
     };
 
-    const result = await createIngredient(mockSupabase as any, mockInput);
+    const result = await createIngredient(mockSupabase as unknown as SupabaseClient, mockInput);
     expect(result).toEqual(mockResult);
     expect(mockSupabase.from).toHaveBeenCalledWith('ingredients');
   });
@@ -68,9 +89,7 @@ describe('createIngredient', () => {
   it('throws validation error on invalid input', async () => {
     const mockSupabase = { from: vi.fn() };
 
-    await expect(
-      createIngredient(mockSupabase as any, { name: 'Test' })
-    ).rejects.toThrow();
+    await expect(createIngredient(mockSupabase as unknown as SupabaseClient, { name: 'Test' })).rejects.toThrow();
   });
 
   it('throws error when insert fails', async () => {
@@ -96,6 +115,8 @@ describe('createIngredient', () => {
       }),
     };
 
-    await expect(createIngredient(mockSupabase as any, mockInput)).rejects.toThrow('Duplicate entry');
+    await expect(createIngredient(mockSupabase as unknown as SupabaseClient, mockInput)).rejects.toThrow(
+      'Duplicate entry',
+    );
   });
 });

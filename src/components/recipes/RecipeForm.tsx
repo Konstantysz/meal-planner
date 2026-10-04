@@ -17,7 +17,8 @@ export interface RecipeFormInitialValues {
 }
 
 export function RecipeForm({
-  initialValues, readOnly = false,
+  initialValues,
+  readOnly = false,
 }: { initialValues?: RecipeFormInitialValues; readOnly?: boolean } = {}) {
   const router = useRouter();
   const [name, setName] = useState(initialValues?.name ?? '');
@@ -68,46 +69,82 @@ export function RecipeForm({
   return (
     <form onSubmit={submit} className="space-y-4 max-w-2xl mx-auto p-4">
       <fieldset disabled={readOnly} className="space-y-4">
-      <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Nazwa przepisu" className="w-full border rounded px-3 py-2" />
-      <div className="flex gap-2">
-        <input type="number" min={1} value={servings} onChange={(e) => setServings(Number(e.target.value))} className="w-24 border rounded px-2 py-1" />
-        <span className="self-center">porcji, czas (min):</span>
-        <input type="number" min={0} value={prepTime ?? ''} onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))} className="w-24 border rounded px-2 py-1" />
-      </div>
-      <fieldset>
-        <legend className="font-semibold">Diety</legend>
-        {DIETS.map((d) => (
-          <label key={d} className="mr-4">
-            <input type="checkbox" checked={dietTags.includes(d)}
-              onChange={(e) => setDietTags(e.target.checked ? [...dietTags, d] : dietTags.filter((x) => x !== d))} /> {d}
-          </label>
-        ))}
-      </fieldset>
-      <fieldset>
-        <legend className="font-semibold">Alergeny</legend>
-        {ALLERGENS.map((a) => (
-          <label key={a} className="mr-4">
-            <input type="checkbox" checked={allergens.includes(a)}
-              onChange={(e) => setAllergens(e.target.checked ? [...allergens, a] : allergens.filter((x) => x !== a))} /> {a}
-          </label>
-        ))}
-      </fieldset>
-      <div>
-        <h3 className="font-semibold">Składniki</h3>
-        <IngredientPicker value={ingredients} onChange={setIngredients} />
-      </div>
-      <div>
-        <h3 className="font-semibold">Kroki</h3>
-        {steps.map((s, i) => (
-          <div key={i} className="flex gap-2 my-1">
-            <textarea value={s} onChange={(e) => {
-              const n = [...steps]; n[i] = e.target.value; setSteps(n);
-            }} className="flex-1 border rounded px-2 py-1" />
-            <button type="button" onClick={() => setSteps(steps.filter((_, x) => x !== i))} className="text-red-600">×</button>
-          </div>
-        ))}
-        <button type="button" onClick={() => setSteps([...steps, ''])} className="text-green-700">+ krok</button>
-      </div>
+        <input
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nazwa przepisu"
+          className="w-full border rounded px-3 py-2"
+        />
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={1}
+            value={servings}
+            onChange={(e) => setServings(Number(e.target.value))}
+            className="w-24 border rounded px-2 py-1"
+          />
+          <span className="self-center">porcji, czas (min):</span>
+          <input
+            type="number"
+            min={0}
+            value={prepTime ?? ''}
+            onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))}
+            className="w-24 border rounded px-2 py-1"
+          />
+        </div>
+        <fieldset>
+          <legend className="font-semibold">Diety</legend>
+          {DIETS.map((d) => (
+            <label key={d} className="mr-4">
+              <input
+                type="checkbox"
+                checked={dietTags.includes(d)}
+                onChange={(e) => setDietTags(e.target.checked ? [...dietTags, d] : dietTags.filter((x) => x !== d))}
+              />{' '}
+              {d}
+            </label>
+          ))}
+        </fieldset>
+        <fieldset>
+          <legend className="font-semibold">Alergeny</legend>
+          {ALLERGENS.map((a) => (
+            <label key={a} className="mr-4">
+              <input
+                type="checkbox"
+                checked={allergens.includes(a)}
+                onChange={(e) => setAllergens(e.target.checked ? [...allergens, a] : allergens.filter((x) => x !== a))}
+              />{' '}
+              {a}
+            </label>
+          ))}
+        </fieldset>
+        <div>
+          <h3 className="font-semibold">Składniki</h3>
+          <IngredientPicker value={ingredients} onChange={setIngredients} />
+        </div>
+        <div>
+          <h3 className="font-semibold">Kroki</h3>
+          {steps.map((s, i) => (
+            <div key={i} className="flex gap-2 my-1">
+              <textarea
+                value={s}
+                onChange={(e) => {
+                  const n = [...steps];
+                  n[i] = e.target.value;
+                  setSteps(n);
+                }}
+                className="flex-1 border rounded px-2 py-1"
+              />
+              <button type="button" onClick={() => setSteps(steps.filter((_, x) => x !== i))} className="text-red-600">
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={() => setSteps([...steps, ''])} className="text-green-700">
+            + krok
+          </button>
+        </div>
       </fieldset>
       {error && <p className="text-red-600">{error}</p>}
       {!readOnly && (

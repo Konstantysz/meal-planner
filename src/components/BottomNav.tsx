@@ -14,8 +14,11 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white border-t flex justify-around py-2 z-50">
       {TABS.map((t) => (
-        <Link key={t.href} href={t.href}
-          className={`flex flex-col items-center text-xs ${path.startsWith(t.href) ? 'text-green-700' : 'text-gray-500'}`}>
+        <Link
+          key={t.href}
+          href={t.href}
+          className={`flex flex-col items-center text-xs ${path.startsWith(t.href) ? 'text-green-700' : 'text-gray-500'}`}
+        >
           <span className="text-xl">{t.icon}</span>
           {t.label}
         </Link>

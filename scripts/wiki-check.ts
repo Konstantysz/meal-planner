@@ -19,12 +19,14 @@ export interface WikiFile {
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 
-const SourceSchema = z.strictObject({
-  title: z.string().min(1),
-  path: z.string().min(1).optional(),
-  url: z.string().url().optional(),
-  accessed: date.optional(),
-}).refine((s) => !!s.path !== !!s.url, 'source needs exactly one of path or url')
+const SourceSchema = z
+  .strictObject({
+    title: z.string().min(1),
+    path: z.string().min(1).optional(),
+    url: z.string().url().optional(),
+    accessed: date.optional(),
+  })
+  .refine((s) => !!s.path !== !!s.url, 'source needs exactly one of path or url')
   .refine((s) => !s.url || !!s.accessed, 'web source needs accessed');
 
 const FrontmatterSchema = z.strictObject({
@@ -42,7 +44,10 @@ const FrontmatterSchema = z.strictObject({
   llm_generated: z.boolean(),
   llm_model: z.string(),
   human_reviewed: z.boolean(),
-  verified_commit: z.string().regex(/^[0-9a-f]{7,40}$/).optional(),
+  verified_commit: z
+    .string()
+    .regex(/^[0-9a-f]{7,40}$/)
+    .optional(),
   sources: z.array(SourceSchema),
   allowed_tags: z.array(z.string()).optional(),
 });
@@ -51,7 +56,11 @@ type Frontmatter = z.infer<typeof FrontmatterSchema>;
 const REQUIRED_H2 = ['Context', 'Related', 'Sources', 'Changelog'];
 // Top-level folder → its index page basename (RULES §2).
 const FOLDER_INDEX: Record<string, string> = {
-  concepts: 'concepts', guides: 'guides', references: 'references', decisions: 'decisions', _meta: 'meta',
+  concepts: 'concepts',
+  guides: 'guides',
+  references: 'references',
+  decisions: 'decisions',
+  _meta: 'meta',
 };
 
 interface Page {
@@ -83,9 +92,10 @@ function parsePage(file: WikiFile, errors: string[]): Page {
   } else {
     const parsed = FrontmatterSchema.safeParse(parseYaml(yaml));
     if (parsed.success) fm = parsed.data;
-    else for (const issue of parsed.error.issues) {
-      errors.push(`${file.path}: frontmatter ${issue.path.join('.') || '(root)'}: ${issue.message}`);
-    }
+    else
+      for (const issue of parsed.error.issues) {
+        errors.push(`${file.path}: frontmatter ${issue.path.join('.') || '(root)'}: ${issue.message}`);
+      }
   }
   const prose = stripCode(body);
   const headings = [...prose.matchAll(/^#{1,6}\s+(.+?)\s*$/gm)].map((m) => m[1]);
@@ -113,7 +123,12 @@ function checkStructure(page: Page, errors: string[]) {
   if (!headings.length) errors.push(`${file.path}: no headings`);
 }
 
-function checkFrontmatter(page: Page, allowedTags: Set<string> | null, repoFileExists: (p: string) => boolean, errors: string[]) {
+function checkFrontmatter(
+  page: Page,
+  allowedTags: Set<string> | null,
+  repoFileExists: (p: string) => boolean,
+  errors: string[],
+) {
   const { fm, file } = page;
   if (!fm) return;
   if (fm.status === 'stable') {
@@ -143,7 +158,8 @@ export function checkWiki(files: WikiFile[], repoFileExists: (p: string) => bool
   for (const p of pages) {
     for (const alias of p.fm?.aliases ?? []) {
       const key = alias.toLowerCase();
-      if (byName.has(key) && byName.get(key) !== p) errors.push(`${p.file.path}: alias "${alias}" collides with another page`);
+      if (byName.has(key) && byName.get(key) !== p)
+        errors.push(`${p.file.path}: alias "${alias}" collides with another page`);
       else byName.set(key, p);
     }
   }
@@ -158,9 +174,15 @@ export function checkWiki(files: WikiFile[], repoFileExists: (p: string) => bool
     if (!page.links.length) errors.push(`${page.file.path}: no outbound wikilinks`);
     for (const { target, anchor } of page.links) {
       const label = `[[${target}${anchor ? '#' + anchor : ''}]]`;
-      if (target.includes('/')) { errors.push(`${page.file.path}: ${label} must link by basename`); continue; }
+      if (target.includes('/')) {
+        errors.push(`${page.file.path}: ${label} must link by basename`);
+        continue;
+      }
       const dest = byName.get(target.toLowerCase());
-      if (!dest) { errors.push(`${page.file.path}: broken link ${label}`); continue; }
+      if (!dest) {
+        errors.push(`${page.file.path}: broken link ${label}`);
+        continue;
+      }
       if (anchor && !dest.headings.some((h) => h.toLowerCase() === anchor.toLowerCase())) {
         errors.push(`${page.file.path}: ${label} anchor not found`);
       }

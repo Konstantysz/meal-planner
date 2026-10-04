@@ -74,6 +74,7 @@ flowchart LR
 ## Known gaps
 
 - `/` is still the create-next-app landing page, and the root layout's metadata says "Create Next App" with `lang="en"`. See [[spec-drift#Leftover scaffold]].
+- Data hooks (`usePlan`, `useShoppingList`, `RecipeList`) fetch inside `useEffect` and set loading state synchronously there. React 19 lint flags this (`react-hooks/set-state-in-effect`, currently a warning). Refactor before making the rule an error again.
 - No error boundary or `error.tsx`, and fetch errors in hooks are mostly ignored (`if (r.ok)` with no else branch).
 
 ## Examples

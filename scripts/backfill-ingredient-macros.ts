@@ -58,7 +58,9 @@ async function main() {
     }
 
     // First OFF hit is taken as-is — review the dry-run output (match name) before a real run.
-    console.log(`  ${dryRun ? '[dry-run] would update' : 'updating'} "${row.name}" -> OFF "${match.name}", ${match.kcal_per_100g} kcal/100g`);
+    console.log(
+      `  ${dryRun ? '[dry-run] would update' : 'updating'} "${row.name}" -> OFF "${match.name}", ${match.kcal_per_100g} kcal/100g`,
+    );
     if (!dryRun) {
       const { error: updateError } = await supabase
         .from('ingredients')
@@ -75,7 +77,9 @@ async function main() {
     updated++;
   }
 
-  console.log(`\nDone. ${updated} updated, ${stillMissing} still missing (no OFF match — needs manual entry), ${failed} lookup errors (re-run).`);
+  console.log(
+    `\nDone. ${updated} updated, ${stillMissing} still missing (no OFF match — needs manual entry), ${failed} lookup errors (re-run).`,
+  );
 }
 
 main().catch((e) => {

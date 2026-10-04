@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Ingredient } from '@/lib/types';
-import { IngredientInputSchema, type IngredientInput } from '@/lib/schemas';
+import { IngredientInputSchema } from '@/lib/schemas';
 
 export async function listIngredients(supabase: SupabaseClient): Promise<Ingredient[]> {
   const { data, error } = await supabase.from('ingredients').select('*').order('name');

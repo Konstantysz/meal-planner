@@ -8,7 +8,9 @@ const POSITIONS = [0, 1, 2, 3, 4];
 const LABELS = ['śniadanie', 'lunch', 'obiad', 'przekąska', 'kolacja'];
 
 export function WeekPlanDesktop({
-  plan, onAdd, onRemove,
+  plan,
+  onAdd,
+  onRemove,
 }: {
   plan: PlanWithSlots;
   onAdd: (date: string, position: number) => void;
@@ -46,8 +48,12 @@ export function WeekPlanDesktop({
                         onRemove={() => onRemove(slot.id)}
                       />
                     ) : (
-                      <button onClick={() => onAdd(dateStr, pos)}
-                        className="w-full h-full text-gray-300 hover:text-green-600 text-xl">+</button>
+                      <button
+                        onClick={() => onAdd(dateStr, pos)}
+                        className="w-full h-full text-gray-300 hover:text-green-600 text-xl"
+                      >
+                        +
+                      </button>
                     )}
                   </td>
                 );

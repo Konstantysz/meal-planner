@@ -1,10 +1,8 @@
-name: Wiki
+name: CI
 on:
   pull_request:
-    paths:
-      - 'docs/wiki/**'
-      - 'scripts/wiki-check.ts'
-      - '.markdownlint-cli2.jsonc'
+  push:
+    branches: [main]
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -16,4 +14,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm wiki:check
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
