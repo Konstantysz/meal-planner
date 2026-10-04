@@ -24,6 +24,8 @@ sources:
     path: src/lib/supabase/client.ts
   - title: "Auth form"
     path: src/components/auth/AuthForm.tsx
+  - title: "Recovery callback"
+    path: src/app/auth/callback/route.ts
   - title: "useAuth hook"
     path: src/hooks/useAuth.ts
   - title: "Next.js 16 proxy guide (bundled)"
@@ -33,7 +35,7 @@ sources:
 # Auth Session and Proxy
 
 > [!tldr]
-> Email and password auth with Supabase through `@supabase/ssr` cookies. `src/proxy.ts`, Next 16's renamed middleware, runs on every non-asset request: it refreshes the session and redirects logged-out users to `/login`. The only public paths are `/login`, `/signup`, `/share/*` and `/manifest.json`.
+> Email and password auth with Supabase through `@supabase/ssr` cookies. `src/proxy.ts`, Next 16's renamed middleware, runs on every non-asset request: it refreshes the session and redirects logged-out users to `/login`. The only public paths are `/login`, `/signup`, `/forgot-password`, `/auth/callback`, `/share/*` and `/manifest.json`.
 
 ## Context
 
@@ -51,14 +53,15 @@ The proxy calls `supabase.auth.getUser()`, which also refreshes the session, and
 
 | Request | Logged in | Logged out |
 |---|---|---|
-| `/login`, `/signup` | redirect to `/recipes` | pass |
-| `/share/*`, `/manifest.json` | pass | pass |
+| `/login`, `/signup`, `/forgot-password` | redirect to `/recipes` | pass |
+| `/share/*`, `/manifest.json`, `/auth/callback` | pass | pass |
 | anything else, **including `/api/*`** | pass | redirect to `/login` |
 
 The matcher excludes `_next/static`, `_next/image`, `favicon.ico` and `icons/`.
 
 - **Login:** `signInWithPassword`, then `router.push('/recipes')` and `router.refresh()`.
 - **Signup:** `signUp`, then the `create_household_with_owner` RPC. See [[household-model]].
+- **Password reset:** `/forgot-password` calls `resetPasswordForEmail` and shows the same message whether or not the account exists. The email link hits `/auth/callback?code=…`, which runs `exchangeCodeForSession` and redirects to `/reset-password` (fixed target, no `next` param). That page needs the session and calls `updateUser({ password })`. A bad or expired code redirects to `/login?error=link`. `<origin>/auth/callback` must be listed under Supabase → Authentication → URL Configuration → Redirect URLs, or the link falls back to the Site URL.
 - **Logout:** in settings: `signOut()`, then a hard navigation to `/login`.
 
 ## Invariants and gotchas
@@ -71,14 +74,14 @@ The matcher excludes `_next/static`, `_next/image`, `favicon.ico` and `icons/`.
 ## Known gaps
 
 - The login page has no link to `/signup`; users have to type the URL.
-- No password reset, no OAuth and no rate limiting beyond Supabase's defaults.
+- No OAuth and no rate limiting beyond Supabase's defaults.
 
 ## Examples
 
 ```ts
 // src/lib/supabase/middleware.ts: the public-path decision
-const isAuthRoute = path.startsWith('/login') || path.startsWith('/signup');
-const isPublic = path.startsWith('/share/') || path === '/manifest.json';
+const isAuthRoute = path.startsWith('/login') || path.startsWith('/signup') || path === '/forgot-password';
+const isPublic = path.startsWith('/share/') || path === '/manifest.json' || path === '/auth/callback';
 ```
 
 ## Related
@@ -95,5 +98,6 @@ const isPublic = path.startsWith('/share/') || path === '/manifest.json';
 
 ## Changelog
 
+- 2026-10-04: Added the password-reset flow (`/forgot-password`, `/auth/callback`, `/reset-password`).
 - 2026-10-04: Removed the email-confirmation gap (the household is created by a trigger since migration 0006). Added the missing signup link.
 - 2026-10-04: Created from the protected-routes section of legacy `auth.md`. Added the proxy rename and the `/api` redirect behaviour.
