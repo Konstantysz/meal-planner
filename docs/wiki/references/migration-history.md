@@ -46,7 +46,7 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0003` | — | `create_household_with_owner` RPC | Client-side household insert failed its own read-back under RLS |
 | `0004` | Konstantysz/meal-planner#5 | Locked down `hm_insert`, `hm_delete`, `households_insert`, `rec_update`, `st_insert`; `is_owner_of`; revoked `anon` execute on `security definer` functions; `to authenticated` + `(select auth.uid())`; 8 FK indexes | Any signed-in user could add themselves to any household as owner; any member could remove the owner; `anon` could create households; a token could be made for any plan |
 | `0005` | Konstantysz/meal-planner#6 | `get_shared_plan(token)` RPC; dropped the `*_via_share_token` policies and the open `st_select`; deleted empty non-Monday plans; `plans_week_start_monday` check | Anyone with the anon key could list every token and read every shared plan. The settings page shared a plan keyed by today, not Monday, which created empty plans. See [[0008-share-link-rpc]]. |
-| `0006` | the PR that adds this page | `on_auth_user_created` trigger creates the household; backfill; idempotent `create_household_with_owner`; `save_recipe` RPC | With email confirmation on, signup left users without a household. `createRecipe` used three inserts and could leave orphan recipes. |
+| `0006` | Konstantysz/meal-planner#7 | `on_auth_user_created` trigger creates the household; backfill; idempotent `create_household_with_owner`; `save_recipe` RPC | With email confirmation on, signup left users without a household. `createRecipe` used three inserts and could leave orphan recipes. |
 
 ## Verification
 
@@ -94,7 +94,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 ## Sources
 
 - `supabase/migrations/*`, `supabase/checks/*`, `supabase/rollbacks/*`
-- PRs Konstantysz/meal-planner#2, #5, #6 and the PR for `0006`
+- PRs Konstantysz/meal-planner#2, #5, #6, #7
 - Supabase advisors and verification script output, 2026-10-04
 
 ## Changelog
