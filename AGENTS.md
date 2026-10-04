@@ -32,7 +32,7 @@ No lint script configured (scaffolded with `--no-eslint`).
 - RLS is the authorization boundary — API routes generally trust it rather than re-implementing checks, except where explicitly noted (see `docs/wiki/auth.md` for the one place that changed).
 
 ## Environment
-`.env.local` (gitignored) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `GEMINI_API_KEY` needed once the import fallback (Task 17) lands.
+`.env.local` (gitignored) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `GEMINI_API_KEY` (Gemini fallback, currently commented out). Optional: `LLM_MODE=server` (LLM runs on server via Ollama, see `docs/wiki/import.md`), `OLLAMA_URL`, `OLLAMA_MODEL`.
 
 ## Where to look next
 - `docs/wiki/` — deeper per-domain notes (auth, database, recipes, plan, shopping, sharing, import). Read the relevant file before working in that area.

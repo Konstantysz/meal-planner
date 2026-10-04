@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getRecipe } from '@/lib/db/recipes';
 import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
+import { formatAmount } from '@/lib/scaling';
 import { MacroSummary } from '@/components/recipes/MacroSummary';
 import { RecipeActions } from '@/components/recipes/RecipeActions';
 
@@ -44,7 +45,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           {recipe.ingredients
             .slice()
             .sort((a, b) => a.position - b.position)
-            .map((ri) => <li key={ri.id}>{ri.raw_text}</li>)}
+            .map((ri) => (
+              <li key={ri.id}>
+                {ri.amount != null ? `${formatAmount(ri.amount, ri.unit)} ` : ''}
+                {ri.raw_text}
+              </li>
+            ))}
         </ul>
       </section>
       <section>

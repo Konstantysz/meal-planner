@@ -1,16 +1,24 @@
 'use client';
 import { CreateWebWorkerMLCEngine, type WebWorkerMLCEngine, type InitProgressReport } from '@mlc-ai/web-llm';
-import { SYSTEM_PROMPT, parseLlmJson } from './schema';
+import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, parseLlmJson } from './schema';
 import type { RecipeJsonLd } from '@/lib/schemas';
 
 const MODEL_ID = 'gemma-2-2b-it-q4f16_1-MLC';
 const INIT_TIMEOUT_MS = 10 * 60 * 1000;
 
+let worker: Worker | null = null;
 let enginePromise: Promise<WebWorkerMLCEngine> | null = null;
+
+// Terminating the worker frees its GPU memory; just dropping enginePromise would leak it.
+function resetEngine() {
+  worker?.terminate();
+  worker = null;
+  enginePromise = null;
+}
 
 export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => void) {
   if (!enginePromise) {
-    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
     enginePromise = CreateWebWorkerMLCEngine(worker, MODEL_ID, {
       initProgressCallback: onProgress,
     });
@@ -23,27 +31,29 @@ export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => 
   ]);
 }
 
-// Gemma-2-2b's context window is 4096 tokens shared across system + user + output.
-// ~4 chars/token is a safe rule of thumb for Polish/English mixed text.
-const MAX_MARKDOWN_CHARS = 6000;
-
 export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd> {
   if (!enginePromise) throw new Error('engine not initialized');
   const engine = await enginePromise;
-  const truncated = markdown.length > MAX_MARKDOWN_CHARS
-    ? markdown.slice(0, MAX_MARKDOWN_CHARS)
-    : markdown;
-  const chunks = await engine.chat.completions.create({
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: truncated },
-    ],
-    temperature: 0.1,
-    max_tokens: 1536,
-  });
+  let chunks;
+  try {
+    chunks = await engine.chat.completions.create({
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: markdown },
+      ],
+      temperature: 0.1,
+      max_tokens: 1536,
+      response_format: { type: 'json_object', schema: JSON.stringify(LLM_OUTPUT_SCHEMA) },
+    });
+  } catch (e) {
+    // GPU device can be lost mid-inference (driver crash/OOM) — the engine is unusable
+    // at that point, so tear it down and force re-init on the next attempt.
+    resetEngine();
+    throw e;
+  }
   const choice = chunks.choices[0];
   if (choice?.finish_reason === 'length') {
-    throw new Error('Odpowiedź modelu została ucięta (za długi przepis). Spróbuj importu przez serwer.');
+    throw new Error('Odpowiedź modelu została ucięta (za długi przepis). Spróbuj importu w trybie LLM_MODE=server.');
   }
   return parseLlmJson(choice?.message?.content ?? '');
 }

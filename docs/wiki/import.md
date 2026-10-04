@@ -29,8 +29,22 @@ The cleaned Markdown is turned into a `RecipeJsonLd` by an in-browser LLM (WebLL
 
 `ImportReviewForm` (`src/components/import/ImportReviewForm.tsx`) lets the user edit the extracted name/servings/steps, but **does not** auto-match or auto-create ingredients from the extracted `recipeIngredient` strings — those are only shown as a read-only reference list. The user must manually re-add each ingredient through `IngredientPicker` (search-and-select against the ingredient database), building up the `ingredients` array from scratch before saving via `POST /api/recipes`.
 
-## Gemini fallback (Task 17)
+## Gemini fallback (Task 17) — paused
+
+> **Currently disabled.** `callGemini` is commented out in the route and the browser no longer falls back to the server; see "Server-side local LLM" below for the two exclusive modes. The text below describes the original design, kept for when Gemini comes back.
 
 Browsers without WebGPU (e.g. Safari/iOS) can't run WebLLM. `ImportDialog`'s `run()` checks `hasWebGpu()`: when false, instead of throwing it POSTs the already-cleaned `markdown` to `/api/import/extract` (`src/app/api/import/extract/route.ts`) and calls `onExtracted(recipe, url)` with the result, same as the WebLLM path.
 
 The route (server-side, so the API key never reaches the browser) calls `extractRecipe(markdown, callGemini, SYSTEM_PROMPT, 2)` — the exact same retry/validation orchestrator from `src/lib/import/extract.ts` used by the in-browser path, just with a different `LlmFn`. `callGemini` (`src/lib/import/gemini.ts`) hits `gemini-2.0-flash-exp` via `generateContent` with `responseMimeType: 'application/json'` and reads `process.env.GEMINI_API_KEY`, throwing if it's unset. Set `GEMINI_API_KEY` in `.env.local` locally and as a Vercel env var in production; without it the route returns a 502 with the error message.
+
+## Server-side local LLM (LLM_MODE)
+
+`LLM_MODE=server` at server start makes `ImportDialog` skip WebLLM: it reads `GET /api/import/extract` → `{ mode }` and always POSTs the markdown to the server. The route calls `extractRecipe(markdown, callOllama, …)` — `callOllama` (`src/lib/import/ollama.ts`) hits a local Ollama (`OLLAMA_URL`, default `http://localhost:11434`; `OLLAMA_MODEL`, default `gemma2:2b` — same model family as the browser path). Any other value (or unset) is browser-only: WebLLM with no server fallback — no WebGPU, a failed model init or a failed extraction shows an error instead (a deployment without Ollama would only turn that into a 502). On extraction failure `engine.ts` terminates the worker (frees VRAM after a lost GPU device) so the next attempt re-inits.
+
+Run for LAN access: `$env:LLM_MODE='server'; pnpm dev -H 0.0.0.0`. Note: phones on `http://<lan-ip>` have no WebGPU anyway (not a secure context), so they always use the server path.
+
+Benchmark: `pnpm bench:llm [server|browser|both]` — 10 live recipe pages, same cleaned markdown and retry logic for both paths; browser path drives installed Chrome (WebGPU) via `playwright-core`, model cached in `.bench-chrome/`. Reports single-page cold time and amortized time per page.
+
+`cleanHtml` also strips images, link URLs, forms, comments and nested related-recipe cards (their ingredients used to leak into extraction), then `cropToRecipe` cuts over-budget pages to the title + the number-dense "Składniki" section, capped at `MAX_MARKDOWN_CHARS` (6000, shared with the browser path).
+
+**Structured output.** Both runtimes decode with a JSON-Schema grammar built from `LLM_OUTPUT_SCHEMA` (`src/lib/import/schema.ts`): Ollama via `format`, WebLLM via `response_format: { type: 'json_object', schema }`. Plain JSON mode was not enough — gemma2 could loop on whitespace inside a string until max tokens, leaving truncated JSON. `cleanHtml` also turns ASCII `"` into „” because quotes copied from the source into a JSON string value were what triggered it. `parseLlmJson` treats `null` fields as absent (the model emits `"image": null` instead of omitting).
