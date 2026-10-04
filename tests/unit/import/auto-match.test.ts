@@ -2,26 +2,43 @@ import { describe, it, expect, vi } from 'vitest';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import type { Ingredient } from '@/lib/types';
 
-function ing(name: string): Ingredient {
+function ing(name: string, withMacros = false): Ingredient {
   return {
     id: name, name, category: 'inne',
-    kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
+    kcal_per_100g: withMacros ? 40 : null,
+    protein_per_100g: withMacros ? 1 : null,
+    fat_per_100g: withMacros ? 0 : null,
+    carbs_per_100g: withMacros ? 9 : null,
     default_unit: null, source: 'manual',
   };
 }
 
 describe('autoMatchIngredients', () => {
-  it('uses local match when found, skipping OFF lookup', async () => {
+  it('uses local match when found and it has macro data, skipping OFF lookup', async () => {
     const searchOff = vi.fn().mockResolvedValue([]);
     const results = await autoMatchIngredients(
       ['cebula np. cukrowa 300 g'],
-      [ing('cebula')],
+      [ing('cebula', true)],
       { searchOff }
     );
     expect(results[0].ingredient?.name).toBe('cebula');
     expect(results[0].amount).toBe(300);
     expect(results[0].unit).toBe('g');
     expect(searchOff).not.toHaveBeenCalled();
+  });
+
+  it('falls through to OFF when local match has no macro data', async () => {
+    const offResult = { name: 'Cebula', category: 'inne' as const, kcal_per_100g: 40,
+      protein_per_100g: 1, fat_per_100g: 0, carbs_per_100g: 9, default_unit: 'g', source: 'off' as const };
+    const searchOff = vi.fn().mockResolvedValue([offResult]);
+    const results = await autoMatchIngredients(
+      ['cebula np. cukrowa 300 g'],
+      [ing('cebula', false)],
+      { searchOff }
+    );
+    expect(searchOff).toHaveBeenCalled();
+    expect(results[0].offCandidate?.name).toBe('Cebula');
+    expect(results[0].ingredient).toBeNull();
   });
 
   it('falls back to OFF candidate when no local match', async () => {

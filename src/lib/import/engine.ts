@@ -33,14 +33,22 @@ export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd>
   const truncated = markdown.length > MAX_MARKDOWN_CHARS
     ? markdown.slice(0, MAX_MARKDOWN_CHARS)
     : markdown;
-  const chunks = await engine.chat.completions.create({
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: truncated },
-    ],
-    temperature: 0.1,
-    max_tokens: 1536,
-  });
+  let chunks;
+  try {
+    chunks = await engine.chat.completions.create({
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: truncated },
+      ],
+      temperature: 0.1,
+      max_tokens: 1536,
+    });
+  } catch (e) {
+    // GPU device can be lost mid-inference (driver crash/OOM) — the worker/engine
+    // is dead at that point, so drop it and force re-init on the next attempt.
+    enginePromise = null;
+    throw e;
+  }
   const choice = chunks.choices[0];
   if (choice?.finish_reason === 'length') {
     throw new Error('Odpowiedź modelu została ucięta (za długi przepis). Spróbuj importu przez serwer.');

@@ -131,9 +131,16 @@ export function ImportReviewForm({
   );
 }
 
+const ASSUMED_SERVING_GRAMS = 350;
+
 function parseYield(y: string | number | undefined): number {
   if (typeof y === 'number') return Math.max(1, Math.round(y));
   if (!y) return 4;
+  const weightMatch = y.match(/(\d+)\s*(g|gram|kg)\b/i);
+  if (weightMatch) {
+    const grams = weightMatch[2].toLowerCase() === 'kg' ? Number(weightMatch[1]) * 1000 : Number(weightMatch[1]);
+    return Math.max(1, Math.round(grams / ASSUMED_SERVING_GRAMS));
+  }
   const m = y.match(/(\d+)/);
   return m ? Math.max(1, Number(m[1])) : 4;
 }

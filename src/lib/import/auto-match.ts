@@ -30,18 +30,31 @@ export async function autoMatchIngredients(
       const cleanName = cleanIngredientName(name) || name;
 
       const local = findBestMatch(cleanName, localIngredients);
-      if (local) {
+      const localHasMacros = local != null && (
+        local.kcal_per_100g != null || local.protein_per_100g != null ||
+        local.fat_per_100g != null || local.carbs_per_100g != null
+      );
+      if (local && localHasMacros) {
         results.push({ raw_text: cleanName, amount, unit, ingredient: local, offCandidate: null, fallbackCandidate: null });
         continue;
       }
       const offMatches = await deps.searchOff(cleanName).catch(() => []);
       const offCandidate = offMatches[0] ?? null;
-      const fallbackCandidate: IngredientInput | null = offCandidate ? null : {
+      if (offCandidate) {
+        results.push({ raw_text: cleanName, amount, unit, ingredient: null, offCandidate, fallbackCandidate: null });
+        continue;
+      }
+      // No OFF data either — keep the macro-less local match (if any) rather than discarding it.
+      if (local) {
+        results.push({ raw_text: cleanName, amount, unit, ingredient: local, offCandidate: null, fallbackCandidate: null });
+        continue;
+      }
+      const fallbackCandidate: IngredientInput = {
         name: cleanName, category: 'inne',
         kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null,
         default_unit: null, source: 'manual',
       };
-      results.push({ raw_text: cleanName, amount, unit, ingredient: null, offCandidate, fallbackCandidate });
+      results.push({ raw_text: cleanName, amount, unit, ingredient: null, offCandidate: null, fallbackCandidate });
     }
   }
   return results;

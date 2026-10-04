@@ -52,9 +52,14 @@ export function ImportDialog({
       }
 
       setStage('extract');
-      const recipe = await extractWithWebLlm(markdown);
-      setStage('done');
-      onExtracted(recipe, url);
+      try {
+        const recipe = await extractWithWebLlm(markdown);
+        setStage('done');
+        onExtracted(recipe, url);
+      } catch (e) {
+        console.error('WebGPU extraction failed (e.g. GPU device lost), falling back to server extraction:', e);
+        await extractOnServer(markdown);
+      }
     } catch (e) {
       setError(String(e));
       setStage('error');
