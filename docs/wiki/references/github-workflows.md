@@ -42,7 +42,7 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 |---|---|---|---|
 | `keepalive.yml` | cron `0 6 */5 * *` (06:00 UTC on days 1, 6, 11, … of each month) + manual | `curl -sf $SUPABASE_URL/rest/v1/ingredients?select=id&limit=1` with the `apikey` header | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | `backup.yml` | cron `0 3 * * 0` (Sundays 03:00 UTC) + manual | Installs the **latest** Supabase CLI from GitHub releases (unpinned), runs `supabase db dump --db-url …`, uploads `backups/` as an artifact kept 90 days | `SUPABASE_DB_URL` |
-| `ci.yml` | every PR, push to `main` | `pnpm install --frozen-lockfile`, then `pnpm lint` (ESLint, errors only fail), `pnpm format:check` (Prettier), `pnpm typecheck`, `pnpm test` | none |
+| `ci.yml` | every PR, push to `main` | `pnpm install --frozen-lockfile`, then `pnpm lint` (ESLint, errors only fail), `pnpm format:check` (Prettier), `pnpm typecheck`, `pnpm test` on Node 24 (vitest 5 / jsdom 30 need Node 22.22+) | none |
 | `wiki.yml` | PRs touching `docs/wiki/**`, `scripts/wiki-check.ts`, `.markdownlint-cli2.jsonc` | `pnpm install --frozen-lockfile`, `pnpm wiki:check` | none |
 
 > [!danger] Neither scheduled workflow has ever succeeded

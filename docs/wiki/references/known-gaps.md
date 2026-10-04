@@ -53,7 +53,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | A non-author recipe delete returns 204 and deletes nothing | [[recipe-management#Known gaps]] |
 | `createRecipe` isn't transactional, so it can leave orphan recipe rows | [[recipe-management#Known gaps]] |
 | An RLS-hidden recipe in a slot makes `/api/shopping` throw | [[shopping-list-aggregation#Invariants and gotchas]] |
-| Pre-rendering `/shopping` probably throws on Node 20 (`navigator` access) | [[offline-shopping-store#Invariants and gotchas]] |
 
 ## Medium
 
@@ -77,6 +76,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | `/` is the create-next-app page; metadata says "Create Next App" | [[spec-drift#Leftover scaffold]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
+| `useShoppingList` reads `navigator` during render. That is safe on the supported Node versions (22.22+), but fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |
 | `@dnd-kit` is installed but unused | [[spec-drift#Planned but not built]] |
 

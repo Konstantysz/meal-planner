@@ -57,7 +57,7 @@ IndexedDB database `meal-planner`, version 1, object store `shopping-list` with 
 - The banner promises a sync that doesn't exist. Have-state is only local. The `pantry_items` table is unused.
 
 > [!warning] Uncertain: Node version dependency
-> `useShoppingList` calls `useState(!navigator.onLine)` during render, which also runs when Next pre-renders `/shopping`. `pnpm build` passes on Node 26, which has a global `navigator` (with `onLine` undefined). Node 20, the plan's minimum, has no global `navigator`, so the pre-render would most likely throw a `ReferenceError` there. That hasn't been tested. Guard it with `typeof navigator !== 'undefined'`.
+> `useShoppingList` calls `useState(!navigator.onLine)` during render, which also runs when Next pre-renders `/shopping`. `pnpm build` passes on Node 26, which has a global `navigator` (with `onLine` undefined). Node 20 has no global `navigator` (the repo now needs Node 22.22+ anyway, and Node 21+ defines one), so the pre-render would most likely throw a `ReferenceError` there. That hasn't been tested. Guard it with `typeof navigator !== 'undefined'`.
 
 ## Known gaps
 
