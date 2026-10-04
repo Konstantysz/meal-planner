@@ -33,7 +33,7 @@ sources:
 
 ## Context
 
-This is the lookup table for the Supabase Postgres database. Project ref `tfysxpkfbumctfuxcend`; the local CLI config pins Postgres 17. See [[references]]. Shared TypeScript row types live in `src/lib/types.ts`, and they mirror these tables by hand. Nothing generates them from the schema.
+This is the lookup table for the Supabase Postgres database. Project ref `tfysxpkfbumctfuxcend` (name "meal-planner", region eu-west-1, per the legacy wiki); the local CLI config pins Postgres 17. See [[references]]. Shared TypeScript row types live in `src/lib/types.ts`, and they mirror these tables by hand. Nothing generates them from the schema.
 
 ## Tables
 
