@@ -56,9 +56,9 @@ Each of `0004`–`0006` has a script in `supabase/checks/` that creates throwawa
 |---|---|---|
 | `0004` | `FAIL 8 (14 checks)` | `ALL PASS (14 checks)` |
 | `0005` | `FAIL 7 (10 checks)` | `ALL PASS (10 checks)` |
-| `0006` | every check fails (features missing) | to be filled in after the deploy |
+| `0006` | `FAIL 7 (7 checks)` (features missing) | `ALL PASS (7 checks)` |
 
-After `0004` and `0005`, the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (public links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
+After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (public links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
 ## Audit findings still open
 
@@ -99,4 +99,5 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-04: Recorded the 0006 verification result (`ALL PASS`, no orphan recipes, every user has a household).
 - 2026-10-04: Created to summarise the 2026-10-04 database audit and migrations 0004–0006.
