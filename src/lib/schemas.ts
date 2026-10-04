@@ -63,7 +63,23 @@ export const PlanSlotInputSchema = z.object({
   servings: z.number().positive(),
 });
 
+// Shape returned by the get_shared_plan(token) RPC (migration 0005).
+export const SharedPlanSchema = z.object({
+  week_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  slots: z.array(
+    z.object({
+      id: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      position: z.number().int().nonnegative(),
+      label: z.string().nullable(),
+      servings: z.number().positive(),
+      recipe: z.object({ name: z.string() }).nullable(),
+    }),
+  ),
+});
+
 export type RecipeJsonLd = z.infer<typeof RecipeJsonLdSchema>;
+export type SharedPlan = z.infer<typeof SharedPlanSchema>;
 export type RecipeInput = z.infer<typeof RecipeInputSchema>;
 export type IngredientInput = z.infer<typeof IngredientInputSchema>;
 export type PlanSlotInput = z.infer<typeof PlanSlotInputSchema>;

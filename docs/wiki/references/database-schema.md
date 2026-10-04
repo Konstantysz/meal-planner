@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 19a988a
+verified_commit: dd7dd50
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -26,6 +26,8 @@ sources:
     path: supabase/rollbacks/0004_security_hardening.down.sql
   - title: "0004 verification script"
     path: supabase/checks/0004_security_hardening.verify.sql
+  - title: "Share-link RPC"
+    path: supabase/migrations/0005_share_link_rpc.sql
   - title: "Ingredient seed"
     path: supabase/seed.sql
   - title: "Supabase CLI config"
@@ -35,7 +37,7 @@ sources:
 # Database Schema
 
 > [!tldr]
-> There are 10 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Four migrations exist: the initial schema, share-token read policies, the signup RPC, and security hardening (0004). Member policies apply to `authenticated` only. The seed loads 40 ingredients and is **not** idempotent.
+> There are 10 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Five migrations exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), and the share-link RPC (0005). Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
 
 ## Context
 
@@ -51,7 +53,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
 | `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` and `unit`, `raw_text`, `position` |
 | `recipe_steps` | `id` uuid | `recipe_id` (cascade), `position`, `text` |
-| `plans` | `id` uuid | `household_id` (cascade), `week_start_date date`, `unique (household_id, week_start_date)` |
+| `plans` | `id` uuid | `household_id` (cascade), `week_start_date date`, `unique (household_id, week_start_date)`, check `plans_week_start_monday` (ISO weekday 1, since 0005) |
 | `plan_slots` | `id` uuid | `plan_id` (cascade), `date`, `position`, `label`, `recipe_id` (**on delete set null**), `servings numeric > 0` default 1, `unique (plan_id, date, position)` |
 | `pantry_items` | (`household_id`, `ingredient_id`) | `have_it boolean`. Nothing in the app uses this table yet. |
 | `share_tokens` | `token` text | `plan_id` (cascade), `created_by` |
@@ -66,12 +68,13 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `is_member_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `household_members` for `hid`. Used by most policies. `execute` is granted to `authenticated` only (0004). |
 | `is_owner_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` is the household's `owner`. Used by `hm_delete`. `authenticated` only. Added in 0004. |
 | `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Inserts a household and an `owner` membership for `auth.uid()` in a single call, and raises if unauthenticated. The only way to create a household. `execute` is granted to `authenticated` only (0004 revoked `anon`). |
+| `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
 
 ## RLS policies
 
-Policies for the same command are OR'd together. Since 0004, every policy except the share-token and `ing_select` ones is `to authenticated`, and `auth.uid()` is written as `(select auth.uid())` so it is evaluated once per statement.
+Policies for the same command are OR'd together. Since 0004, every policy except `ing_select` is `to authenticated` (0005 removed the share-token ones), and `auth.uid()` is written as `(select auth.uid())` so it is evaluated once per statement.
 
 | Table | Policy | Command | Rule |
 |---|---|---|---|
@@ -86,14 +89,11 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | | `rec_insert` | insert | `author_id = auth.uid() and is_member_of(household_id)` |
 | | `rec_update` | update | using: author or member. check: `is_member_of(household_id)` (can't move a recipe out to a foreign household) |
 | | `rec_delete` | delete | `author_id = auth.uid()` |
-| | `recipes_select_via_share_token` | select | the recipe is in a slot of any plan that has a share token |
 | `recipe_ingredients`, `recipe_steps` | `ri_all`, `rs_all` | all | the parent recipe's author or household member |
 | `plans` | `plans_all` | all | `is_member_of(household_id)` |
-| | `plans_select_via_share_token` | select | a `share_tokens` row exists for the plan |
 | `plan_slots` | `plan_slots_all` | all | member of the parent plan's household |
-| | `plan_slots_select_via_share_token` | select | a `share_tokens` row exists for the slot's plan |
 | `pantry_items` | `pantry_all` | all | `is_member_of(household_id)` |
-| `share_tokens` | `st_select` | select | `true` |
+| `share_tokens` | `st_select` | select | `created_by = auth.uid()` (0005; was `true`) |
 | | `st_insert` | insert | `created_by = auth.uid()` and the plan belongs to the caller's household |
 | | `st_delete` | delete | `created_by = auth.uid()` |
 
@@ -108,9 +108,10 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | File | Adds |
 |---|---|
 | `0001_initial.sql` | All tables, indexes, RLS enablement, `is_member_of`, member and owner policies |
-| `0002_share_token_rls.sql` | The three `*_select_via_share_token` policies |
+| `0002_share_token_rls.sql` | The three `*_select_via_share_token` policies (dropped in 0005) |
 | `0003_household_signup_rpc.sql` | `create_household_with_owner` |
 | `0004_security_hardening.sql` | Tightened member, invite and share-token policies, `is_owner_of`, function grants, FK indexes. Rollback: `supabase/rollbacks/0004_security_hardening.down.sql`. Check: `supabase/checks/0004_security_hardening.verify.sql`. |
+| `0005_share_link_rpc.sql` | `get_shared_plan`, drops the anon share policies, narrows `st_select`, deletes empty non-Monday plans, adds `plans_week_start_monday`. Rollback: `supabase/rollbacks/0005_share_link_rpc.down.sql`. Check: `supabase/checks/0005_share_link_rpc.verify.sql`. |
 
 ## Seed
 
@@ -121,8 +122,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 ```sql
 -- Which plans can the current user see, and why?
 select p.id, p.week_start_date,
-       is_member_of(p.household_id) as via_membership,
-       exists (select 1 from share_tokens st where st.plan_id = p.id) as via_share_token
+       is_member_of(p.household_id) as via_membership
 from plans p;
 ```
 
@@ -137,12 +137,12 @@ from plans p;
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`
 - `supabase/seed.sql`, `supabase/config.toml`
 - Supabase security and performance advisors, run 2026-10-04
 
 ## Changelog
 
+- 2026-10-04: Documented migration 0005 (`get_shared_plan`, share policies removed, Monday constraint).
 - 2026-10-04: Documented migration 0004 (policies, `is_owner_of`, grants, FK indexes).
-
 - 2026-10-04: Created from legacy `database.md` plus a full read of the migrations. Added the policy table, functions and migration 0003.

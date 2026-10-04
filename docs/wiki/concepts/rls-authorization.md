@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 19a988a
+verified_commit: dd7dd50
 sources:
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql
@@ -20,6 +20,8 @@ sources:
     path: supabase/migrations/0002_share_token_rls.sql
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
+  - title: "Share-link RPC"
+    path: supabase/migrations/0005_share_link_rpc.sql
   - title: "Agent orientation (RLS convention)"
     path: AGENTS.md
 ---
@@ -27,7 +29,7 @@ sources:
 # RLS Authorization
 
 > [!tldr]
-> Route handlers don't check permissions; Postgres RLS does. Access is "member of the row's household", tested by `is_member_of()`. Ingredients are crowd-sourced (any signed-in user can edit any row). Since migration 0004, member policies apply to `authenticated` only, and invites, member removal and token creation are locked down. Still loose: tokens are publicly listable, and any member can edit any household recipe.
+> Route handlers don't check permissions; Postgres RLS does. Access is "member of the row's household", tested by `is_member_of()`. Ingredients are crowd-sourced (any signed-in user can edit any row). Since migration 0004, member policies apply to `authenticated` only, and invites, member removal and token creation are locked down. Since 0005, anonymous share links go through the `get_shared_plan` RPC, not policies. Still loose: any member can edit any household recipe.
 
 ## Context
 
@@ -42,13 +44,13 @@ flowchart TD
   H --> R[recipes] --> RI[recipe_ingredients] & RS[recipe_steps]
   H --> P[plans] --> PS[plan_slots]
   H --> PI[pantry_items]
-  ST[share_tokens] -.select-only.-> P & PS & R
+  ST[share_tokens] -.get_shared_plan RPC.-> P & PS & R
 ```
 
 - `is_member_of(hid)` is `security definer`, so it can read `household_members` without hitting that table's own policies recursively. `is_owner_of(hid)` works the same way. Both pin `search_path` and only `authenticated` can execute them.
-- Member policies are `to authenticated`. `anon` reaches data only through the share-token policies and `ing_select`. A policy that applies to `anon` must not call `is_member_of`: `anon` has no `execute` on it, so the query would fail instead of returning no rows.
+- Member policies are `to authenticated`. `anon` reaches data only through `ing_select` and the `get_shared_plan` RPC (0005). A policy that applies to `anon` must not call `is_member_of`: `anon` has no `execute` on it, so the query would fail instead of returning no rows.
 - Child tables (`recipe_ingredients`, `recipe_steps`, `plan_slots`) check access through their parent with `exists (…)`.
-- Same-command policies are OR'd. The share-token policies **add** anonymous read paths alongside the member policies. See [[share-links]].
+- Same-command policies are OR'd. Sharing adds no policies: `get_shared_plan` is `security definer` and returns only what a token unlocks. See [[share-links]] and [[0008-share-link-rpc]].
 
 ## Where the code adds checks anyway
 
@@ -65,19 +67,21 @@ flowchart TD
 
 | Policy | Looseness | Impact |
 |---|---|---|
-| `st_select using (true)` | Anyone holding the anon key can list **all** share tokens | Every shared plan, and every recipe in it, can be enumerated |
 | `rec_update` | Author **or** any member | Any member can edit any household recipe, including `author_id` (as the plan specified). Since 0004 a recipe can't be moved into a foreign household. |
 | `ing_update` | Any signed-in user, any row | Anyone can change any ingredient's macros (intentional crowd-sourcing) |
 | `rec_select` `visibility = 'public_link'` | Readable by any signed-in user without membership | No UI sets `public_link`, so this is latent. Since 0004 `anon` can't read it. |
+
+Fixed in 0005: `st_select using (true)` and the `*_select_via_share_token` policies (token and plan enumeration).
 
 Fixed in 0004: `hm_insert` (self-join, even as owner), `hm_delete` (any member could remove anyone, including the owner), `households_insert` (open to `anon`), `st_insert` (a token for any plan, which exposed that plan through the share-token policies), and `anon` execute on the `security definer` functions.
 
 ## Examples
 
 ```sql
--- Reproduce the token-enumeration gap with the anon role
+-- As anon: no table access, only the RPC (since 0005)
 set role anon;
-select token, plan_id from share_tokens;  -- returns every token
+select count(*) from share_tokens;     -- 0
+select get_shared_plan('<token>');     -- the plan that token unlocks, or null
 ```
 
 ## Related
@@ -88,13 +92,15 @@ select token, plan_id from share_tokens;  -- returns every token
 - [[share-links]]
 - [[0001-rls-is-the-authz-boundary]]
 - [[0003-share-token-rls]]
+- [[0008-share-link-rpc]]
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0004_security_hardening.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`
 - `AGENTS.md`: "RLS is the authorization boundary"
 
 ## Changelog
 
+- 2026-10-04: Updated for migration 0005: sharing goes through `get_shared_plan`; token enumeration fixed.
 - 2026-10-04: Updated for migration 0004. Moved the fixed gaps out of the table and added the `anon` / `is_member_of` rule.
 - 2026-10-04: Created from the RLS notes in legacy `database.md`. Added the token-enumeration, self-join and silent-delete findings.

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { weekStartOf } from '@/lib/week';
 
 export default function SettingsPage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -8,8 +9,8 @@ export default function SettingsPage() {
 
   async function generateShare() {
     setLoading(true);
-    // W v1: plan bieżącego tygodnia
-    const week = new Date().toISOString().slice(0, 10);
+    // Plan bieżącego tygodnia (poniedziałek, czas lokalny), tak jak na /plan
+    const week = weekStartOf(new Date());
     const r = await fetch('/api/plans?week=' + week);
     if (!r.ok) {
       setLoading(false);
