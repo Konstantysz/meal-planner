@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { extractRecipe } from '@/lib/import/extract';
 import { callOllama } from '@/lib/import/ollama';
 import { SYSTEM_PROMPT } from '@/lib/import/schema';
-// Gemini fallback disabled for now — server extraction always goes to local Ollama.
-// import { callGemini } from '@/lib/import/gemini';
 
 // LLM_MODE=server → the browser skips WebLLM and always calls POST below.
 export function GET() {

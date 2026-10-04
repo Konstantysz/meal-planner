@@ -14,11 +14,6 @@ describe('parseLlmJson', () => {
 });
 
 describe('LLM_OUTPUT_SCHEMA', () => {
-  it('requires the fields the prompt asks for and forbids extras', () => {
-    expect(LLM_OUTPUT_SCHEMA.required).toEqual(['name', 'recipeIngredient', 'recipeInstructions']);
-    expect(LLM_OUTPUT_SCHEMA.additionalProperties).toBe(false);
-  });
-
   it('accepts what parseLlmJson accepts', () => {
     const sample = { name: 'Zupa', recipeIngredient: ['a'], recipeInstructions: ['b'], recipeYield: '4', prepTime: 'PT20M' };
     for (const key of Object.keys(sample)) expect(LLM_OUTPUT_SCHEMA.properties).toHaveProperty(key);

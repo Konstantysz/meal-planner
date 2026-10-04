@@ -11,18 +11,6 @@ export function ImportDialog({
   const [error, setError] = useState<string | null>(null);
   const [modelProgress, setModelProgress] = useState<{ text: string; progress: number } | null>(null);
 
-  async function extractOnServer(markdown: string) {
-    setStage('extract');
-    const er = await fetch('/api/import/extract', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown }),
-    });
-    if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
-    const recipe = await er.json();
-    setStage('done');
-    onExtracted(recipe, url);
-  }
-
   async function run() {
     setError(null);
     setModelProgress(null);
@@ -39,21 +27,26 @@ export function ImportDialog({
       const mr = await fetch('/api/import/extract');
       if (!mr.ok) throw new Error(`Nie udało się odczytać trybu LLM (${mr.status})`);
       const { mode } = await mr.json();
+      let recipe: RecipeJsonLd;
       if (mode === 'server') {
-        await extractOnServer(markdown);
-        return;
+        setStage('extract');
+        const er = await fetch('/api/import/extract', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markdown }),
+        });
+        if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
+        recipe = await er.json();
+      } else {
+        if (!(await hasWebGpu())) {
+          throw new Error('Ta przeglądarka nie obsługuje WebGPU. Import działa tu tylko z serwerem uruchomionym z LLM_MODE=server.');
+        }
+        setStage('model');
+        await ensureEngineReady((p) => {
+          setModelProgress({ text: p.text, progress: p.progress });
+        });
+        setStage('extract');
+        recipe = await extractWithWebLlm(markdown);
       }
-      if (!(await hasWebGpu())) {
-        throw new Error('Ta przeglądarka nie obsługuje WebGPU. Import działa tu tylko z serwerem uruchomionym z LLM_MODE=server.');
-      }
-
-      setStage('model');
-      await ensureEngineReady((p) => {
-        setModelProgress({ text: p.text, progress: p.progress });
-      });
-
-      setStage('extract');
-      const recipe = await extractWithWebLlm(markdown);
       setStage('done');
       onExtracted(recipe, url);
     } catch (e) {

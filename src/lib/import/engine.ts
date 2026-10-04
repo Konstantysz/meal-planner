@@ -1,6 +1,6 @@
 'use client';
 import { CreateWebWorkerMLCEngine, type WebWorkerMLCEngine, type InitProgressReport } from '@mlc-ai/web-llm';
-import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, MAX_MARKDOWN_CHARS, parseLlmJson } from './schema';
+import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, parseLlmJson } from './schema';
 import type { RecipeJsonLd } from '@/lib/schemas';
 
 const MODEL_ID = 'gemma-2-2b-it-q4f16_1-MLC';
@@ -34,15 +34,12 @@ export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => 
 export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd> {
   if (!enginePromise) throw new Error('engine not initialized');
   const engine = await enginePromise;
-  const truncated = markdown.length > MAX_MARKDOWN_CHARS
-    ? markdown.slice(0, MAX_MARKDOWN_CHARS)
-    : markdown;
   let chunks;
   try {
     chunks = await engine.chat.completions.create({
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: truncated },
+        { role: 'user', content: markdown },
       ],
       temperature: 0.1,
       max_tokens: 1536,

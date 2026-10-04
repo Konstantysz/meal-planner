@@ -2,8 +2,6 @@ import * as cheerio from 'cheerio';
 import TurndownService from 'turndown';
 import { MAX_MARKDOWN_CHARS } from './schema';
 
-export { MAX_MARKDOWN_CHARS };
-
 const turndown = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-' });
 // URLs are pure token cost for the model — keep link text only.
 turndown.addRule('linkText', { filter: 'a', replacement: (content) => content });

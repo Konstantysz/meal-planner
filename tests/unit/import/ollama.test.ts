@@ -16,6 +16,7 @@ describe('callOllama', () => {
     expect(out).toBe('{"name":"Zupa"}');
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('http://localhost:11434/api/chat');
+    expect(init.signal).toBeInstanceOf(AbortSignal); // hung Ollama must not hang the request forever
     const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({
       model: 'gemma2:2b',

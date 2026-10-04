@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { cleanHtml, cropToRecipe, MAX_MARKDOWN_CHARS } from '@/lib/import/clean';
+import { cleanHtml, cropToRecipe } from '@/lib/import/clean';
+import { MAX_MARKDOWN_CHARS } from '@/lib/import/schema';
 
 describe('cleanHtml', () => {
   it('removes scripts, styles, nav, footer', () => {
