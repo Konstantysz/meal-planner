@@ -62,7 +62,7 @@ Recipe macros, the shopping list's `incomplete` flag and import auto-matching al
 ## Known gaps
 
 - Any signed-in user can overwrite any ingredient's macros (`ing_update`). That is intentional, per the plan, but nothing records who changed what.
-- Macro-less placeholders pile up from import and manual creation. `scripts/backfill-ingredient-macros.ts` (service-role key, `--dry-run`) re-queries OFF for them and takes the first hit as-is.
+- Macro-less placeholders pile up from import and manual creation. The picker inserts them as soon as they are picked, even if the recipe is never saved. Their null macros count as 0, so recipe macros are understated without any warning on the detail page (the shopping list does show „brak makro"). `scripts/backfill-ingredient-macros.ts` (service-role key, `--dry-run`) re-queries OFF for them and takes the first hit as-is.
 - `GET /api/ingredients` returns the whole table. The picker filters client-side.
 
 ## Examples
@@ -89,4 +89,5 @@ pnpm tsx scripts/backfill-ingredient-macros.ts --dry-run
 
 ## Changelog
 
+- 2026-10-04: Added a gap found in the 2026-10-04 smoke test.
 - 2026-10-04: Created.

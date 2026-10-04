@@ -73,6 +73,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 - **Per-day macros are a stub.** `dayMacros` is filled with `null`, so mobile always shows „brak danych makro". Implementing it needs recipe ingredients per slot (see [[macro-calculation]]).
 - No navigation between weeks, and no drag and drop (`@dnd-kit` is installed but unused).
 - After the picker closes, `assign` errors are ignored.
+- The recipe name in a slot card is light grey on white and barely readable in dark mode.
 
 ## Examples
 
@@ -94,4 +95,5 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 
 ## Changelog
 
+- 2026-10-04: Added a gap found in the 2026-10-04 smoke test.
 - 2026-10-04: Created from legacy `plan.md`. Added the servings-always-1, label mismatch, UTC parsing and create-race notes, plus the build-time week freeze (seen in `pnpm build` output).

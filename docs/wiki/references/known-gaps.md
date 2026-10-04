@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: dd7dd50
+verified_commit: dd67b66
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -46,9 +46,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | `/plan` and `/shopping` are statically pre-rendered, so production shows the build week | [[week-plan#Known gaps]] |
 | `/api/import/fetch` fetches any URL for any signed-in user (SSRF) | [[api-routes#Routes]] |
-| Signup with email confirmation enabled leaves a user without a household | [[household-model#Known gaps]] |
 | A non-author recipe delete returns 204 and deletes nothing | [[recipe-management#Known gaps]] |
-| `createRecipe` isn't transactional, so it can leave orphan recipe rows | [[recipe-management#Known gaps]] |
 | An RLS-hidden recipe in a slot makes `/api/shopping` throw | [[shopping-list-aggregation#Invariants and gotchas]] |
 
 ## Medium
@@ -57,6 +55,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
+| Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
@@ -73,6 +72,9 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | `/` is the create-next-app page; metadata says "Create Next App" | [[spec-drift#Leftover scaffold]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
+| The login page has no link to signup | [[auth-session#Known gaps]] |
+| Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
+| Slot recipe name is barely readable in dark mode | [[week-plan#Known gaps]] |
 | `useShoppingList` reads `navigator` during render. That is safe on the supported Node versions (22.22+), but fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |
 | `@dnd-kit` is installed but unused | [[spec-drift#Planned but not built]] |
@@ -98,6 +100,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-04: Removed the email-confirmation signup and non-transactional create rows (fixed by migration 0006). Added four gaps found in the 2026-10-04 smoke test.
 - 2026-10-04: Removed the token-enumeration and settings wrong-week rows (fixed by migration 0005 and the settings fix).
 - 2026-10-04: Removed the household self-join row (fixed by migration 0004).
 - 2026-10-04: Created from the gaps collected while verifying the wiki against the code.

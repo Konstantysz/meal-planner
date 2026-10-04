@@ -70,7 +70,7 @@ The matcher excludes `_next/static`, `_next/image`, `favicon.ico` and `icons/`.
 
 ## Known gaps
 
-- Local Supabase config has `enable_confirmations = false`. If the hosted project requires email confirmation, `signUp` returns no session, the RPC fails, and the user ends up with an account but no household. There is no first-login recovery. See [[household-model#Known gaps]].
+- The login page has no link to `/signup`; users have to type the URL.
 - No password reset, no OAuth and no rate limiting beyond Supabase's defaults.
 
 ## Examples
@@ -95,4 +95,5 @@ const isPublic = path.startsWith('/share/') || path === '/manifest.json';
 
 ## Changelog
 
+- 2026-10-04: Removed the email-confirmation gap (the household is created by a trigger since migration 0006). Added the missing signup link.
 - 2026-10-04: Created from the protected-routes section of legacy `auth.md`. Added the proxy rename and the `/api` redirect behaviour.
