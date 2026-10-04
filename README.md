@@ -1,23 +1,23 @@
 > [!IMPORTANT]
-> **Kostek, przeczytaj najpierw.** 4 października 2026 zrobiliśmy audyt bazy danych na produkcji i wdrożyliśmy trzy migracje (`0004`–`0006`, PR #5, #6, #7).
+> **Kostek, read this first.** On 4 October 2026 we audited the production database and shipped three migrations (`0004`–`0006`, PRs #5, #6, #7).
 >
-> - Polityki RLS pozwalały m.in. dopisać się do cudzego gospodarstwa jako owner, a każdy z kluczem anon mógł wylistować wszystkie linki udostępniania i plany. To jest już zamknięte.
-> - Linki udostępniania działają przez RPC `get_shared_plan`.
-> - Gospodarstwo tworzy trigger przy rejestracji.
-> - Przepis zapisuje się atomowo przez `save_recipe`.
+> - RLS let any signed-in user add themselves to another household as owner, and anyone with the anon key could list every share link and plan. Both are closed.
+> - Share links go through the `get_shared_plan` RPC.
+> - A trigger creates the household on signup.
+> - Recipes are saved atomically by the `save_recipe` RPC.
 >
-> Każdą zmianę sprawdziliśmy skryptem na żywej bazie przed i po deployu.
+> Every change was checked with a script on the live database before and after the deploy.
 >
-> **Ważne:** merge do `main` od razu wdraża nowe migracje na produkcję (integracja Supabase z GitHubem, „Deploy to production”).
+> **Important:** merging into `main` deploys new migrations to production right away (Supabase GitHub integration, "Deploy to production").
 >
-> Gdzie co jest:
+> Where things are:
 >
-> - [`docs/wiki/references/migration-history.md`](docs/wiki/references/migration-history.md): co, dlaczego i jak zweryfikowane; otwarte problemy (głównie katalog składników). **Zacznij tutaj.**
-> - [`docs/wiki/guides/apply-migration.md`](docs/wiki/guides/apply-migration.md): jak dodać kolejną migrację (baseline, PR, merge, weryfikacja).
-> - [`docs/wiki/references/database-schema.md`](docs/wiki/references/database-schema.md): aktualne tabele, polityki i funkcje.
-> - [`docs/wiki/references/known-gaps.md`](docs/wiki/references/known-gaps.md): lista znanych bugów.
-> - [`docs/wiki/guides/local-dev-setup.md`](docs/wiki/guides/local-dev-setup.md): wymagany jest Node 24; do tego `.env.local` i `.mcp.json` (Supabase MCP w trybie read-only).
-> - `supabase/checks/` (skrypty weryfikacyjne) i `supabase/rollbacks/` (ręczne rollbacki).
+> - [`docs/wiki/references/migration-history.md`](docs/wiki/references/migration-history.md): what changed, why, and how it was verified; open issues (mainly the ingredient catalog). **Start here.**
+> - [`docs/wiki/guides/apply-migration.md`](docs/wiki/guides/apply-migration.md): how to add the next migration (baseline, PR, merge, verify).
+> - [`docs/wiki/references/database-schema.md`](docs/wiki/references/database-schema.md): current tables, policies and functions.
+> - [`docs/wiki/references/known-gaps.md`](docs/wiki/references/known-gaps.md): known bugs.
+> - [`docs/wiki/guides/local-dev-setup.md`](docs/wiki/guides/local-dev-setup.md): Node 24 is required; plus `.env.local` and `.mcp.json` (Supabase MCP, read-only).
+> - `supabase/checks/` (verification scripts) and `supabase/rollbacks/` (manual rollbacks).
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
