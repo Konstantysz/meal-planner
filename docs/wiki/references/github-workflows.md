@@ -18,10 +18,10 @@ sources:
     path: .github/workflows/keepalive.yml
   - title: "Backup workflow"
     path: .github/workflows/backup.yml
-  - title: "Wiki workflow"
-    path: .github/workflows/wiki.yml
   - title: "CI workflow"
     path: .github/workflows/ci.yml
+  - title: "Main branch ruleset"
+    path: .github/rulesets/main-protection.json
   - title: "Supabase CLI: db dump"
     url: "https://github.com/supabase/cli/blob/develop/apps/cli/docs/supabase/db/dump.md"
     accessed: 2026-10-04
@@ -30,7 +30,7 @@ sources:
 # GitHub Workflows
 
 > [!tldr]
-> `keepalive.yml` pings Supabase every 5 days so the free-tier project doesn't pause. `backup.yml` dumps the database weekly into a 90-day artifact (schema only, no data). `wiki.yml` runs `pnpm wiki:check` on PRs that touch the wiki. `ci.yml` runs lint, format check, typecheck and tests on every PR and on pushes to `main`.
+> `keepalive.yml` pings Supabase every 5 days so the free-tier project doesn't pause. `backup.yml` dumps the database weekly into a 90-day artifact (schema only, no data). `ci.yml` is a sequential pipeline of four jobs, `lint` → `wiki` → `test` → `build`, on every PR and push to `main`. All four are required status checks on `main` (ruleset in `.github/rulesets/main-protection.json`).
 
 ## Context
 
@@ -42,11 +42,20 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 |---|---|---|---|
 | `keepalive.yml` | cron `0 6 */5 * *` (06:00 UTC on days 1, 6, 11, … of each month) + manual | `curl -sf $SUPABASE_URL/rest/v1/ingredients?select=id&limit=1` with the `apikey` header | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | `backup.yml` | cron `0 3 * * 0` (Sundays 03:00 UTC) + manual | Installs the **latest** Supabase CLI from GitHub releases (unpinned), runs `supabase db dump --db-url …`, uploads `backups/` as an artifact kept 90 days | `SUPABASE_DB_URL` |
-| `ci.yml` | every PR, push to `main` | `pnpm install --frozen-lockfile`, then `pnpm lint` (ESLint, errors only fail), `pnpm format:check` (Prettier), `pnpm typecheck`, `pnpm test` on Node 24 (vitest 5 / jsdom 30 need Node 22.22+) | none |
-| `wiki.yml` | PRs touching `docs/wiki/**`, `scripts/wiki-check.ts`, `.markdownlint-cli2.jsonc` | `pnpm install --frozen-lockfile`, `pnpm wiki:check` | none |
+| `ci.yml` | every PR, push to `main` | Four chained jobs (`needs`), each on Node 24 after `pnpm install --frozen-lockfile`: `lint` (`pnpm lint`, `format:check`, `typecheck`) → `wiki` (`pnpm wiki:check`) → `test` (`pnpm test`) → `build` (`pnpm build` with placeholder `NEXT_PUBLIC_SUPABASE_*` vars, `.next/cache` cached) | none |
 
 > [!danger] Neither scheduled workflow has ever succeeded
 > As of 2026-10-04, `gh secret list` on `Konstantysz/meal-planner` returns nothing, and every scheduled keepalive and backup run has failed. The keepalive log shows `curl -sf "/rest/v1/ingredients…" -H "apikey: "`, meaning the secrets are empty. So the free-tier project isn't being kept awake and there are no backups. Fix it with [[configure-ci-secrets]].
+
+## Branch protection
+
+`.github/rulesets/main-protection.json` is a GitHub ruleset for the default branch. It blocks direct pushes (changes need a PR), force pushes and deletion, and requires the `lint`, `wiki`, `test` and `build` checks, with the branch up to date. Repository admins can bypass it, so only an admin can push straight to `main` or force-push. A ruleset isn't applied by merging the file; an admin imports it once (Settings → Rules → Rulesets → New ruleset → Import a ruleset) or runs:
+
+```bash
+gh api -X POST repos/Konstantysz/meal-planner/rulesets --input .github/rulesets/main-protection.json
+```
+
+The job names are the required-check names. Rename a job and the ruleset must change too, otherwise PRs wait forever for a check that never reports. The `wiki` job runs on every PR (no path filter) because a required check that is skipped blocks the merge.
 
 ## Gotchas
 
@@ -73,7 +82,7 @@ gh run list --workflow backup.yml --limit 5
 
 ## Sources
 
-- `.github/workflows/keepalive.yml`, `backup.yml`, `wiki.yml`
+- `.github/workflows/keepalive.yml`, `backup.yml`, `ci.yml`, `.github/rulesets/main-protection.json`
 - `gh secret list` and `gh run list` / `gh run view --log-failed` on `Konstantysz/meal-planner`, 2026-10-04
 - [Supabase CLI docs for `db dump`](https://github.com/supabase/cli/blob/develop/apps/cli/docs/supabase/db/dump.md), accessed 2026-10-04
 
@@ -81,3 +90,4 @@ gh run list --workflow backup.yml --limit 5
 
 - 2026-10-04: Created from legacy `ci.md`. Removed the stale "no GitHub remote" claim and added the wiki workflow, the schema-only backup finding, and the observed failing runs and missing secrets.
 - 2026-10-04: Added `ci.yml` (lint, format, typecheck, test).
+- 2026-10-04: Merged `wiki.yml` into `ci.yml` as a sequential `lint` → `wiki` → `test` → `build` pipeline, added the build stage, and added the `main` ruleset requiring all four checks.
