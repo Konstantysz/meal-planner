@@ -12,10 +12,12 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: 19a988a
 sources:
   - title: "Signup RPC migration"
     path: supabase/migrations/0003_household_signup_rpc.sql
+  - title: "Security hardening"
+    path: supabase/migrations/0004_security_hardening.sql
   - title: "Auth form (signup)"
     path: src/components/auth/AuthForm.tsx
   - title: "inviteMember"
@@ -71,14 +73,15 @@ There is no ordering and no "current household" concept.
 ## Invariants and gotchas
 
 - Never insert a household from the client and then read it back. Use the RPC, or anything else that creates the membership first.
-- `hm_insert` allows `user_id = auth.uid() or is_member_of(household_id)`. RLS alone would let any signed-in user add **themselves**, even with role `owner`, to any household whose UUID they know. `inviteMember`'s explicit check doesn't help here, because a direct REST insert bypasses it.
+- Since migration 0004, `hm_insert` allows only `is_member_of(household_id) and role = 'member'`. Only an existing member can add someone, never as `owner`, and nobody can add themselves to a foreign household. The owner row comes only from `create_household_with_owner`. `inviteMember`'s explicit check is now redundant with RLS, but harmless.
+- `hm_delete` (0004): a member may remove themselves; the owner may remove anyone else; the owner can't remove themselves.
 - Multiple households per user are possible in the schema but unsupported in the app, because of the `limit(1)` resolution.
 
 ## Known gaps
 
 - **Email confirmation:** if confirmations are enabled on the hosted project, `signUp` returns a user but no session, so the RPC raises `not authenticated`. The form shows the error, but nothing creates the household on first login.
 - **No email-to-user lookup.** It would need a service-role admin client (`auth.admin`), which the app doesn't have. A `ponytail:` comment in `households.ts` names that upgrade path.
-- No UI to list or remove members, and no way to leave a household.
+- No UI to list or remove members, and no UI to leave a household (RLS allows both since 0004).
 
 ## Examples
 
@@ -105,4 +108,5 @@ curl -X POST http://localhost:3000/api/household/invite \
 
 ## Changelog
 
+- 2026-10-04: Updated the membership rules for migration 0004 (self-join fixed, `hm_delete` rules).
 - 2026-10-04: Created from legacy `auth.md`. Fixed the stale claim that signup inserts the rows client-side (it uses the RPC since `a8b8cef`). Added the self-join RLS gap.
