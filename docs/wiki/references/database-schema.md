@@ -25,7 +25,7 @@ sources:
   - title: "0004 rollback"
     path: supabase/rollbacks/0004_security_hardening.down.sql
   - title: "0004 verification script"
-    path: supabase/tests/0004_security_hardening.verify.sql
+    path: supabase/checks/0004_security_hardening.verify.sql
   - title: "Ingredient seed"
     path: supabase/seed.sql
   - title: "Supabase CLI config"
@@ -110,7 +110,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | `0001_initial.sql` | All tables, indexes, RLS enablement, `is_member_of`, member and owner policies |
 | `0002_share_token_rls.sql` | The three `*_select_via_share_token` policies |
 | `0003_household_signup_rpc.sql` | `create_household_with_owner` |
-| `0004_security_hardening.sql` | Tightened member, invite and share-token policies, `is_owner_of`, function grants, FK indexes. Rollback: `supabase/rollbacks/0004_security_hardening.down.sql`. Check: `supabase/tests/0004_security_hardening.verify.sql`. |
+| `0004_security_hardening.sql` | Tightened member, invite and share-token policies, `is_owner_of`, function grants, FK indexes. Rollback: `supabase/rollbacks/0004_security_hardening.down.sql`. Check: `supabase/checks/0004_security_hardening.verify.sql`. |
 
 ## Seed
 
