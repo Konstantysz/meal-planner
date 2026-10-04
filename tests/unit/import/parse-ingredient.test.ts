@@ -42,6 +42,17 @@ describe('parseIngredientLine', () => {
     });
   });
 
+  it.each([
+    ['6 średnich jajek - lub 7 małych lub 5 bardzo dużych', 'jajek', 6, 'sztuki'],
+    ['200 g gorzkiej czekolady - najlepiej 70 %', 'gorzkiej czekolady', 200, 'g'],
+    ['250 cukru - trzcinowy ciemny', 'cukru', 250, 'g'],
+    ['niecała szklanka mąki pszennej (140 g)', 'mąki pszennej', 140, 'g'],
+    ['3 łyżki oleju - około 30 g', 'oleju', 30, 'g'],
+    ['pół płaskiej łyżeczki soli', 'soli', 0.5, 'łyżeczka'],
+  ])('parses quantity-first line %s', (raw, name, amount, unit) => {
+    expect(parseIngredientLine(raw)).toEqual({ name, amount, unit });
+  });
+
   it('returns name only when no amount/unit found', () => {
     expect(parseIngredientLine('szczypta soli')).toEqual({ name: 'szczypta soli', amount: null, unit: null });
   });

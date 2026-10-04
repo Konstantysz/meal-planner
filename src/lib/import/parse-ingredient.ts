@@ -25,30 +25,46 @@ const UNIT_WORDS = [
   'opakowania',
 ];
 
-const AMOUNT_UNIT_RE = new RegExp(
-  `(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć)\\s*(${UNIT_WORDS.join('|')})\\b`,
-  'i',
-);
+// Shape words that may sit between amount and unit ("pół płaskiej łyżeczki").
+const MODIFIER = '(?:\\s+(?:płask\\S*|czubat\\S*|gładk\\S*|kopiast\\S*))*';
+const AMOUNT = '(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć|niecał\\S+)';
+const unitRe = (units: string[], flags: string) => new RegExp(`${AMOUNT}${MODIFIER}\\s*(${units.join('|')})\\b`, flags);
+
+const AMOUNT_UNIT_RE = unitRe(UNIT_WORDS, 'i');
+const AMOUNT_UNIT_RE_ALL = unitRe(UNIT_WORDS, 'gi');
+const METRIC_RE = unitRe(['g', 'kg', 'ml', 'l'], 'i');
+// "6 średnich jajek", "250 cukru" — leading number with no unit word.
+const BARE_COUNT_RE = /^(\d+(?:[.,]\d+)?)\s+(?:(?:bardzo|średni\S*|duż\S*|mał\S*)\s+)*/i;
 
 // "chili i kumin po 1/4 łyżeczki" — two ingredient names sharing one trailing amount+unit.
 const COMPOUND_RE = /^(.+?)\s+i\s+(.+?)\s+po\s+(.+)$/i;
 
-// ponytail: takes the first amount+unit found and strips it out; a multi-quantity
-// line ("papryka ... 400 g - 2 sztuki") keeps only the first match — good enough
-// for review-and-fix UX, not a full NLP parser.
+// ponytail: keeps one amount+unit (a metric one if present, since macros are per 100 g,
+// else the first) and strips every amount phrase and " - comment" tail from the name;
+// not a full NLP parser. Bare leading counts: < 50 → sztuki, else grams.
 export function parseIngredientLine(raw: string): ParsedIngredient {
-  const match = raw.match(AMOUNT_UNIT_RE);
-  if (!match) {
-    return { name: raw.trim(), amount: null, unit: null };
+  const match = raw.match(METRIC_RE) ?? raw.match(AMOUNT_UNIT_RE);
+  let amount: number | null = null;
+  let unit: string | null = null;
+  let rest = raw;
+  if (match) {
+    amount = parseAmount(match[1]);
+    unit = normalizeUnit(match[2]);
+    rest = raw.replace(AMOUNT_UNIT_RE_ALL, ' ');
+  } else {
+    const bare = raw.trim().match(BARE_COUNT_RE);
+    if (bare) {
+      amount = parseAmount(bare[1]);
+      unit = amount !== null && amount < 50 ? 'sztuki' : 'g';
+      rest = raw.trim().slice(bare[0].length);
+    }
   }
-  const amount = parseAmount(match[1]);
-  const unit = normalizeUnit(match[2]);
-  const name =
-    raw
-      .slice(0, match.index)
-      .replace(/[-–,]\s*$/, '')
-      .trim() || raw.trim();
-  return { name, amount, unit };
+  const name = rest
+    .replace(/\(\s*\)/g, ' ')
+    .replace(/\s[-–].*$/, '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s,–-]+|[\s,–(-]+$/g, '');
+  return { name: name || raw.trim(), amount, unit };
 }
 
 // Splits a compound line ("chili i kumin po 1/4 łyżeczki") into one ParsedIngredient
@@ -70,6 +86,7 @@ function parseAmount(s: string): number | null {
   const lower = s.toLowerCase();
   if (lower === 'pół') return 0.5;
   if (lower === 'ćwierć') return 0.25;
+  if (lower.startsWith('niecał')) return 1;
   if (s.includes('/')) {
     const [num, den] = s.split('/').map((x) => Number(x.trim()));
     return den ? num / den : null;
