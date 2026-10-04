@@ -5,3 +5,6 @@ pnpm-lock.yaml
 .bench-chrome/
 tests/fixtures/
 supabase/.temp/
+
+# Vendored agent skills (installed by `npx skills`, not our code)
+.claude/skills/
