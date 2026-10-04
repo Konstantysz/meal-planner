@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
+export function AuthForm({ mode, initialError }: { mode: 'login' | 'signup'; initialError?: string }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -71,6 +72,11 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
       <button type="submit" disabled={loading} className="w-full bg-green-600 text-white rounded py-2">
         {loading ? '...' : mode === 'login' ? 'Zaloguj' : 'Zarejestruj'}
       </button>
+      {mode === 'login' && (
+        <Link href="/forgot-password" className="block text-center text-sm text-green-700 underline">
+          Nie pamiętam hasła
+        </Link>
+      )}
     </form>
   );
 }
