@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 19a988a
+verified_commit: dd7dd50
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -39,14 +39,12 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | Keepalive and backup have never succeeded: no Actions secrets are configured | [[github-workflows#Workflows]] |
 | The weekly backup is a schema-only dump. No data can be restored even once the secrets are set. | [[github-workflows#Gotchas]] |
-| Anyone with the anon key can list every share token, and through them every shared plan and its recipes | [[share-links#Known gaps]] |
 
 ## High
 
 | Gap | Details |
 |---|---|
 | `/plan` and `/shopping` are statically pre-rendered, so production shows the build week | [[week-plan#Known gaps]] |
-| The settings page shares the plan keyed by **today**, not the week's Monday, so it's usually an empty plan | [[share-links#Invariants and gotchas]] |
 | `/api/import/fetch` fetches any URL for any signed-in user (SSRF) | [[api-routes#Routes]] |
 | Signup with email confirmation enabled leaves a user without a household | [[household-model#Known gaps]] |
 | A non-author recipe delete returns 204 and deletes nothing | [[recipe-management#Known gaps]] |
@@ -100,5 +98,6 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-04: Removed the token-enumeration and settings wrong-week rows (fixed by migration 0005 and the settings fix).
 - 2026-10-04: Removed the household self-join row (fixed by migration 0004).
 - 2026-10-04: Created from the gaps collected while verifying the wiki against the code.

@@ -2,7 +2,7 @@
 title: "0003 Share-Token RLS Policies"
 summary: "Anonymous share-link reads are granted by additive select-only RLS policies that check for a share_tokens row."
 tags: [sharing, rls, security]
-status: review
+status: deprecated
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-04
@@ -24,6 +24,8 @@ sources:
 
 > [!tldr]
 > `/share/[token]` works for anonymous visitors because migration 0002 adds `for select` policies on `plans`, `plan_slots` and `recipes` that allow a row when a `share_tokens` row references its plan. Writes still need membership.
+>
+> **Superseded by [[0008-share-link-rpc]]** (migration 0005 dropped these policies).
 
 ## Context
 
@@ -31,7 +33,7 @@ Anonymous visitors have no `auth.uid()`, so the member-only `for all` policies h
 
 ## Decision
 
-**Status:** accepted (commit `07eb51c`).
+**Status:** superseded by [[0008-share-link-rpc]] (migration 0005). Originally accepted in commit `07eb51c`.
 
 Add narrow, additive select policies. Same-command policies are OR'd, so member access is unchanged:
 
@@ -49,11 +51,12 @@ _Not recorded at the time; reconstructed for comparison._
 ## Consequences
 
 - No privileged key in the app.
-- **The policies check that _some_ token exists, not that the caller holds it.** Combined with `st_select using (true)`, which makes all tokens readable, anyone can enumerate shared plans. This decision should be superseded by the function approach (see [[share-links#Known gaps]]).
+- **The policies check that _some_ token exists, not that the caller holds it.** Combined with `st_select using (true)`, which makes all tokens readable, anyone can enumerate shared plans. Fixed by [[0008-share-link-rpc]].
 
 ## Related
 
 - [[decisions]]
+- [[0008-share-link-rpc]]
 - [[share-links]]
 - [[rls-authorization]]
 
@@ -63,4 +66,5 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Changelog
 
+- 2026-10-04: Marked superseded by 0008.
 - 2026-10-04: Recorded retroactively, including the enumeration consequence.

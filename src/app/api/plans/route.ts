@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getOrCreatePlan, getWeekPlan } from '@/lib/db/plans';
+import { normalizeWeekStart } from '@/lib/week';
 
 export async function GET(req: Request) {
   const supabase = await createServerSupabase();
-  const weekStart = new URL(req.url).searchParams.get('week');
-  if (!weekStart) return NextResponse.json({ error: 'week required' }, { status: 400 });
+  const week = new URL(req.url).searchParams.get('week');
+  // Any day of the week maps to its Monday; the DB rejects non-Monday plans (0005).
+  const weekStart = week ? normalizeWeekStart(week) : null;
+  if (!weekStart) return NextResponse.json({ error: 'week required (yyyy-MM-dd)' }, { status: 400 });
   const {
     data: { user },
   } = await supabase.auth.getUser();
