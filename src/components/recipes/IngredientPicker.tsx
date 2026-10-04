@@ -76,6 +76,9 @@ export function IngredientPicker({
     }
   }
 
+  const update = (idx: number, patch: Partial<PickedIngredient>) =>
+    onChange(value.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
+
   return (
     <div className="space-y-2">
       <input
@@ -114,41 +117,25 @@ export function IngredientPicker({
           <li key={idx} className="flex items-center gap-2">
             <input
               value={v.raw_text}
-              onChange={(e) => {
-                const next = [...value];
-                next[idx] = { ...v, raw_text: e.target.value };
-                onChange(next);
-              }}
+              onChange={(e) => update(idx, { raw_text: e.target.value })}
               className="flex-1 border rounded px-2 py-1"
             />
             <input
               type="number"
               value={v.amount ?? ''}
-              onChange={(e) => {
-                const next = [...value];
-                next[idx] = { ...v, amount: e.target.value === '' ? null : Number(e.target.value) };
-                onChange(next);
-              }}
+              onChange={(e) => update(idx, { amount: e.target.value === '' ? null : Number(e.target.value) })}
               className="w-20 border rounded px-2 py-1"
             />
             <input
               value={v.unit ?? ''}
-              onChange={(e) => {
-                const next = [...value];
-                next[idx] = { ...v, unit: e.target.value || null };
-                onChange(next);
-              }}
+              onChange={(e) => update(idx, { unit: e.target.value || null })}
               className="w-16 border rounded px-2 py-1"
             />
             <label className="flex items-center gap-1 text-sm whitespace-nowrap">
               <input
                 type="checkbox"
                 checked={v.optional}
-                onChange={(e) => {
-                  const next = [...value];
-                  next[idx] = { ...v, optional: e.target.checked };
-                  onChange(next);
-                }}
+                onChange={(e) => update(idx, { optional: e.target.checked })}
               />
               opcjonalny
             </label>

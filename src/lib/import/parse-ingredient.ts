@@ -28,11 +28,11 @@ const UNIT_WORDS = [
 // Shape words that may sit between amount and unit ("pół płaskiej łyżeczki").
 const MODIFIER = '(?:\\s+(?:płask\\S*|czubat\\S*|gładk\\S*|kopiast\\S*))*';
 const AMOUNT = '(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć|niecał\\S+)';
-const unitRe = (units: string[], flags: string) => new RegExp(`${AMOUNT}${MODIFIER}\\s*(${units.join('|')})\\b`, flags);
+const unitRe = (units: string[]) => new RegExp(`${AMOUNT}${MODIFIER}\\s*(${units.join('|')})\\b`, 'i');
 
-const AMOUNT_UNIT_RE = unitRe(UNIT_WORDS, 'i');
-const AMOUNT_UNIT_RE_ALL = unitRe(UNIT_WORDS, 'gi');
-const METRIC_RE = unitRe(['g', 'kg', 'ml', 'l'], 'i');
+const AMOUNT_UNIT_RE = unitRe(UNIT_WORDS);
+const AMOUNT_UNIT_RE_ALL = new RegExp(AMOUNT_UNIT_RE, 'gi');
+const METRIC_RE = unitRe(['g', 'kg', 'ml', 'l']);
 // "6 średnich jajek", "250 cukru" — leading number with no unit word.
 const BARE_COUNT_RE = /^(\d+(?:[.,]\d+)?)\s+(?:(?:bardzo|średni\S*|duż\S*|mał\S*)\s+)*/i;
 
