@@ -59,6 +59,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 
 | Gap | Details |
 |---|---|
+| `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |

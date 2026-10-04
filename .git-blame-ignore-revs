@@ -1,0 +1,5 @@
+# Bulk formatting commits, skipped by `git blame` (GitHub reads this automatically).
+# Local: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# If the PR is squash-merged, replace this hash with the squash commit's.
+# style: format codebase with Prettier
+a36183d9321a13aa988a56a6c1eaa61ff6b70aa8

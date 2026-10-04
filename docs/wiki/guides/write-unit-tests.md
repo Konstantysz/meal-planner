@@ -69,7 +69,7 @@ The new test fails before your change and passes after it (red, then green).
 | `navigator.gpu` / `Worker` undefined | Stub it with `vi.stubGlobal`. jsdom doesn't provide WebGPU or workers. |
 
 > [!note]
-> The repo forbids `any`, but the Supabase chain mocks use `as any` to pass a partial client. Prefer `as unknown as SupabaseClient` in new tests.
+> ESLint rejects `any` (`@typescript-eslint/no-explicit-any`), in tests too. Pass partial Supabase mocks as `as unknown as SupabaseClient`.
 
 ## Examples
 
@@ -97,3 +97,4 @@ expect(await listIngredients(mockSupabase)).toEqual(rows);
 ## Changelog
 
 - 2026-10-04: Created.
+- 2026-10-04: The `as any` mocks were replaced, and ESLint now enforces it.

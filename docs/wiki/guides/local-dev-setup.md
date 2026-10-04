@@ -39,7 +39,7 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
 
 ## Steps
 
-1. Install dependencies. This also enables the repo's git hooks (`core.hooksPath = .githooks`), which run `pnpm wiki:check` when you commit wiki changes:
+1. Install dependencies. This also enables the repo's git hooks (`core.hooksPath = .githooks`), which check formatting (Prettier) and lint (ESLint) on staged code files and run `pnpm wiki:check` when you commit wiki changes:
 
    ```bash
    pnpm install
@@ -58,6 +58,8 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
 ## Verify
 
 ```bash
+pnpm lint        # ESLint (CI fails on errors, not warnings)
+pnpm format      # Prettier: rewrite; CI runs format:check
 pnpm test        # 120 tests, all green
 pnpm typecheck
 pnpm build       # also shows which routes are static (○) vs dynamic (ƒ)
