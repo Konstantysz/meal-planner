@@ -5,14 +5,14 @@ tags: [database, rls, security]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 last_reviewed: null
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: dd67b66
+verified_commit: 5561f57
 sources:
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
@@ -20,6 +20,8 @@ sources:
     path: supabase/migrations/0005_share_link_rpc.sql
   - title: "Atomic recipe save and signup trigger"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
+  - title: "Optional ingredient flag"
+    path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Verification scripts"
     path: supabase/checks/0004_security_hardening.verify.sql
   - title: "Supabase MCP config"
@@ -31,7 +33,7 @@ sources:
 # Migration History
 
 > [!tldr]
-> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. Each was baselined and verified on the live database with a script in `supabase/checks/`. Read this page first if you missed that work.
+> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag. Each was baselined and verified on the live database with a script in `supabase/checks/`. Read this page first if you missed that work.
 
 ## Context
 
@@ -47,16 +49,18 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0004` | Konstantysz/meal-planner#5 | Locked down `hm_insert`, `hm_delete`, `households_insert`, `rec_update`, `st_insert`; `is_owner_of`; revoked `anon` execute on `security definer` functions; `to authenticated` + `(select auth.uid())`; 8 FK indexes | Any signed-in user could add themselves to any household as owner; any member could remove the owner; `anon` could create households; a token could be made for any plan |
 | `0005` | Konstantysz/meal-planner#6 | `get_shared_plan(token)` RPC; dropped the `*_via_share_token` policies and the open `st_select`; deleted empty non-Monday plans; `plans_week_start_monday` check | Anyone with the anon key could list every token and read every shared plan. The settings page shared a plan keyed by today, not Monday, which created empty plans. See [[0008-share-link-rpc]]. |
 | `0006` | Konstantysz/meal-planner#7 | `on_auth_user_created` trigger creates the household; backfill; idempotent `create_household_with_owner`; `save_recipe` RPC | With email confirmation on, signup left users without a household. `createRecipe` used three inserts and could leave orphan recipes. |
+| `0007` | Konstantysz/meal-planner#13 | `recipe_ingredients.optional boolean not null default false`; `save_recipe` stores it | Recipes list „ewentualne dodatki" (rum, wiśnie, …) that should not count in macros. See [[recipe-management]]. |
 
 ## Verification
 
-Each of `0004`–`0006` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
+Each of `0004`–`0007` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
 
 | Migration | Before merge | After deploy |
 |---|---|---|
 | `0004` | `FAIL 8 (14 checks)` | `ALL PASS (14 checks)` |
 | `0005` | `FAIL 7 (10 checks)` | `ALL PASS (10 checks)` |
 | `0006` | `FAIL 7 (7 checks)` (features missing) | `ALL PASS (7 checks)` |
+| `0007` | `FAIL 2 (2 checks)` | `ALL PASS (2 checks)` |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (public links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -99,5 +103,6 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-05: Added migration 0007 (optional ingredient flag) and its verification result.
 - 2026-10-04: Recorded the 0006 verification result (`ALL PASS`, no orphan recipes, every user has a household).
 - 2026-10-04: Created to summarise the 2026-10-04 database audit and migrations 0004–0006.
