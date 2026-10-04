@@ -1,57 +1,47 @@
-> [!IMPORTANT]
-> **Kostek, read this first.** On 4 October 2026 we audited the production database and shipped three migrations (`0004`–`0006`, PRs #5, #6, #7).
->
-> - RLS let any signed-in user add themselves to another household as owner, and anyone with the anon key could list every share link and plan. Both are closed.
-> - Share links go through the `get_shared_plan` RPC.
-> - A trigger creates the household on signup.
-> - Recipes are saved atomically by the `save_recipe` RPC.
->
-> Every change was checked with a script on the live database before and after the deploy.
->
-> **Important:** merging into `main` deploys new migrations to production right away (Supabase GitHub integration, "Deploy to production").
->
-> Where things are:
->
-> - [`docs/wiki/references/migration-history.md`](docs/wiki/references/migration-history.md): what changed, why, and how it was verified; open issues (mainly the ingredient catalog). **Start here.**
-> - [`docs/wiki/guides/apply-migration.md`](docs/wiki/guides/apply-migration.md): how to add the next migration (baseline, PR, merge, verify).
-> - [`docs/wiki/references/database-schema.md`](docs/wiki/references/database-schema.md): current tables, policies and functions.
-> - [`docs/wiki/references/known-gaps.md`](docs/wiki/references/known-gaps.md): known bugs.
-> - [`docs/wiki/guides/local-dev-setup.md`](docs/wiki/guides/local-dev-setup.md): Node 24 is required; plus `.env.local` and `.mcp.json` (Supabase MCP, read-only).
-> - `supabase/checks/` (verification scripts) and `supabase/rollbacks/` (manual rollbacks).
+# Meal planner
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+PWA for meal planning: recipe database, URL import (jadłonomia, aniagotuje), week plan and shopping list (works offline). UI is in Polish.
 
-## Getting Started
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind · Supabase (Postgres, Auth, RLS) · Vitest · Zod. Recipe extraction runs in the browser (`@mlc-ai/web-llm`) or on the server via Ollama (`LLM_MODE=server`).
 
-First, run the development server:
+## Quick start
+
+Requires Node 24 (vitest 5 / jsdom 30 don't start on Node 20) and pnpm 9.15.9 via corepack.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+corepack enable
+pnpm install
+# create .env.local (see below)
+pnpm dev                           # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` (gitignored) needs `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. All variables: [`docs/wiki/references/env-vars.md`](docs/wiki/references/env-vars.md). Windows gotchas and `.mcp.json` (Supabase MCP, read-only): [`docs/wiki/guides/local-dev-setup.md`](docs/wiki/guides/local-dev-setup.md).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command            | What it does                                  |
+| ------------------ | --------------------------------------------- |
+| `pnpm dev`         | Dev server on localhost:3000                  |
+| `pnpm build`       | Production build                              |
+| `pnpm test`        | Vitest                                        |
+| `pnpm typecheck`   | `tsc --noEmit`                                |
+| `pnpm lint`        | ESLint                                        |
+| `pnpm format`      | Prettier write (CI runs `format:check`)       |
+| `pnpm wiki:check`  | Validate `docs/wiki` (frontmatter, links)     |
 
-## Learn More
+CI runs lint, wiki check, test and build on every PR; the pre-commit hook checks staged files.
 
-To learn more about Next.js, take a look at the following resources:
+## Database changes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> [!IMPORTANT]
+> **Merging into `main` deploys new files in `supabase/migrations/` to production** (Supabase GitHub integration, "Deploy to production"). There is no staging database.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+A migration PR ships the migration, a manual rollback in `supabase/rollbacks/` and a verification script in `supabase/checks/`, which a human runs in the SQL editor before merging and after the deploy. Full flow: [`apply-migration.md`](docs/wiki/guides/apply-migration.md).
 
-## Deploy on Vercel
+- [`migration-history.md`](docs/wiki/references/migration-history.md): what changed and why, migration by migration. Start here.
+- [`database-schema.md`](docs/wiki/references/database-schema.md): current tables, policies and functions.
+- [`known-gaps.md`](docs/wiki/references/known-gaps.md): open bugs and risks.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Docs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[`docs/wiki/`](docs/wiki/README.md) is an Obsidian vault with one page per concept, guide, reference and decision. Contributor and agent conventions: [`AGENTS.md`](AGENTS.md).
