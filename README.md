@@ -1,3 +1,24 @@
+> [!IMPORTANT]
+> **Kostek, przeczytaj najpierw.** 4 października 2026 zrobiliśmy audyt bazy danych na produkcji i wdrożyliśmy trzy migracje (`0004`–`0006`, PR #5, #6, #7).
+>
+> - Polityki RLS pozwalały m.in. dopisać się do cudzego gospodarstwa jako owner, a każdy z kluczem anon mógł wylistować wszystkie linki udostępniania i plany. To jest już zamknięte.
+> - Linki udostępniania działają przez RPC `get_shared_plan`.
+> - Gospodarstwo tworzy trigger przy rejestracji.
+> - Przepis zapisuje się atomowo przez `save_recipe`.
+>
+> Każdą zmianę sprawdziliśmy skryptem na żywej bazie przed i po deployu.
+>
+> **Ważne:** merge do `main` od razu wdraża nowe migracje na produkcję (integracja Supabase z GitHubem, „Deploy to production”).
+>
+> Gdzie co jest:
+>
+> - [`docs/wiki/references/migration-history.md`](docs/wiki/references/migration-history.md): co, dlaczego i jak zweryfikowane; otwarte problemy (głównie katalog składników). **Zacznij tutaj.**
+> - [`docs/wiki/guides/apply-migration.md`](docs/wiki/guides/apply-migration.md): jak dodać kolejną migrację (baseline, PR, merge, weryfikacja).
+> - [`docs/wiki/references/database-schema.md`](docs/wiki/references/database-schema.md): aktualne tabele, polityki i funkcje.
+> - [`docs/wiki/references/known-gaps.md`](docs/wiki/references/known-gaps.md): lista znanych bugów.
+> - [`docs/wiki/guides/local-dev-setup.md`](docs/wiki/guides/local-dev-setup.md): wymagany jest Node 24; do tego `.env.local` i `.mcp.json` (Supabase MCP w trybie read-only).
+> - `supabase/checks/` (skrypty weryfikacyjne) i `supabase/rollbacks/` (ręczne rollbacki).
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
