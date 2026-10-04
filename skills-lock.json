@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "caveman": {
+      "source": "JuliusBrussee/caveman",
+      "sourceType": "github",
+      "skillPath": "skills/caveman/SKILL.md",
+      "computedHash": "eb52a145a708818af3c45ecd9658520611d615b67a8bb2064582950f3bd4b6de"
+    },
+    "caveman-commit": {
+      "source": "JuliusBrussee/caveman",
+      "sourceType": "github",
+      "skillPath": "skills/caveman-commit/SKILL.md",
+      "computedHash": "b416cf134b0f33ddadeca7977aebdbb2d3db79a166d0fce2e1aabeec98132766"
+    },
+    "database-architect": {
+      "source": "Dokhacgiakhoa/antigravity-ide",
+      "sourceType": "github",
+      "skillPath": ".agent/skills/database-architect/SKILL.md",
+      "computedHash": "219aec5a1406564ed288d48fb7a7759d210187712256e6ebe1c38ec5b66e2848"
+    },
+    "migration": {
+      "source": "JuliusBrussee/caveman",
+      "sourceType": "github",
+      "skillPath": "skills/migration/SKILL.md",
+      "computedHash": "7348b2d21ca05bdecc1e4ec2c8b63515ccb1700c8a261fdbd458b04b7383945b"
+    }
+  }
+}
