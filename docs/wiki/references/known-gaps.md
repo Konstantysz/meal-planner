@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: 19a988a
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -40,7 +40,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Keepalive and backup have never succeeded: no Actions secrets are configured | [[github-workflows#Workflows]] |
 | The weekly backup is a schema-only dump. No data can be restored even once the secrets are set. | [[github-workflows#Gotchas]] |
 | Anyone with the anon key can list every share token, and through them every shared plan and its recipes | [[share-links#Known gaps]] |
-| Any signed-in user can add themselves (even as `owner`) to any household whose UUID they know | [[rls-authorization#Known gaps]] |
 
 ## High
 
@@ -101,4 +100,5 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-04: Removed the household self-join row (fixed by migration 0004).
 - 2026-10-04: Created from the gaps collected while verifying the wiki against the code.

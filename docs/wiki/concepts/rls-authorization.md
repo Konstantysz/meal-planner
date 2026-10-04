@@ -12,12 +12,14 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: 19a988a
 sources:
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql
   - title: "Share-token policies"
     path: supabase/migrations/0002_share_token_rls.sql
+  - title: "Security hardening"
+    path: supabase/migrations/0004_security_hardening.sql
   - title: "Agent orientation (RLS convention)"
     path: AGENTS.md
 ---
@@ -25,7 +27,7 @@ sources:
 # RLS Authorization
 
 > [!tldr]
-> Route handlers don't check permissions; Postgres RLS does. Access is "member of the row's household", tested by `is_member_of()`. Ingredients are crowd-sourced (any signed-in user can edit any row). Several policies are looser than they look: tokens are publicly listable, users can join any household, and any member can edit any household recipe.
+> Route handlers don't check permissions; Postgres RLS does. Access is "member of the row's household", tested by `is_member_of()`. Ingredients are crowd-sourced (any signed-in user can edit any row). Since migration 0004, member policies apply to `authenticated` only, and invites, member removal and token creation are locked down. Still loose: tokens are publicly listable, and any member can edit any household recipe.
 
 ## Context
 
@@ -43,7 +45,8 @@ flowchart TD
   ST[share_tokens] -.select-only.-> P & PS & R
 ```
 
-- `is_member_of(hid)` is `security definer`, so it can read `household_members` without hitting that table's own policies recursively.
+- `is_member_of(hid)` is `security definer`, so it can read `household_members` without hitting that table's own policies recursively. `is_owner_of(hid)` works the same way. Both pin `search_path` and only `authenticated` can execute them.
+- Member policies are `to authenticated`. `anon` reaches data only through the share-token policies and `ing_select`. A policy that applies to `anon` must not call `is_member_of`: `anon` has no `execute` on it, so the query would fail instead of returning no rows.
 - Child tables (`recipe_ingredients`, `recipe_steps`, `plan_slots`) check access through their parent with `exists (…)`.
 - Same-command policies are OR'd. The share-token policies **add** anonymous read paths alongside the member policies. See [[share-links]].
 
@@ -63,10 +66,11 @@ flowchart TD
 | Policy | Looseness | Impact |
 |---|---|---|
 | `st_select using (true)` | Anyone holding the anon key can list **all** share tokens | Every shared plan, and every recipe in it, can be enumerated |
-| `hm_insert` | `user_id = auth.uid()` passes for any `household_id` | A user can add themselves to any household whose UUID they know, including as `owner` |
-| `rec_update` | Author **or** any member | Any member can edit any household recipe, including `author_id` (as the plan specified) |
+| `rec_update` | Author **or** any member | Any member can edit any household recipe, including `author_id` (as the plan specified). Since 0004 a recipe can't be moved into a foreign household. |
 | `ing_update` | Any signed-in user, any row | Anyone can change any ingredient's macros (intentional crowd-sourcing) |
-| `rec_select` `visibility = 'public_link'` | Readable without membership | No UI sets `public_link`, so this is latent |
+| `rec_select` `visibility = 'public_link'` | Readable by any signed-in user without membership | No UI sets `public_link`, so this is latent. Since 0004 `anon` can't read it. |
+
+Fixed in 0004: `hm_insert` (self-join, even as owner), `hm_delete` (any member could remove anyone, including the owner), `households_insert` (open to `anon`), `st_insert` (a token for any plan, which exposed that plan through the share-token policies), and `anon` execute on the `security definer` functions.
 
 ## Examples
 
@@ -87,9 +91,10 @@ select token, plan_id from share_tokens;  -- returns every token
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0004_security_hardening.sql`
 - `AGENTS.md`: "RLS is the authorization boundary"
 
 ## Changelog
 
+- 2026-10-04: Updated for migration 0004. Moved the fixed gaps out of the table and added the `anon` / `is_member_of` rule.
 - 2026-10-04: Created from the RLS notes in legacy `database.md`. Added the token-enumeration, self-join and silent-delete findings.
