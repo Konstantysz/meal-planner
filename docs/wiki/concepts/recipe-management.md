@@ -1,6 +1,6 @@
 ---
 title: "Recipe Management"
-summary: "Recipe create, list with diet/allergen filters, detail, delete, and the read-only edit page; the non-transactional insert."
+summary: "Recipe create (atomic save_recipe RPC), list with diet/allergen filters, detail, delete, and the read-only edit page."
 tags: [recipes, ui]
 status: review
 owner: "@konstantysz"
@@ -12,10 +12,12 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: dd67b66
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
+  - title: "save_recipe RPC"
+    path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -55,14 +57,14 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 | Edit | `/recipes/[id]/edit`, `RecipeForm readOnly` | none (no save) |
 | Delete | `RecipeActions` „Usuń" | `DELETE /api/recipes/[id]` |
 
-`createRecipe` validates against `RecipeInputSchema`, then runs **three separate inserts**: `recipes`, then `recipe_ingredients`, then `recipe_steps`.
+`createRecipe(supabase, input, householdId)` validates against `RecipeInputSchema`, then makes **one** call: `rpc('save_recipe', { p_household_id, p_recipe })` (migration 0006). The function inserts the recipe, its ingredients and its steps in one transaction, so a failure leaves nothing behind. It is `security invoker`, so `rec_insert`, `ri_all` and `rs_all` still apply, and the author is always `auth.uid()` (an `author_id` in the payload is ignored). It also rejects a recipe without ingredients or steps (`22023`).
 
 Filtering:
 
 - `diet`: `contains('diet_tags', diet)`. A recipe must have **all** the selected diets.
 - `exclude`: rows are fetched first and then filtered in JS (`!r.allergens.some(...)`).
 
-Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a bare ingredient with null macros („+ Dodaj nowy składnik"). See [[ingredient-database]].
+Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a bare ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. See [[ingredient-database]].
 
 ## Invariants and gotchas
 
@@ -74,9 +76,9 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Known gaps
 
 - **No update endpoint.** The edit page says „Zapis zmian nie jest jeszcze wspierany". Building one needs an update schema and has to decide how to replace ingredients and steps.
-- **Non-transactional create.** If the ingredient or step insert fails, the `recipes` row stays behind with no children. The fix is a Postgres RPC that does all three inserts.
 - **A non-author delete silently does nothing** (RLS filters the delete, and the API returns 204). See [[rls-authorization#Invariants and gotchas]].
 - No pagination. `listRecipes` returns every visible recipe.
+- A failed save shows the raw Zod error JSON (e.g. `too_small` on `steps`) instead of a Polish message.
 
 ## Examples
 
@@ -105,4 +107,5 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-04: Create goes through the `save_recipe` RPC (0006); removed the non-transactional gap. Noted that picker-created ingredients persist even when the save fails.
 - 2026-10-04: Created from legacy `recipes.md`. Added filters, delete behaviour and the duplicated enum lists.

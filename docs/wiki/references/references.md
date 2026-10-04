@@ -35,6 +35,7 @@ References are kept dense and are re-verified every 180 days. Part of [[README]]
 | [[test-coverage]] | What is tested, what isn't, Review Focus cases |
 | [[spec-drift]] | Where the code departs from the original plan |
 | [[known-gaps]] | Ranked list of bugs, security gaps and unfinished work |
+| [[migration-history]] | Every migration: PR, reason, live verification; the 2026-10-04 audit |
 
 ## Related
 
@@ -46,4 +47,5 @@ References are kept dense and are re-verified every 180 days. Part of [[README]]
 
 ## Changelog
 
+- 2026-10-04: Added [[migration-history]].
 - 2026-10-04: Created.

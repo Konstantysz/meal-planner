@@ -1,6 +1,6 @@
 ---
 title: "Household Model"
-summary: "Households own all recipes and plans; how a household is bootstrapped at signup via RPC, how membership is resolved per request, and how invites work."
+summary: "Households own all recipes and plans; how a household is bootstrapped at signup by a database trigger, how membership is resolved per request, and how invites work."
 tags: [household, auth, rls]
 status: review
 owner: "@konstantysz"
@@ -12,12 +12,14 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 19a988a
+verified_commit: dd67b66
 sources:
   - title: "Signup RPC migration"
     path: supabase/migrations/0003_household_signup_rpc.sql
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
+  - title: "Signup trigger"
+    path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
   - title: "Auth form (signup)"
     path: src/components/auth/AuthForm.tsx
   - title: "inviteMember"
@@ -31,7 +33,7 @@ sources:
 # Household Model
 
 > [!tldr]
-> Every recipe and plan belongs to a **household**, and users reach data only through `household_members`. Signup creates the household and the owner membership in one `security definer` RPC. Routes act on the caller's *first* membership row. Invites need a user's UUID; there is no email lookup.
+> Every recipe and plan belongs to a **household**, and users reach data only through `household_members`. A trigger on `auth.users` (migration 0006) creates the household and the owner membership for every new user, in the database, even before the email is confirmed. Routes act on the caller's *first* membership row. Invites need a user's UUID; there is no email lookup.
 
 ## Context
 
@@ -41,15 +43,13 @@ sources:
 
 ### Bootstrap on signup
 
-`AuthForm` (signup mode) calls `supabase.auth.signUp()`. If that returns a user, it calls:
+`AuthForm` (signup mode) only calls `supabase.auth.signUp()`. The database does the rest: the trigger `on_auth_user_created` runs `handle_new_user()` (`security definer`), which inserts a household named after the email's local part (fallback „Moje gospodarstwo") and an `owner` row in `household_members`. If `signUp` returns no session (email confirmation on), the form shows „Sprawdź skrzynkę…" instead of redirecting; the household already exists.
 
-```ts
-await supabase.rpc('create_household_with_owner', { household_name: email.split('@')[0] || 'Moje gospodarstwo' });
-```
+History:
 
-The function (migration 0003) checks `auth.uid()`, inserts into `households`, then inserts an `owner` row into `household_members`, all in one statement.
-
-Why an RPC? The earlier client-side version did `households.insert().select().single()`. The `.select()` read-back failed `households_select` (`is_member_of(id)`), because the membership row didn't exist yet. Commit `a8b8cef` replaced it with the RPC.
+1. Client-side `households.insert().select().single()`: the read-back failed `households_select` (`is_member_of(id)`), because the membership row didn't exist yet.
+2. RPC `create_household_with_owner` (migration 0003, commit `a8b8cef`) called right after `signUp`: needs a session, so it failed with email confirmation on and the user was left without a household.
+3. Trigger (migration 0006). `create_household_with_owner` still exists for compatibility. It is now idempotent: it returns the caller's existing owned household instead of creating a second one. Nothing in the app calls it.
 
 ### Resolving the household per request
 
@@ -72,14 +72,13 @@ There is no ordering and no "current household" concept.
 
 ## Invariants and gotchas
 
-- Never insert a household from the client and then read it back. Use the RPC, or anything else that creates the membership first.
+- Never insert a household from the client. The trigger creates it; `households` has no insert policy since 0004.
 - Since migration 0004, `hm_insert` allows only `is_member_of(household_id) and role = 'member'`. Only an existing member can add someone, never as `owner`, and nobody can add themselves to a foreign household. The owner row comes only from `create_household_with_owner`. `inviteMember`'s explicit check is now redundant with RLS, but harmless.
 - `hm_delete` (0004): a member may remove themselves; the owner may remove anyone else; the owner can't remove themselves.
 - Multiple households per user are possible in the schema but unsupported in the app, because of the `limit(1)` resolution.
 
 ## Known gaps
 
-- **Email confirmation:** if confirmations are enabled on the hosted project, `signUp` returns a user but no session, so the RPC raises `not authenticated`. The form shows the error, but nothing creates the household on first login.
 - **No email-to-user lookup.** It would need a service-role admin client (`auth.admin`), which the app doesn't have. A `ponytail:` comment in `households.ts` names that upgrade path.
 - No UI to list or remove members, and no UI to leave a household (RLS allows both since 0004).
 
@@ -102,11 +101,12 @@ curl -X POST http://localhost:3000/api/household/invite \
 
 ## Sources
 
-- `supabase/migrations/0003_household_signup_rpc.sql`, `src/components/auth/AuthForm.tsx`
+- `supabase/migrations/0003_household_signup_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `src/components/auth/AuthForm.tsx`
 - `src/lib/db/households.ts`, `src/app/api/household/invite/route.ts`, `src/app/(app)/settings/page.tsx`
 - Commits `a8b8cef` (RPC) and `64e3275` (explicit caller check)
 
 ## Changelog
 
+- 2026-10-04: Signup now relies on the `on_auth_user_created` trigger (0006); removed the email-confirmation gap.
 - 2026-10-04: Updated the membership rules for migration 0004 (self-join fixed, `hm_delete` rules).
 - 2026-10-04: Created from legacy `auth.md`. Fixed the stale claim that signup inserts the rows client-side (it uses the RPC since `a8b8cef`). Added the self-join RLS gap.

@@ -26,6 +26,8 @@ Records the changes that affect the wiki as a whole. See [[meta]].
 
 ## Entries
 
+- **2026-10-04 (later):** Database audit and hardening. Migrations 0004–0006 (RLS lockdown, share links via `get_shared_plan`, signup trigger, atomic `save_recipe`) are documented in [[migration-history]], [[database-schema]], [[rls-authorization]], [[share-links]], [[household-model]], [[recipe-management]] and the new ADR [[0008-share-link-rpc]] (supersedes 0003). [[apply-migration]] now describes the real flow: merging into `main` deploys to production. [[known-gaps]] lost five fixed rows and gained four from a smoke test. [[local-dev-setup]] covers Node 24 on Windows.
+
 - **2026-10-04:** Rebuilt the wiki as an Obsidian vault under [[RULES]]. The 8 flat pages (`auth`, `database`, `recipes`, `plan`, `shopping`, `sharing`, `import`, `ci`) were split into atomic concept, guide, reference and decision pages, verified against commit 656711c. Several stale claims were fixed along the way: signup now uses an RPC, the import review form now auto-matches ingredients, and the repo has a GitHub remote. Added `pnpm wiki:check` and the `Wiki` CI workflow. All pages are LLM-generated and await human review.
 
 ## Related
