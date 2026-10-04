@@ -4,7 +4,11 @@
 -- ALWAYS aborts with an exception, so nothing is persisted.
 -- Read the result in the error message:
 --   "VERIFY 0004: ALL PASS (n checks)"  or  "VERIFY 0004: FAIL ..." with the list.
--- Before 0004 is applied the attack checks are expected to FAIL.
+-- Before 0004 is applied, checks 1-5, 8, 11 and 12 are expected to FAIL.
+--
+-- Each attack runs in its own subtransaction. If the attack succeeds, the block
+-- raises VRFY1 to undo it, so a successful attack never leaks state into the
+-- next check (e.g. a duplicate-key error masquerading as "blocked").
 
 do $verify$
 declare
@@ -37,24 +41,30 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
   begin
     insert into household_members (household_id, user_id, role) values (h1, b, 'member');
-    ok := false;
-  exception when others then ok := true;
+    raise exception using errcode = 'VRFY1';
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
   end;
   results := results || format('%s 1 outsider self-join as member blocked', case when ok then 'PASS' else 'FAIL' end);
 
   -- 2. Outsider joins a foreign household as owner
   begin
     insert into household_members (household_id, user_id, role) values (h1, b, 'owner');
-    ok := false;
-  exception when others then ok := true;
+    raise exception using errcode = 'VRFY1';
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
   end;
   results := results || format('%s 2 outsider self-join as owner blocked', case when ok then 'PASS' else 'FAIL' end);
 
   -- 3. Outsider creates a share token for a foreign plan
   begin
     insert into share_tokens (token, plan_id, created_by) values ('verify-bad-' || b, p1, b);
-    ok := false;
-  exception when others then ok := true;
+    raise exception using errcode = 'VRFY1';
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
   end;
   results := results || format('%s 3 share token for foreign plan blocked', case when ok then 'PASS' else 'FAIL' end);
 
@@ -63,16 +73,23 @@ begin
   begin
     update recipes set household_id = h2 where id = r1;
     get diagnostics n = row_count;
-    ok := n = 0;
-  exception when others then ok := true;
+    if n > 0 then
+      raise exception using errcode = 'VRFY1';
+    end if;
+    ok := true;
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
   end;
   results := results || format('%s 4 recipe moved to foreign household blocked', case when ok then 'PASS' else 'FAIL' end);
 
   -- 5. Owner invites d as owner (role escalation)
   begin
     insert into household_members (household_id, user_id, role) values (h1, d, 'owner');
-    ok := false;
-  exception when others then ok := true;
+    raise exception using errcode = 'VRFY1';
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
   end;
   results := results || format('%s 5 invite as owner blocked', case when ok then 'PASS' else 'FAIL' end);
 
@@ -94,16 +111,25 @@ begin
 
   -- 8. Member c removes owner a
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
-  delete from household_members where household_id = h1 and user_id = a;
-  get diagnostics n = row_count;
-  results := results || format('%s 8 member cannot remove owner', case when n = 0 then 'PASS' else 'FAIL' end);
+  begin
+    delete from household_members where household_id = h1 and user_id = a;
+    get diagnostics n = row_count;
+    if n > 0 then
+      raise exception using errcode = 'VRFY1';
+    end if;
+    ok := true;
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
+  end;
+  results := results || format('%s 8 member cannot remove owner', case when ok then 'PASS' else 'FAIL' end);
 
   -- 9. Member c leaves (legit)
   delete from household_members where household_id = h1 and user_id = c;
   get diagnostics n = row_count;
   results := results || format('%s 9 member can leave', case when n = 1 then 'PASS' else 'FAIL' end);
 
-  -- 10. Member still reads own household recipe (no regression)
+  -- 10. Owner still reads own household recipe (no regression)
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
   select count(*) into n from recipes where id = r1;
   results := results || format('%s 10 owner still reads own recipe', case when n = 1 then 'PASS' else 'FAIL' end);
@@ -113,8 +139,10 @@ begin
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   begin
     insert into households (name) values ('verify anon');
-    ok := false;
-  exception when others then ok := true;
+    raise exception using errcode = 'VRFY1';
+  exception
+    when sqlstate 'VRFY1' then ok := false;
+    when others then ok := true;
   end;
   results := results || format('%s 11 anon cannot create household', case when ok then 'PASS' else 'FAIL' end);
 
