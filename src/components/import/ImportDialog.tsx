@@ -35,7 +35,8 @@ export function ImportDialog({
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
       const { markdown } = await fr.json();
 
-      if (!(await hasWebGpu())) {
+      const { mode } = await (await fetch('/api/import/extract')).json();
+      if (mode === 'server' || !(await hasWebGpu())) {
         await extractOnServer(markdown);
         return;
       }

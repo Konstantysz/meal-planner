@@ -1,6 +1,6 @@
 'use client';
 import { CreateWebWorkerMLCEngine, type WebWorkerMLCEngine, type InitProgressReport } from '@mlc-ai/web-llm';
-import { SYSTEM_PROMPT, parseLlmJson } from './schema';
+import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, MAX_MARKDOWN_CHARS, parseLlmJson } from './schema';
 import type { RecipeJsonLd } from '@/lib/schemas';
 
 const MODEL_ID = 'gemma-2-2b-it-q4f16_1-MLC';
@@ -23,10 +23,6 @@ export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => 
   ]);
 }
 
-// Gemma-2-2b's context window is 4096 tokens shared across system + user + output.
-// ~4 chars/token is a safe rule of thumb for Polish/English mixed text.
-const MAX_MARKDOWN_CHARS = 6000;
-
 export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd> {
   if (!enginePromise) throw new Error('engine not initialized');
   const engine = await enginePromise;
@@ -42,6 +38,7 @@ export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd>
       ],
       temperature: 0.1,
       max_tokens: 1536,
+      response_format: { type: 'json_object', schema: JSON.stringify(LLM_OUTPUT_SCHEMA) },
     });
   } catch (e) {
     // GPU device can be lost mid-inference (driver crash/OOM) — the worker/engine
