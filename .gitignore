@@ -42,3 +42,6 @@ next-env.d.ts
 
 # LLM benchmark Chrome profile (cached WebLLM model)
 /.bench-chrome/
+
+# Claude Code per-user settings
+/.claude/settings.local.json
