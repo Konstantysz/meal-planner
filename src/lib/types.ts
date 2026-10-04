@@ -42,6 +42,7 @@ export interface RecipeIngredient {
   unit: string | null;
   raw_text: string;
   position: number;
+  optional: boolean;
 }
 
 export interface RecipeStep {

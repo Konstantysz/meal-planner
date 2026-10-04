@@ -40,6 +40,7 @@ export const RecipeIngredientInputSchema = z.object({
   unit: z.string().nullable(),
   raw_text: z.string().min(1),
   position: z.number().int().nonnegative(),
+  optional: z.boolean().default(false),
 });
 
 export const RecipeInputSchema = z.object({

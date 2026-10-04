@@ -10,6 +10,7 @@ export interface RecipeWithDetails extends Recipe {
     unit: string | null;
     raw_text: string;
     position: number;
+    optional: boolean;
     ingredients: {
       id: string;
       name: string;

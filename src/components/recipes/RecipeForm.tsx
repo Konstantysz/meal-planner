@@ -52,6 +52,7 @@ export function RecipeForm({
           unit: i.unit,
           raw_text: i.raw_text,
           position: i.position,
+          optional: i.optional,
         })),
         steps: steps.filter((s) => s.trim()).map((text, i) => ({ position: i, text })),
       }),
