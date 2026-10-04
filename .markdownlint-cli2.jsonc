@@ -1,0 +1,12 @@
+{
+  // Wiki markdown lint (run via `pnpm wiki:check`). See docs/wiki/RULES.md §11.
+  "globs": ["docs/wiki/**/*.md"],
+  "ignores": ["docs/wiki/_templates/**", "docs/wiki/.obsidian/**"],
+  "config": {
+    "default": true,
+    "MD013": false,                          // line length: prose wraps freely
+    "MD025": { "front_matter_title": "" },   // frontmatter title + # Title is the page structure
+    "MD033": false,                          // inline HTML allowed (e.g. <br> in tables)
+    "MD060": false                           // table column alignment: compact pipes are fine
+  }
+}

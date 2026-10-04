@@ -1,0 +1,9 @@
+# Obsidian per-user state; only shared vault config (app.json, templates.json, core-plugins.json) is committed
+.obsidian/workspace*.json
+.obsidian/cache
+.obsidian/plugins/
+.obsidian/themes/
+.obsidian/appearance.json
+.obsidian/hotkeys.json
+.obsidian/graph.json
+.trash/

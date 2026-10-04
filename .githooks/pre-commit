@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs `pnpm wiki:check` when wiki files are staged (docs/wiki/RULES.md §9).
+# Enabled by `pnpm install` (prepare script sets core.hooksPath). Bypass: git commit --no-verify
+# ponytail: checks the working tree, not just the staged snapshot; switch to lint-staged if partial staging bites.
+if git diff --cached --name-only | grep -qE '^(docs/wiki/|scripts/wiki-check\.ts$|\.markdownlint-cli2\.jsonc$)'; then
+  pnpm -s wiki:check || {
+    echo "pre-commit: wiki:check failed. 'pnpm wiki:fix' auto-fixes markdown style; fix the rest by hand." >&2
+    exit 1
+  }
+fi
