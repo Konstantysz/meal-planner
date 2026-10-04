@@ -77,6 +77,8 @@ await fetch(`/api/plans/${plan.id}/slots`, {
 - [[references]]
 - [[database-schema]]
 - [[env-vars]]
+- [[architecture-overview]]
+- [[auth-session]]: why logged-out calls redirect
 
 ## Sources
 

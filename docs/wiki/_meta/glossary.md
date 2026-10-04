@@ -54,6 +54,8 @@ Pages link here on a term's first use. See [[meta]].
 | MOC | Map of Content, an index page that links a set of pages (see [[README]]). |
 | `ponytail:` comment | A code comment marking a deliberate simplification and how to upgrade it. |
 
+Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[share-links]], [[offline-shopping-store]], [[llm-modes]], [[ingredient-auto-match]].
+
 ## Polish UI strings
 
 | String | Where | Meaning |

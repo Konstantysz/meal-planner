@@ -34,6 +34,7 @@ References are kept dense and are re-verified every 180 days. Part of [[README]]
 | [[github-workflows]] | Keepalive, backup and wiki CI workflows |
 | [[test-coverage]] | What is tested, what isn't, Review Focus cases |
 | [[spec-drift]] | Where the code departs from the original plan |
+| [[known-gaps]] | Ranked list of bugs, security gaps and unfinished work |
 
 ## Related
 

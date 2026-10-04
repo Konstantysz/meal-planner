@@ -116,6 +116,8 @@ from plans p;
 - [[references]]
 - [[api-routes]]: which routes touch which tables
 - [[env-vars]]
+- [[rls-authorization]]: the model and its loose spots
+- [[household-model]]
 
 ## Sources
 

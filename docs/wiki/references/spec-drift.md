@@ -88,6 +88,8 @@ git ls-files src/lib/ics.ts src/lib/db/pantry.ts src/hooks/useRecipes.ts src/com
 - [[references]]
 - [[database-schema]]
 - [[test-coverage]]
+- [[known-gaps]]
+- [[architecture-overview]]
 
 ## Sources
 

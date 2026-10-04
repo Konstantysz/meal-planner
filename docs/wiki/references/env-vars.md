@@ -83,6 +83,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key>   # only for scripts/backfill-ingre
 - [[references]]
 - [[api-routes]]
 - [[github-workflows]]
+- [[llm-modes]]
 
 ## Sources
 

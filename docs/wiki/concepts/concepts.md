@@ -26,7 +26,14 @@ Read the concept page for an area before changing its code. Part of [[README]].
 
 ## Pages
 
-_No pages yet._
+Start with [[architecture-overview]].
+
+| Area | Pages |
+|---|---|
+| Foundations | [[architecture-overview]] · [[auth-session]] · [[household-model]] · [[rls-authorization]] |
+| Recipes | [[recipe-management]] · [[ingredient-database]] · [[macro-calculation]] · [[amount-scaling]] |
+| Plan and shopping | [[week-plan]] · [[shopping-list-aggregation]] · [[offline-shopping-store]] · [[share-links]] |
+| Import | [[import-pipeline]] · [[html-cleaning]] · [[llm-extraction]] · [[llm-modes]] · [[ingredient-auto-match]] · [[recipe-yield-parsing]] |
 
 ## Related
 
