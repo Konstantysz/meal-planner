@@ -26,7 +26,14 @@ References are kept dense and are re-verified every 180 days. Part of [[README]]
 
 ## Pages
 
-_No pages yet._
+| Page | Look up |
+|---|---|
+| [[database-schema]] | Tables, constraints, RLS policies, SQL functions, migrations, seed |
+| [[api-routes]] | Every route handler: method, input, auth, calls, response |
+| [[env-vars]] | Environment variables and GitHub secrets |
+| [[github-workflows]] | Keepalive, backup and wiki CI workflows |
+| [[test-coverage]] | What is tested, what isn't, Review Focus cases |
+| [[spec-drift]] | Where the code departs from the original plan |
 
 ## Related
 
