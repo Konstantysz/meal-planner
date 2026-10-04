@@ -35,7 +35,13 @@ describe('createRecipe', () => {
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith('save_recipe', {
       p_household_id: 'h1',
-      p_recipe: { ...input, visibility: 'household', diet_tags: [], allergens: [] },
+      p_recipe: {
+        ...input,
+        visibility: 'household',
+        diet_tags: [],
+        allergens: [],
+        ingredients: input.ingredients.map((i) => ({ ...i, optional: false })),
+      },
     });
     // No direct table writes: atomicity lives in the database.
     expect(from).not.toHaveBeenCalled();

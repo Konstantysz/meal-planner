@@ -18,7 +18,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
   const total = sumMacros(
     recipe.ingredients.map((ri) => {
-      if (!ri.ingredients) return null;
+      if (!ri.ingredients || ri.optional) return null;
       const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
       return calculateIngredientMacros(ri.ingredients, grams);
     }),
@@ -59,6 +59,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
               <li key={ri.id}>
                 {ri.amount != null ? `${formatAmount(ri.amount, ri.unit)} ` : ''}
                 {ri.raw_text}
+                {ri.optional && <span className="opacity-60"> (opcjonalnie)</span>}
               </li>
             ))}
         </ul>

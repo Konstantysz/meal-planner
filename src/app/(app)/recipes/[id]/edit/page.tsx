@@ -30,6 +30,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
         unit: ri.unit,
         raw_text: ri.raw_text,
         position: ri.position,
+        optional: ri.optional,
       })),
     steps: recipe.steps
       .slice()

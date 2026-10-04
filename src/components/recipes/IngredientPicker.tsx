@@ -9,6 +9,7 @@ export interface PickedIngredient {
   unit: string | null;
   raw_text: string;
   position: number;
+  optional: boolean;
 }
 
 export function IngredientPicker({
@@ -43,6 +44,7 @@ export function IngredientPicker({
         unit: ing.default_unit,
         raw_text: raw,
         position: value.length,
+        optional: false,
       },
     ]);
     setQuery('');
@@ -138,6 +140,18 @@ export function IngredientPicker({
               }}
               className="w-16 border rounded px-2 py-1"
             />
+            <label className="flex items-center gap-1 text-sm whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={v.optional}
+                onChange={(e) => {
+                  const next = [...value];
+                  next[idx] = { ...v, optional: e.target.checked };
+                  onChange(next);
+                }}
+              />
+              opcjonalny
+            </label>
             <button
               type="button"
               onClick={() => onChange(value.filter((_, i) => i !== idx))}
