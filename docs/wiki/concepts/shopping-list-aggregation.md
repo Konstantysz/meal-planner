@@ -82,6 +82,7 @@ aggregateShoppingList([
 - [[week-plan]]
 - [[offline-shopping-store]]
 - [[macro-calculation]]
+- [[0007-units-never-summed]]
 
 ## Sources
 

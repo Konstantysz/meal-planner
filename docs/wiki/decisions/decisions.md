@@ -26,7 +26,17 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 
 ## Pages
 
-_No pages yet._
+All seven were recorded retroactively on 2026-10-04 from the plan, code comments and commits.
+
+| # | Decision | Status |
+|---|---|---|
+| 0001 | [[0001-rls-is-the-authz-boundary]] | accepted |
+| 0002 | [[0002-household-signup-rpc]] | accepted |
+| 0003 | [[0003-share-token-rls]] | accepted; should be superseded (token enumeration) |
+| 0004 | [[0004-exclusive-llm-modes]] | accepted |
+| 0005 | [[0005-json-schema-constrained-decoding]] | accepted |
+| 0006 | [[0006-macros-per-100g]] | accepted |
+| 0007 | [[0007-units-never-summed]] | accepted |
 
 ## Related
 

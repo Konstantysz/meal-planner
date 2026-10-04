@@ -118,6 +118,7 @@ from plans p;
 - [[env-vars]]
 - [[rls-authorization]]: the model and its loose spots
 - [[household-model]]
+- [[apply-migration]]
 
 ## Sources
 

@@ -37,7 +37,8 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 
 | Gap | Details |
 |---|---|
-| The weekly backup is a schema-only dump. No data can be restored. | [[github-workflows#Gotchas]] |
+| Keepalive and backup have never succeeded: no Actions secrets are configured | [[github-workflows#Workflows]] |
+| The weekly backup is a schema-only dump. No data can be restored even once the secrets are set. | [[github-workflows#Gotchas]] |
 | Anyone with the anon key can list every share token, and through them every shared plan and its recipes | [[share-links#Known gaps]] |
 | Any signed-in user can add themselves (even as `owner`) to any household whose UUID they know | [[rls-authorization#Known gaps]] |
 

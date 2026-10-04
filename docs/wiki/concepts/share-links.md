@@ -72,6 +72,7 @@ generateShareToken(); // 32 chars from [A-Za-z0-9_-]
 - [[rls-authorization]]
 - [[week-plan]]
 - [[database-schema]]
+- [[0003-share-token-rls]]
 
 ## Sources
 

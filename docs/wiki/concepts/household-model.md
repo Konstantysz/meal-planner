@@ -95,6 +95,7 @@ curl -X POST http://localhost:3000/api/household/invite \
 - [[rls-authorization]]
 - [[auth-session]]
 - [[database-schema]]
+- [[0002-household-signup-rpc]]
 
 ## Sources
 

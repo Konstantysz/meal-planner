@@ -82,6 +82,8 @@ select token, plan_id from share_tokens;  -- returns every token
 - [[database-schema]]
 - [[household-model]]
 - [[share-links]]
+- [[0001-rls-is-the-authz-boundary]]
+- [[0003-share-token-rls]]
 
 ## Sources
 

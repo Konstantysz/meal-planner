@@ -81,6 +81,8 @@ $env:LLM_MODE='server'; pnpm dev -H 0.0.0.0   # LAN access, server-side LLM
 - [[llm-extraction]]
 - [[import-pipeline]]
 - [[env-vars]]
+- [[0004-exclusive-llm-modes]]
+- [[run-import-with-ollama]]
 
 ## Sources
 

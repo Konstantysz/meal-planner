@@ -94,6 +94,8 @@ const recipe = await createRecipe(supabase, body, user.id, household.household_i
 - [[database-schema]]
 - [[rls-authorization]]
 - [[import-pipeline]]
+- [[0001-rls-is-the-authz-boundary]]
+- [[local-dev-setup]]
 
 ## Sources
 

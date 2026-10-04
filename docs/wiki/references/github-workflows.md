@@ -8,7 +8,7 @@ created: 2026-10-04
 updated: 2026-10-04
 last_reviewed: null
 review_interval_days: 180
-confidence: medium
+confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
@@ -42,8 +42,8 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 | `backup.yml` | cron `0 3 * * 0` (Sundays 03:00 UTC) + manual | Installs the **latest** Supabase CLI from GitHub releases (unpinned), runs `supabase db dump --db-url …`, uploads `backups/` as an artifact kept 90 days | `SUPABASE_DB_URL` |
 | `wiki.yml` | PRs touching `docs/wiki/**`, `scripts/wiki-check.ts`, `.markdownlint-cli2.jsonc` | `pnpm install --frozen-lockfile`, `pnpm wiki:check` | none |
 
-> [!warning] Uncertain
-> The repo has a GitHub remote (`Konstantysz/meal-planner`), but nothing in the code shows whether the three secrets are configured or whether the scheduled runs succeed. Check the Actions tab before relying on the backups.
+> [!danger] Neither scheduled workflow has ever succeeded
+> As of 2026-10-04, `gh secret list` on `Konstantysz/meal-planner` returns nothing, and every scheduled keepalive and backup run has failed. The keepalive log shows `curl -sf "/rest/v1/ingredients…" -H "apikey: "`, meaning the secrets are empty. So the free-tier project isn't being kept awake and there are no backups. Fix it with [[configure-ci-secrets]].
 
 ## Gotchas
 
@@ -71,8 +71,9 @@ gh run list --workflow backup.yml --limit 5
 ## Sources
 
 - `.github/workflows/keepalive.yml`, `backup.yml`, `wiki.yml`
+- `gh secret list` and `gh run list` / `gh run view --log-failed` on `Konstantysz/meal-planner`, 2026-10-04
 - [Supabase CLI docs for `db dump`](https://github.com/supabase/cli/blob/develop/apps/cli/docs/supabase/db/dump.md), accessed 2026-10-04
 
 ## Changelog
 
-- 2026-10-04: Created from legacy `ci.md`. Removed the stale "no GitHub remote" claim and added the wiki workflow and the schema-only backup finding.
+- 2026-10-04: Created from legacy `ci.md`. Removed the stale "no GitHub remote" claim and added the wiki workflow, the schema-only backup finding, and the observed failing runs and missing secrets.

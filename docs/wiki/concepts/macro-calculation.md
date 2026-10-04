@@ -85,6 +85,7 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 - [[amount-scaling]]
 - [[recipe-management]]
 - [[shopping-list-aggregation]]
+- [[0006-macros-per-100g]]
 
 ## Sources
 

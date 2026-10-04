@@ -74,6 +74,8 @@ await extractRecipe('# Zupa …', fake, SYSTEM_PROMPT); // → RecipeJsonLd
 - [[llm-modes]]
 - [[import-pipeline]]
 - [[html-cleaning]]
+- [[0005-json-schema-constrained-decoding]]
+- [[run-llm-benchmark]]
 
 ## Sources
 

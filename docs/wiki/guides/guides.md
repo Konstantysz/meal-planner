@@ -26,7 +26,14 @@ Each guide is a single task with prerequisites, steps and a way to verify the re
 
 ## Pages
 
-_No pages yet._
+| Guide | Status |
+|---|---|
+| [[local-dev-setup]] | review |
+| [[write-unit-tests]] | review |
+| [[apply-migration]] | draft: CLI flow untested |
+| [[run-import-with-ollama]] | review |
+| [[run-llm-benchmark]] | review |
+| [[configure-ci-secrets]] | draft: not yet executed |
 
 ## Related
 
