@@ -54,38 +54,13 @@ export async function getRecipe(supabase: SupabaseClient, id: string): Promise<R
   return data as unknown as RecipeWithDetails;
 }
 
-export async function createRecipe(
-  supabase: SupabaseClient,
-  input: unknown,
-  authorId: string,
-  householdId: string,
-): Promise<Recipe> {
+/**
+ * Saves recipe, ingredients and steps in one transaction (save_recipe RPC, migration 0006).
+ * The author is always the signed-in user (auth.uid() in the database); RLS decides the household.
+ */
+export async function createRecipe(supabase: SupabaseClient, input: unknown, householdId: string): Promise<Recipe> {
   const parsed = RecipeInputSchema.parse(input);
-  const { data: recipe, error } = await supabase
-    .from('recipes')
-    .insert({
-      household_id: householdId,
-      author_id: authorId,
-      name: parsed.name,
-      servings_base: parsed.servings_base,
-      prep_time_min: parsed.prep_time_min,
-      source_url: parsed.source_url,
-      visibility: parsed.visibility,
-      diet_tags: parsed.diet_tags,
-      allergens: parsed.allergens,
-    })
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('save_recipe', { p_household_id: householdId, p_recipe: parsed });
   if (error) throw error;
-
-  const recipeId = (recipe as Recipe).id;
-  const { error: ingErr } = await supabase
-    .from('recipe_ingredients')
-    .insert(parsed.ingredients.map((i) => ({ ...i, recipe_id: recipeId })));
-  if (ingErr) throw ingErr;
-  const { error: stepErr } = await supabase
-    .from('recipe_steps')
-    .insert(parsed.steps.map((s) => ({ ...s, recipe_id: recipeId })));
-  if (stepErr) throw stepErr;
-  return recipe as Recipe;
+  return data as Recipe;
 }

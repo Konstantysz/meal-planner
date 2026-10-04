@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   if (!household) return NextResponse.json({ error: 'no household' }, { status: 400 });
   try {
     const body = await req.json();
-    const recipe = await createRecipe(supabase, body, user.id, household.household_id);
+    const recipe = await createRecipe(supabase, body, household.household_id);
     return NextResponse.json(recipe, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 400 });
