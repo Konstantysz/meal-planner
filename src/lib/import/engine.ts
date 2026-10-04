@@ -6,11 +6,19 @@ import type { RecipeJsonLd } from '@/lib/schemas';
 const MODEL_ID = 'gemma-2-2b-it-q4f16_1-MLC';
 const INIT_TIMEOUT_MS = 10 * 60 * 1000;
 
+let worker: Worker | null = null;
 let enginePromise: Promise<WebWorkerMLCEngine> | null = null;
+
+// Terminating the worker frees its GPU memory; just dropping enginePromise would leak it.
+function resetEngine() {
+  worker?.terminate();
+  worker = null;
+  enginePromise = null;
+}
 
 export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => void) {
   if (!enginePromise) {
-    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
     enginePromise = CreateWebWorkerMLCEngine(worker, MODEL_ID, {
       initProgressCallback: onProgress,
     });
@@ -41,14 +49,14 @@ export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd>
       response_format: { type: 'json_object', schema: JSON.stringify(LLM_OUTPUT_SCHEMA) },
     });
   } catch (e) {
-    // GPU device can be lost mid-inference (driver crash/OOM) — the worker/engine
-    // is dead at that point, so drop it and force re-init on the next attempt.
-    enginePromise = null;
+    // GPU device can be lost mid-inference (driver crash/OOM) — the engine is unusable
+    // at that point, so tear it down and force re-init on the next attempt.
+    resetEngine();
     throw e;
   }
   const choice = chunks.choices[0];
   if (choice?.finish_reason === 'length') {
-    throw new Error('Odpowiedź modelu została ucięta (za długi przepis). Spróbuj importu przez serwer.');
+    throw new Error('Odpowiedź modelu została ucięta (za długi przepis). Spróbuj importu w trybie LLM_MODE=server.');
   }
   return parseLlmJson(choice?.message?.content ?? '');
 }

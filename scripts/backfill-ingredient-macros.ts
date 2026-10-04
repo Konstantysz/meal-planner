@@ -39,9 +39,17 @@ async function main() {
 
   let updated = 0;
   let stillMissing = 0;
+  let failed = 0;
 
   for (const row of ingredients) {
-    const matches = await searchOff(row.name).catch(() => []);
+    let matches;
+    try {
+      matches = await searchOff(row.name);
+    } catch (e) {
+      failed++;
+      console.log(`  OFF lookup failed for "${row.name}": ${e}`);
+      continue;
+    }
     const match = matches[0];
     if (!match) {
       stillMissing++;
@@ -49,7 +57,8 @@ async function main() {
       continue;
     }
 
-    console.log(`  ${dryRun ? '[dry-run] would update' : 'updating'} "${row.name}" -> ${match.kcal_per_100g} kcal/100g`);
+    // First OFF hit is taken as-is — review the dry-run output (match name) before a real run.
+    console.log(`  ${dryRun ? '[dry-run] would update' : 'updating'} "${row.name}" -> OFF "${match.name}", ${match.kcal_per_100g} kcal/100g`);
     if (!dryRun) {
       const { error: updateError } = await supabase
         .from('ingredients')
@@ -66,7 +75,7 @@ async function main() {
     updated++;
   }
 
-  console.log(`\nDone. ${updated} updated, ${stillMissing} still missing (no OFF match — needs manual entry).`);
+  console.log(`\nDone. ${updated} updated, ${stillMissing} still missing (no OFF match — needs manual entry), ${failed} lookup errors (re-run).`);
 }
 
 main().catch((e) => {

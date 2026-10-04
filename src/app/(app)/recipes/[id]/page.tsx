@@ -46,7 +46,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
             .sort((a, b) => a.position - b.position)
             .map((ri) => (
               <li key={ri.id}>
-                {ri.amount != null && ri.unit ? `${ri.amount} ${ri.unit} ` : ''}
+                {ri.amount != null ? `${ri.amount}${ri.unit ? ` ${ri.unit}` : ''} ` : ''}
                 {ri.raw_text}
               </li>
             ))}

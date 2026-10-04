@@ -14,7 +14,7 @@ import { chromium, type Page } from 'playwright-core';
 import { fetchPage } from '../src/lib/import/fetch';
 import { cleanHtml } from '../src/lib/import/clean';
 import { extractRecipe, type LlmFn } from '../src/lib/import/extract';
-import { callOllama } from '../src/lib/import/ollama';
+import { callOllama, OLLAMA_MODEL } from '../src/lib/import/ollama';
 import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA } from '../src/lib/import/schema';
 
 const URLS = [
@@ -60,7 +60,7 @@ async function runPages(name: string, pages: { url: string; md: string }[], llm:
 }
 
 async function benchServer(pages: { url: string; md: string }[]): Promise<Result> {
-  execSync('ollama stop gemma2:2b'); // force cold start
+  execSync(`ollama stop ${OLLAMA_MODEL}`); // force cold start
   const t0 = performance.now();
   await callOllama('Odpowiedz JSON.', '{}'); // loads model into VRAM
   const loadMs = Math.round(performance.now() - t0);
@@ -68,7 +68,7 @@ async function benchServer(pages: { url: string; md: string }[]): Promise<Result
 }
 
 async function benchBrowser(pages: { url: string; md: string }[]): Promise<Result> {
-  execSync('ollama stop gemma2:2b'); // free VRAM for the browser
+  execSync(`ollama stop ${OLLAMA_MODEL}`); // free VRAM for the browser
   const ctx = await chromium.launchPersistentContext(resolve('.bench-chrome'), {
     channel: 'chrome',
     headless: process.env.HEADED !== '1',

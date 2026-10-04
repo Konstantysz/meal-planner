@@ -35,32 +35,27 @@ export function ImportDialog({
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
       const { markdown } = await fr.json();
 
-      const { mode } = await (await fetch('/api/import/extract')).json();
-      if (mode === 'server' || !(await hasWebGpu())) {
+      // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
+      const mr = await fetch('/api/import/extract');
+      if (!mr.ok) throw new Error(`Nie udało się odczytać trybu LLM (${mr.status})`);
+      const { mode } = await mr.json();
+      if (mode === 'server') {
         await extractOnServer(markdown);
         return;
+      }
+      if (!(await hasWebGpu())) {
+        throw new Error('Ta przeglądarka nie obsługuje WebGPU. Import działa tu tylko z serwerem uruchomionym z LLM_MODE=server.');
       }
 
       setStage('model');
-      try {
-        await ensureEngineReady((p) => {
-          setModelProgress({ text: p.text, progress: p.progress });
-        });
-      } catch (e) {
-        console.error('WebGPU/Gemma init failed, falling back to server extraction:', e);
-        await extractOnServer(markdown);
-        return;
-      }
+      await ensureEngineReady((p) => {
+        setModelProgress({ text: p.text, progress: p.progress });
+      });
 
       setStage('extract');
-      try {
-        const recipe = await extractWithWebLlm(markdown);
-        setStage('done');
-        onExtracted(recipe, url);
-      } catch (e) {
-        console.error('WebGPU extraction failed (e.g. GPU device lost), falling back to server extraction:', e);
-        await extractOnServer(markdown);
-      }
+      const recipe = await extractWithWebLlm(markdown);
+      setStage('done');
+      onExtracted(recipe, url);
     } catch (e) {
       setError(String(e));
       setStage('error');

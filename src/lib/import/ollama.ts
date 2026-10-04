@@ -1,15 +1,18 @@
 import { LLM_OUTPUT_SCHEMA } from './schema';
 
 // Same model family as the in-browser WebLLM path (gemma-2-2b), served by a local Ollama.
-const MODEL = process.env.OLLAMA_MODEL ?? 'gemma2:2b';
+export const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'gemma2:2b';
 const BASE_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
+// Cold start (model load into VRAM) + generation took ≤ 20 s in the benchmark; this only catches a hung Ollama.
+const TIMEOUT_MS = 120_000;
 
 export async function callOllama(system: string, user: string): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/chat`, {
     method: 'POST',
+    signal: AbortSignal.timeout(TIMEOUT_MS),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: MODEL,
+      model: OLLAMA_MODEL,
       stream: false,
       format: LLM_OUTPUT_SCHEMA,
       messages: [

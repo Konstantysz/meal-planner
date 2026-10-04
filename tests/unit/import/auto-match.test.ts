@@ -41,6 +41,15 @@ describe('autoMatchIngredients', () => {
     expect(results[0].ingredient).toBeNull();
   });
 
+  it('keeps a macro-less local match when OFF has no data either', async () => {
+    const searchOff = vi.fn().mockResolvedValue([]);
+    const results = await autoMatchIngredients(['cebula 300 g'], [ing('cebula', false)], { searchOff });
+    expect(searchOff).toHaveBeenCalled();
+    expect(results[0].ingredient?.name).toBe('cebula');
+    expect(results[0].offCandidate).toBeNull();
+    expect(results[0].fallbackCandidate).toBeNull();
+  });
+
   it('falls back to OFF candidate when no local match', async () => {
     const offResult = { name: 'Chorizo', category: 'mieso' as const, kcal_per_100g: 300,
       protein_per_100g: 20, fat_per_100g: 25, carbs_per_100g: 1, default_unit: 'g', source: 'off' as const };
