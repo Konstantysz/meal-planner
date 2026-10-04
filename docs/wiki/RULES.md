@@ -161,7 +161,7 @@ sources:
 
 ## 11. CI / automation
 
-`pnpm wiki:check` runs `scripts/wiki-check.ts` and then `markdownlint-cli2`. The `Wiki` GitHub workflow runs it on every PR that touches the wiki. It enforces:
+`pnpm wiki:check` runs `scripts/wiki-check.ts` and then `markdownlint-cli2`. Two things run it automatically: the `.githooks/pre-commit` hook, on any commit that stages wiki files (`pnpm install` enables it through `core.hooksPath`), and the `Wiki` GitHub workflow, on every PR that touches the wiki. `pnpm wiki:fix` auto-fixes markdown style. `.gitattributes` stores every text file with LF endings. The check enforces:
 
 - the frontmatter schema, including the `stable` and `llm_generated` invariants and repo `path:` sources that exist
 - the required sections and the TL;DR callout
@@ -197,4 +197,4 @@ Duplicate pages. Unsourced claims. Orphan pages. Stale `stable` pages. Giant pag
 
 ## Changelog
 
-- 2026-10-04: Adopted with repo amendments (path, wikilinks, callouts, repo sources, `verified_commit`).
+- 2026-10-04: Adopted with repo amendments (path, wikilinks, callouts, repo sources, `verified_commit`), plus the pre-commit hook and `.gitattributes`.

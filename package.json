@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "backfill:macros": "tsx scripts/backfill-ingredient-macros.ts",
     "bench:llm": "tsx scripts/bench-llm.ts",
-    "wiki:check": "tsx scripts/wiki-check.ts && markdownlint-cli2"
+    "wiki:check": "tsx scripts/wiki-check.ts && markdownlint-cli2",
+    "prepare": "git config core.hooksPath .githooks",
+    "wiki:fix": "markdownlint-cli2 --fix"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

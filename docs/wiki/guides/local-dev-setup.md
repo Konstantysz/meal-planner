@@ -39,7 +39,7 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
 
 ## Steps
 
-1. Install dependencies:
+1. Install dependencies. This also enables the repo's git hooks (`core.hooksPath = .githooks`), which run `pnpm wiki:check` when you commit wiki changes:
 
    ```bash
    pnpm install
