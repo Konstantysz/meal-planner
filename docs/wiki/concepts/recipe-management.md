@@ -5,19 +5,19 @@ tags: [recipes, ui]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 last_reviewed: null
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: dd67b66
+verified_commit: 5561f57
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
   - title: "save_recipe RPC"
-    path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
+    path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -72,6 +72,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
 - The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name.
+- Each ingredient row has an `optional` flag (the „opcjonalny" checkbox in `IngredientPicker`, migration 0007). Optional rows are left out of the recipe macros and labelled „(opcjonalnie)" on the detail page. The shopping list does **not** treat them differently. Import does not tick the box: the extractor drops the „ewentualne dodatki" label, so the user ticks it by hand.
 
 ## Known gaps
 
@@ -107,5 +108,6 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-05: Documented the `optional` ingredient flag (0007).
 - 2026-10-04: Create goes through the `save_recipe` RPC (0006); removed the non-transactional gap. Noted that picker-created ingredients persist even when the save fails.
 - 2026-10-04: Created from legacy `recipes.md`. Added filters, delete behaviour and the duplicated enum lists.

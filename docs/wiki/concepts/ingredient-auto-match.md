@@ -5,14 +5,14 @@ tags: [import, ingredients]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 last_reviewed: null
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: 5561f57
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts
@@ -41,7 +41,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 
 `autoMatchIngredients(rawLines, localIngredients, { searchOff })`, for each line:
 
-1. `parseIngredientLines(raw)` splits compound lines („chili i kumin po 1/4 łyżeczki" becomes two entries sharing the amount). Otherwise it calls `parseIngredientLine`: the **first** amount+unit match (numbers, `1/4`, `1,5`, „pół", „ćwierć", followed by g/kg/ml/l/szt/ząbek/łyżeczka/łyżka/szklanka/opakowanie forms). Units are normalised (`łyżki` → `łyżka`). The name is the text before the match.
+1. `parseIngredientLines(raw)` splits compound lines („chili i kumin po 1/4 łyżeczki" becomes two entries sharing the amount). Otherwise it calls `parseIngredientLine`: one amount+unit match (numbers, `1/4`, `1,5`, „pół", „ćwierć", „niecała", optionally with „płaskiej"/„czubatej" before the unit, followed by g/kg/ml/l/szt/ząbek/łyżeczka/łyżka/szklanka/opakowanie forms). A g/kg/ml/l match wins over the first match, because macros are per 100 g. Units are normalised (`łyżki` → `łyżka`). The name is the line with every amount phrase, empty parentheses and any trailing „- comment" part removed, so quantity-first lines („200 g masła - cała kostka") and quantity-last lines both work. A leading bare number with no unit („6 średnich jajek", „250 cukru") becomes sztuki below 50 and grams from 50 up.
 2. `cleanIngredientName` drops „np. …" suggestions and parentheticals.
 3. `findBestMatch(name, local)`: exact match scores 1, substring 0.8, otherwise word overlap / max word count. Scores of 0.5 or more count as a match.
 4. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match.
@@ -53,7 +53,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 
 - `raw_text` stored on the recipe is the **clean name only**. Amount and unit live in their own fields.
 - A macro-less local match is kept only when OFF has nothing (commit `df8755a`). Before that fix, placeholders shadowed real data.
-- The parser keeps only the first quantity: „400 g - 2 sztuki" gives 400 g. That's a deliberate `ponytail:` simplification.
+- The parser keeps one quantity: „400 g - 2 sztuki" gives 400 g, and „3 łyżki oleju - około 30 g" gives 30 g. That's a deliberate `ponytail:` simplification. The bare-number rule (under 50 is a piece count) is a heuristic.
 - A failed create (for example a name collision with `lower(name)`) silently drops that line. The notice then reports fewer matches.
 - Matching is substring plus word overlap, not edit distance. „pomidory" matches „pomidor" (substring), but an inflection that changes the stem, like „jajka" vs. „jajko", doesn't match. A `ponytail:` comment names a fuzzy-matching library as the upgrade.
 
@@ -67,6 +67,8 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 ```ts
 parseIngredientLine('czosnek świeży 6 ząbków');         // { name: 'czosnek świeży', amount: 6, unit: 'ząbek' }
 parseIngredientLines('chili i kumin po 1/4 łyżeczki'); // two entries, amount 0.25, unit 'łyżeczka'
+parseIngredientLine('pół płaskiej łyżeczki soli');      // { name: 'soli', amount: 0.5, unit: 'łyżeczka' }
+parseIngredientLine('niecała szklanka mąki (140 g)');   // { name: 'mąki', amount: 140, unit: 'g' }
 ```
 
 ## Related
@@ -84,4 +86,5 @@ parseIngredientLines('chili i kumin po 1/4 łyżeczki'); // two entries, amount 
 
 ## Changelog
 
+- 2026-10-05: Parser handles quantity-first lines (aniagotuje), prefers metric amounts, strips comment tails, and treats bare leading numbers as counts.
 - 2026-10-04: Created. Replaces the stale legacy claim that the review form doesn't auto-match.

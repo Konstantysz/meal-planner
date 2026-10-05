@@ -5,14 +5,14 @@ tags: [macros, recipes]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 last_reviewed: null
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: 5561f57
 sources:
   - title: "Macro functions"
     path: src/lib/macros.ts
@@ -47,12 +47,14 @@ The recipe detail page combines them:
 
 ```ts
 const total = sumMacros(recipe.ingredients.map((ri) => {
-  if (!ri.ingredients) return null;
+  if (!ri.ingredients || ri.optional) return null;
   const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
   return calculateIngredientMacros(ri.ingredients, grams);
 }));
 const per = perServing(total, recipe.servings_base);
 ```
+
+Optional ingredients (`ri.optional`) are skipped, so the totals describe the base recipe. See [[recipe-management]].
 
 `MacroSummary` renders `null` as „brak danych makro". Otherwise it shows `kcal · B · T · W`.
 
@@ -94,4 +96,5 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 
 ## Changelog
 
+- 2026-10-05: Optional ingredients are excluded from recipe macros.
 - 2026-10-04: Created from the macros section of legacy `recipes.md`. Added the "0 kcal instead of no data" gotcha.
