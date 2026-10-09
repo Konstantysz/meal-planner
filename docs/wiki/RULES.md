@@ -117,7 +117,7 @@ sources:
 - Active voice, short sentences, paragraphs under 5 lines where possible.
 - Code fences with language tags. Tables for comparisons. Mermaid fences for diagrams (they render in Obsidian and on GitHub).
 - **(amended)** Warnings use Obsidian callouts: `> [!warning]`, `> [!danger]`, `> [!note]`.
-- English prose. Polish UI strings are quoted verbatim, e.g. „przepis usunięty".
+- English prose. Polish UI strings are quoted verbatim, e.g. „przepis niedostępny".
 - **(amended)** Refer to code by repo path and symbol (`src/lib/macros.ts`, `perServing`), never by line number. Code paths are inline code, not links, because wikilinks cannot leave the vault.
 - No marketing language, filler or unsourced claims.
 
@@ -202,5 +202,6 @@ Duplicate pages. Unsourced claims. Orphan pages. Stale `stable` pages. Giant pag
 
 ## Changelog
 
+- 2026-10-09: Example Polish UI string updated to „przepis niedostępny" (issue #16).
 - 2026-10-09: Added the avoided-term check, `pnpm wiki:stale`, and `vitest related` in the pre-commit hook.
 - 2026-10-04: Adopted with repo amendments (path, wikilinks, callouts, repo sources, `verified_commit`), plus the pre-commit hook and `.gitattributes`.

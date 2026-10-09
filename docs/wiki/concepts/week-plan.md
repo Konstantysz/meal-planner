@@ -57,7 +57,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ### Unavailable recipes
 
-`plan_slots.recipe_id` is `on delete set null`, so deleting a recipe keeps the slot and nulls the reference. The UI shows „przepis usunięty" (to be „przepis niedostępny", issue #16) when `recipe_id` is set but the joined `recipe` is null. Because deletion nulls `recipe_id`, that state comes mostly from an **unavailable recipe** hidden by RLS, not a deleted one. Covers Review Focus #4; there is no test for it (see [[test-coverage]]).
+`plan_slots.recipe_id` is `on delete set null`, so deleting a recipe keeps the slot and nulls the reference. The UI shows „przepis niedostępny" when `recipe_id` is set but the joined `recipe` is null. Because deletion nulls `recipe_id`, that state comes mostly from an **unavailable recipe** hidden by RLS, not a deleted one. Covers Review Focus #4; tested in `tests/unit/plan-unavailable-recipe.test.tsx`.
 
 ## Invariants and gotchas
 
@@ -97,6 +97,7 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 
 ## Changelog
 
+- 2026-10-09: Unavailable-recipe label changed from „przepis usunięty" to „przepis niedostępny" (issue #16); both views updated.
 - 2026-10-09: Re-verified against a7f8f52 (no behaviour change in the plan code). Rebuilt the build-week gap from a fresh `pnpm build` (now `2026-10-05`, `/shopping` also static). Corrected the slot-name readability note (the label is grey, not the name) and the error-handling note (`assign`/`remove` don't check the status).
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Added a gap found in the 2026-10-04 smoke test.

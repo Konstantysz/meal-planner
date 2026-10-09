@@ -33,7 +33,7 @@ export function WeekPlanMobile({
                 <PlanSlot
                   key={s.id}
                   label={s.label ?? `posiłek ${s.position + 1}`}
-                  recipeName={s.recipe?.name ?? (s.recipe_id ? 'przepis usunięty' : null)}
+                  recipeName={s.recipe?.name ?? (s.recipe_id ? 'przepis niedostępny' : null)}
                   onRemove={() => onRemove(s.id)}
                 />
               ))}

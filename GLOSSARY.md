@@ -129,7 +129,7 @@ One meal position on one day of a plan. It may hold a recipe with a servings cou
 _Avoid_: meal, entry, cell, posiłek (UI label only)
 
 **Unavailable recipe**:
-A slot's recipe that the viewer cannot read, typically because access hides it, so its name cannot be shown. Deleting a recipe does not cause this; it empties the slot. UI today: „przepis usunięty" (to be „przepis niedostępny").
+A slot's recipe that the viewer cannot read, typically because access hides it, so its name cannot be shown. Deleting a recipe does not cause this; it empties the slot. UI: „przepis niedostępny".
 _Avoid_: orphaned slot, deleted recipe (for the unavailable state), broken slot
 
 **Shopping list**:
