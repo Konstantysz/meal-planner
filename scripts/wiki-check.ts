@@ -145,6 +145,33 @@ function checkFrontmatter(
   }
 }
 
+/**
+ * Multi-word `_Avoid_` terms from GLOSSARY.md that carry no "(…)" qualifier. A qualifier marks a
+ * context-dependent term, which no mechanical check can judge, so only unqualified ones are banned.
+ */
+export function avoidedTerms(glossary: string): string[] {
+  const terms = [...glossary.matchAll(/^_Avoid_: (.*)$/gm)].flatMap((m) => m[1].split(/,(?![^(]*\))/));
+  return terms.map((t) => t.trim().toLowerCase()).filter((t) => /^[a-z]+ [a-z ]+$/.test(t));
+}
+
+const stripNonProse = (content: string) =>
+  content
+    .replace(/^---[\s\S]*?\n---/, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]*`/g, '')
+    .replace(/„[^”]*”/g, '')
+    .replace(/\[\[[^\]]*\]\]/g, '')
+    .toLowerCase();
+
+export function checkAvoidedTerms(files: WikiFile[], terms: string[]): string[] {
+  return files.flatMap((f) => {
+    const prose = stripNonProse(f.content);
+    return terms
+      .filter((t) => new RegExp(`\\b${t.replace(/ /g, '\\s+')}\\b`).test(prose))
+      .map((t) => `${f.path}: avoided term "${t}" (see GLOSSARY.md)`);
+  });
+}
+
 export function checkWiki(files: WikiFile[], repoFileExists: (p: string) => boolean): string[] {
   const errors: string[] = [];
   const pages = files.map((f) => parsePage(f, errors));
@@ -215,7 +242,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     path: relative(root, abs).split(sep).join('/'),
     content: readFileSync(abs, 'utf8'),
   }));
-  const errors = checkWiki(files, (p) => existsSync(join(process.cwd(), p)));
+  const glossaryPath = join(process.cwd(), 'GLOSSARY.md');
+  const terms = existsSync(glossaryPath) ? avoidedTerms(readFileSync(glossaryPath, 'utf8')) : [];
+  const errors = [...checkWiki(files, (p) => existsSync(join(process.cwd(), p))), ...checkAvoidedTerms(files, terms)];
   for (const e of errors) console.error(e);
   console.log(`wiki-check: ${files.length} pages, ${errors.length} error(s)`);
   process.exit(errors.length ? 1 : 0);

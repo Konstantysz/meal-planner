@@ -25,7 +25,7 @@ sources:
 # Test Coverage Map
 
 > [!tldr]
-> There are 25 test files and 148 unit tests, all passing (`pnpm test` at a7f8f52). Coverage is strong for pure logic and the import pipeline. It is absent for most `src/lib/db/*` reads and plan writes, the offline store, the Supabase client helpers, most API routes and all UI except `ImportDialog`. There are no end-to-end or SQL/RLS tests.
+> All unit tests pass (`pnpm test`; counts are not recorded here, the runner is the source of truth). Coverage is strong for pure logic and the import pipeline. It is absent for most `src/lib/db/*` reads and plan writes, the offline store, the Supabase client helpers, most API routes and all UI except `ImportDialog`. There are no end-to-end or SQL/RLS tests.
 
 ## Context
 
@@ -33,31 +33,31 @@ sources:
 
 ## Covered
 
-| Module | Test file | Tests |
-|---|---|---|
-| `src/lib/macros.ts` | `tests/unit/macros.test.ts` | 7 |
-| `src/lib/scaling.ts` | `tests/unit/scaling.test.ts` | 6 |
-| `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` | 4 |
-| `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` | 2 |
-| `src/lib/off.ts` | `tests/unit/off.test.ts` | 13 |
-| `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema` only) | 3 |
-| `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`) | 11 (includes a 6-case `it.each`) |
-| `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) | 5 |
-| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe` only) | 3 |
-| `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) | 4 |
-| `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) | 10 |
-| `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` | 4 |
-| `src/lib/import/schema.ts` | `tests/unit/import/schema.test.ts` | 3 |
-| `src/lib/import/engine.ts` | `tests/unit/import/engine.test.ts` (web-llm and `Worker` mocked) | 3 |
-| `src/lib/import/ollama.ts` | `tests/unit/import/ollama.test.ts` | 2 |
-| `src/lib/import/parse-ingredient.ts` | `tests/unit/import/parse-ingredient.test.ts` | 19 |
-| `src/lib/import/match-ingredient.ts` | `tests/unit/import/match-ingredient.test.ts` | 6 |
-| `src/lib/import/auto-match.ts` | `auto-match.test.ts` + `auto-match.leczo.test.ts` (real 10-line list) | 11 |
-| `src/lib/import/yield.ts` | `tests/unit/import/yield.test.ts` (`it.each` table) | 14 |
-| `src/app/api/import/extract/route.ts` | `tests/unit/import/extract-route.test.ts` | 4 |
-| `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` | 4 |
-| `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` | 5 |
-| `scripts/wiki-check.ts` | `tests/unit/wiki-check.test.ts` | 4 |
+| Module | Test file |
+|---|---|
+| `src/lib/macros.ts` | `tests/unit/macros.test.ts` |
+| `src/lib/scaling.ts` | `tests/unit/scaling.test.ts` |
+| `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` |
+| `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` |
+| `src/lib/off.ts` | `tests/unit/off.test.ts` |
+| `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema` only) |
+| `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`) |
+| `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
+| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe` only) |
+| `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
+| `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
+| `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` |
+| `src/lib/import/schema.ts` | `tests/unit/import/schema.test.ts` |
+| `src/lib/import/engine.ts` | `tests/unit/import/engine.test.ts` (web-llm and `Worker` mocked) |
+| `src/lib/import/ollama.ts` | `tests/unit/import/ollama.test.ts` |
+| `src/lib/import/parse-ingredient.ts` | `tests/unit/import/parse-ingredient.test.ts` |
+| `src/lib/import/match-ingredient.ts` | `tests/unit/import/match-ingredient.test.ts` |
+| `src/lib/import/auto-match.ts` | `auto-match.test.ts` + `auto-match.leczo.test.ts` (real 10-line list) |
+| `src/lib/import/yield.ts` | `tests/unit/import/yield.test.ts` (`it.each` table) |
+| `src/app/api/import/extract/route.ts` | `tests/unit/import/extract-route.test.ts` |
+| `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` |
+| `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
+| `scripts/wiki-check.ts` | `tests/unit/wiki-check.test.ts` |
 
 ## Not covered
 
@@ -93,7 +93,7 @@ These are the five edge cases the original spec singled out as able to break the
 ## Examples
 
 ```bash
-pnpm test                                   # all 148
+pnpm test                                   # all tests
 pnpm vitest run tests/unit/import           # one folder
 pnpm vitest run -t "different units"        # by test name
 ```
@@ -107,11 +107,12 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Sources
 
-- `tests/unit/**`, `vitest.config.ts`, and a `pnpm test` run at a7f8f52 (25 files, 148 tests passed on Node 22.23.2).
+- `tests/unit/**`, `vitest.config.ts`, and a `pnpm test` run at a7f8f52.
 - The Review Focus section of the original spec (`docs/plans/architecture_plan_document.md`).
 
 ## Changelog
 
+- 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-09: Counts updated to 25 files and 148 tests. Not-covered list rewritten per exported symbol (db/recipes, db/plans, db/households, offline store, supabase helpers, import fetch/gemini/engine/worker, schemas). AGENTS.md convention reworded to point here.

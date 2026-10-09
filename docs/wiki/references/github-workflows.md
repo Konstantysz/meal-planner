@@ -42,7 +42,7 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 |---|---|---|---|
 | `keepalive.yml` | cron `0 6 */5 * *` (06:00 UTC on days 1, 6, 11, … of each month) + manual | `curl -sf $SUPABASE_URL/rest/v1/ingredients?select=id&limit=1` with the `apikey` header | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | `backup.yml` | cron `0 3 * * 0` (Sundays 03:00 UTC) + manual | Installs the **latest** Supabase CLI from GitHub releases (unpinned), runs `supabase db dump --db-url …`, uploads `backups/` as an artifact kept 90 days | `SUPABASE_DB_URL` |
-| `ci.yml` | every PR, push to `main` | Four chained jobs (`needs`), each on Node 24 after `pnpm install --frozen-lockfile`: `lint` (`pnpm lint`, `format:check`, `typecheck`) → `wiki` (`pnpm wiki:check`) → `test` (`pnpm test`) → `build` (`pnpm build` with placeholder `NEXT_PUBLIC_SUPABASE_*` vars, `.next/cache` cached) | none |
+| `ci.yml` | every PR, push to `main` | Four chained jobs (`needs`), each on Node 24 after `pnpm install --frozen-lockfile`: `lint` (`pnpm lint`, `format:check`, `typecheck`) → `wiki` (full-history checkout; `pnpm wiki:check`, then the informational `pnpm wiki:stale`) → `test` (`pnpm test`) → `build` (`pnpm build` with placeholder `NEXT_PUBLIC_SUPABASE_*` vars, `.next/cache` cached) | none |
 
 > [!danger] Neither scheduled workflow has ever succeeded
 > As of 2026-10-09, `gh secret list` on `Konstantysz/meal-planner` returns nothing, and `gh run list --status success` returns no runs for either workflow. The latest keepalive run failed on 2026-10-06 and the latest backup run on 2026-10-04. In the 2026-10-04 keepalive log, `curl -sf "/rest/v1/ingredients…" -H "apikey: "` meant the secrets were empty. So the free-tier project isn't being kept awake and there are no backups. Fix it with [[configure-ci-secrets]].
@@ -94,6 +94,7 @@ gh run list --workflow backup.yml --limit 5
 
 ## Changelog
 
+- 2026-10-09: `wiki` job now checks out full history and runs `pnpm wiki:stale` (informational).
 - 2026-10-09: Re-verified workflows and steps against a7f8f52. Confirmed the `main` ruleset is active via `gh api …/rules/branches/main` (an earlier empty result was transient). Updated the secrets and failing-run evidence to 2026-10-09. Flagged the auth/storage dump claim as uncertain.
 - 2026-10-04: Created from legacy `ci.md`. Removed the stale "no GitHub remote" claim and added the wiki workflow, the schema-only backup finding, and the observed failing runs and missing secrets.
 - 2026-10-04: Added `ci.yml` (lint, format, typecheck, test).

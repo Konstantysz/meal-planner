@@ -28,7 +28,7 @@ _Avoid_: privacy, sharing level, public
 
 **Share link**:
 A public, read-only URL that shows one plan's week to anyone holding it, with no login. It is the thing a user copies and sends.
-_Avoid_: public link (a recipe visibility value, unrelated), share page, shared plan
+_Avoid_: public link (a recipe visibility value, unrelated), share page (for the share link), shared plan (for the share link)
 
 **Share token**:
 The unguessable secret inside a share link that identifies the one plan it unlocks. Tokens do not expire.
@@ -46,7 +46,7 @@ _Avoid_: product (an Open Food Facts term), food, item
 
 **Recipe ingredient**:
 An ingredient as used in one recipe: its amount, unit, and the original text it was entered or imported as.
-_Avoid_: ingredient line, component, row
+_Avoid_: ingredient line (for the recipe ingredient), component, row
 
 **Base servings**:
 The number of servings a recipe's ingredient amounts produce. It is the denominator when amounts are scaled.
@@ -74,11 +74,11 @@ _Avoid_: origin, provenance
 
 **Placeholder ingredient**:
 An ingredient created with only a name and no macros, either by hand while building a recipe or as the fallback during import.
-_Avoid_: bare ingredient, stub, manual ingredient
+_Avoid_: bare ingredient, stub, manual ingredient (for the placeholder ingredient)
 
 **Macro-less ingredient**:
 An ingredient with no macro values at all; it counts as zero in recipe totals and marks shopping items incomplete.
-_Avoid_: missing macros, empty ingredient
+_Avoid_: missing macros (for the ingredient), empty ingredient
 
 ### Import
 
@@ -130,7 +130,7 @@ _Avoid_: meal, entry, cell, posiłek (UI label only)
 
 **Unavailable recipe**:
 A slot's recipe that the viewer cannot read, typically because access hides it, so its name cannot be shown. Deleting a recipe does not cause this; it empties the slot. UI today: „przepis usunięty" (to be „przepis niedostępny").
-_Avoid_: orphaned slot, deleted recipe, broken slot
+_Avoid_: orphaned slot, deleted recipe (for the unavailable state), broken slot
 
 **Shopping list**:
 The aggregated ingredients needed for one plan's week, grouped by category.
@@ -146,7 +146,7 @@ _Avoid_: unit conversion (there is none), merging
 
 **Incomplete shopping item**:
 A shopping item where at least one contributing ingredient has no macro data. UI: „(brak makro)".
-_Avoid_: partial, missing macros
+_Avoid_: partial, missing macros (for the item)
 
 **Have mark**:
 The per-device tick that says the user already has a shopping item for this week. It is never shared with the household or the server. UI: „mam to".

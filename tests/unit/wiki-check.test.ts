@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkWiki, type WikiFile } from '../../scripts/wiki-check';
+import { avoidedTerms, checkAvoidedTerms, checkWiki, type WikiFile } from '../../scripts/wiki-check';
 
 const fm = (title: string, extra = '') => `---
 title: "${title}"
@@ -71,5 +71,27 @@ describe('checkWiki', () => {
     );
     files[1].content = page('Concepts', '[[README]] [[plan|Week plan]]');
     expect(checkWiki(files, exists)).toEqual([]);
+  });
+});
+
+describe('avoided terms', () => {
+  it('bans only unqualified multi-word terms from GLOSSARY.md', () => {
+    const glossary = [
+      '_Avoid_: public link (a visibility value), share page (for the share link), stub, bare ingredient',
+      '_Avoid_: meal plan, schedule',
+    ].join('\n');
+    expect(avoidedTerms(glossary)).toEqual(['bare ingredient', 'meal plan']);
+  });
+
+  it('flags prose but not code, quotes, wikilinks or frontmatter', () => {
+    const body = [
+      'A bare ingredient here.',
+      'In `code`: bare ingredient. Quoted „meal plan”. Link [[meal plan]].',
+      '```\nbare ingredient\n```',
+    ].join('\n');
+    const files = [{ path: 'concepts/x.md', content: page('Other', body) }];
+    expect(checkAvoidedTerms(files, ['bare ingredient', 'meal plan'])).toEqual([
+      'concepts/x.md: avoided term "bare ingredient" (see GLOSSARY.md)',
+    ]);
   });
 });

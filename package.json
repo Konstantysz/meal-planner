@@ -14,6 +14,7 @@
     "wiki:check": "tsx scripts/wiki-check.ts && markdownlint-cli2",
     "prepare": "git config core.hooksPath .githooks",
     "wiki:fix": "markdownlint-cli2 --fix",
+    "wiki:stale": "tsx scripts/wiki-stale.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

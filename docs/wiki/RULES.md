@@ -5,7 +5,7 @@ tags: [meta]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-09
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
@@ -167,9 +167,14 @@ sources:
 - the required sections and the TL;DR callout
 - that wikilinks, `#heading` anchors and aliases resolve, and basenames are unique
 - no orphan pages and no missing link to the folder index
+- no unqualified multi-word `_Avoid_` term from the root `GLOSSARY.md` in prose (qualify a context-dependent term with `(…)` in the glossary to exempt it)
 - markdown lint
 
-**(amended)** Deferred until the first `stable` page exists: spell check (it would mostly flag Polish terms), a review label for edits to `stable` pages, and enforced changelog entries for `stable` changes.
+`pnpm wiki:stale` lists pages whose `sources:` changed since their `verified_commit` (whitespace-only changes ignored). It is informational: CI runs it in the `wiki` job (full checkout) and it exits 0; add `--strict` to fail. Use its output as the worklist for re-verification.
+
+The pre-commit hook also runs `vitest related` on staged `.ts`/`.tsx` files, so a commit that breaks a test stops locally.
+
+**(amended)** Deferred: spell check (it would mostly flag Polish terms), a review label for edits to `stable` pages, and enforced changelog entries for `stable` changes.
 
 ## 12. Definition of Done
 
@@ -197,4 +202,5 @@ Duplicate pages. Unsourced claims. Orphan pages. Stale `stable` pages. Giant pag
 
 ## Changelog
 
+- 2026-10-09: Added the avoided-term check, `pnpm wiki:stale`, and `vitest related` in the pre-commit hook.
 - 2026-10-04: Adopted with repo amendments (path, wikilinks, callouts, repo sources, `verified_commit`), plus the pre-commit hook and `.gitattributes`.
