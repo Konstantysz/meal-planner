@@ -17,6 +17,13 @@ export async function POST(req: Request) {
     const recipe = await extractRecipe(markdown, callOllama, SYSTEM_PROMPT, 2);
     return NextResponse.json(recipe);
   } catch (e) {
+    // Node's fetch rejects with TypeError('fetch failed') and the socket error in `cause`.
+    if ((e as { cause?: { code?: string } }).cause?.code === 'ECONNREFUSED') {
+      return NextResponse.json(
+        { error: 'Ollama nie działa. Uruchom ją (aplikacja Ollama lub `ollama serve`) i spróbuj ponownie.' },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: String(e) }, { status: 502 });
   }
 }
