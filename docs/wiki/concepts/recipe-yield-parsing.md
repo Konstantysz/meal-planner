@@ -25,7 +25,7 @@ sources:
 # Recipe Yield Parsing
 
 > [!tldr]
-> `parseYield` sets the initial base servings on the import review form. A number is rounded. A count („4 porcje", „na 6 osób", „12 sztuk") wins over a weight. A weight („1,5 kg") is divided by an assumed 350 g serving. Anything else falls back to the first number, and with no number at all, 4. The result is always 1 or more.
+> `parseYield` sets the initial base servings on the import review form. A number is rounded. A count („4 porcje", „na 6 osób", „12 sztuk") wins over a weight. A weight („1,5 kg") is divided by an assumed 350 g serving, and the review form shows the resulting grams per serving (`yieldWeightGrams`) so the user can correct the count. Anything else falls back to the first number, and with no number at all, 4. The result is always 1 or more.
 
 ## Context
 
