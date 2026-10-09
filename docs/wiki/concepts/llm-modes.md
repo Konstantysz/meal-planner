@@ -2,17 +2,17 @@
 title: "LLM Modes"
 summary: "The two exclusive extraction runtimes selected by LLM_MODE: in-browser WebLLM (WebGPU, Web Worker) and server-side Ollama; the paused Gemini fallback."
 tags: [llm, import]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Extract route (mode switch)"
     path: src/app/api/import/extract/route.ts
@@ -92,4 +92,5 @@ $env:LLM_MODE='server'; pnpm dev -H 0.0.0.0   # LAN access, server-side LLM
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52; no content change (the import files changed since 656711c only in formatting, and the mode switch, Ollama and Gemini code are unchanged).
 - 2026-10-04: Created from the "Server-side local LLM" and "Gemini fallback" sections of legacy `import.md`.

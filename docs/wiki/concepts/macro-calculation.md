@@ -2,17 +2,17 @@
 title: "Macro Calculation"
 summary: "How kcal/protein/fat/carbs are computed from per-100g ingredient data into per-serving recipe values, and the null-safety rules."
 tags: [macros, recipes]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-05
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 5561f57
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Macro functions"
     path: src/lib/macros.ts
@@ -43,7 +43,7 @@ All functions are in `src/lib/macros.ts` and are pure:
 | `sumMacros(list)` | Adds the list up and skips `null` entries. An empty or all-null list gives `{0,0,0,0}`. |
 | `perServing(total, servings)` | `null` if `servings <= 0`, otherwise each field divided by `servings` |
 
-The recipe detail page combines them:
+The recipe detail page combines them, dividing by the recipe's base servings (`servings_base`):
 
 ```ts
 const total = sumMacros(recipe.ingredients.map((ri) => {
@@ -62,13 +62,14 @@ Optional ingredients (`ri.optional`) are skipped, so the totals describe the bas
 
 - **`ml` is treated as `g`.** There's no density conversion.
 - **Non-gram units count as 0, not as "unknown".** „2 łyżki oliwy" adds nothing, and nothing flags the total as partial.
-- **An ingredient with no macros is skipped; it doesn't zero the total.** An ingredient with only some macros counts the missing fields as 0.
+- **A macro-less ingredient is skipped; it doesn't zero the total.** An ingredient with only some macros counts the missing fields as 0.
+- **Optional recipe ingredients are skipped.** The detail page returns null for `ri.optional`, so they add nothing to the total, although they are listed on the page with „(opcjonalnie)".
 - A recipe where nothing has macros shows **„0 kcal · B 0.0 …"**, not „brak danych makro", because `sumMacros` returns zeros and `servings_base` is always above 0.
 - Review Focus #1 (zero servings) is handled by `perServing` returning null, and the DB check `servings_base > 0` prevents it for stored recipes anyway.
 
 ## Known gaps
 
-- No unit conversion (łyżka, szklanka, szt → grams), so imported recipes, which mostly use those units, show low totals.
+- No unit conversion (łyżka, szklanka, szt → grams). Recipes that use those units count as 0, so their totals come out low. The import parser recognises these units (`src/lib/import/parse-ingredient.ts`), but nothing converts them.
 - No "incomplete" flag at the recipe level. The plan's Review Focus #5 marking exists only on the shopping list (see [[shopping-list-aggregation]]).
 - Per-day totals in the plan are a stub (see [[week-plan#Known gaps]]).
 
@@ -96,5 +97,6 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.
 - 2026-10-05: Optional ingredients are excluded from recipe macros.
 - 2026-10-04: Created from the macros section of legacy `recipes.md`. Added the "0 kcal instead of no data" gotcha.

@@ -17,6 +17,8 @@ if [ -n "$code" ]; then
   if [ -n "$lintable" ]; then
     printf '%s\n' "$lintable" | xargs -d '\n' pnpm -s exec eslint --no-warn-ignored \
       || fail "lint errors. Fix them (or 'pnpm lint' for the full report)."
+    printf '%s\n' "$lintable" | xargs -d '\n' pnpm -s exec vitest related --run --passWithNoTests \
+      || fail "tests related to the staged files failed. Run 'pnpm test' for the full report."
   fi
 fi
 

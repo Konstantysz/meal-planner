@@ -2,17 +2,17 @@
 title: "Environment Variables"
 summary: "Every environment variable and GitHub secret the app, scripts and workflows read, where each is read and what happens when it is missing."
 tags: [dev-setup, ci]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Browser Supabase client"
     path: src/lib/supabase/client.ts
@@ -91,4 +91,5 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key>   # only for scripts/backfill-ingre
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52; no content change (a repo-wide `process.env` grep matches the table).
 - 2026-10-04: Created.

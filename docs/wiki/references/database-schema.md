@@ -2,16 +2,16 @@
 title: "Database Schema"
 summary: "Tables, constraints, foreign-key delete behaviour, RLS policies, SQL functions, migrations and seed of the Supabase Postgres database."
 tags: [database, rls]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-05
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
 verified_commit: 5561f57
 sources:
   - title: "Initial schema and RLS"
@@ -95,7 +95,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | | `rec_insert` | insert | `author_id = auth.uid() and is_member_of(household_id)` |
 | | `rec_update` | update | using: author or member. check: `is_member_of(household_id)` (can't move a recipe out to a foreign household) |
 | | `rec_delete` | delete | `author_id = auth.uid()` |
-| `recipe_ingredients`, `recipe_steps` | `ri_all`, `rs_all` | all | the parent recipe's author or household member |
+| `recipe_ingredients`, `recipe_steps` | `ri_all`, `rs_all` | all | the parent recipe's author or member |
 | `plans` | `plans_all` | all | `is_member_of(household_id)` |
 | `plan_slots` | `plan_slots_all` | all | member of the parent plan's household |
 | `pantry_items` | `pantry_all` | all | `is_member_of(household_id)` |
@@ -151,6 +151,7 @@ from plans p;
 
 ## Changelog
 
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-05: Documented migration 0007 (`recipe_ingredients.optional`).
 - 2026-10-04: Documented migration 0006 (signup trigger, `save_recipe`, idempotent signup RPC).
 - 2026-10-04: Documented migration 0005 (`get_shared_plan`, share policies removed, Monday constraint).

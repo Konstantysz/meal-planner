@@ -2,16 +2,16 @@
 title: "Guides"
 summary: "Index of how-to guides for common tasks."
 tags: [meta]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-04
-last_reviewed: null
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
-human_reviewed: false
+human_reviewed: true
 sources: []
 ---
 

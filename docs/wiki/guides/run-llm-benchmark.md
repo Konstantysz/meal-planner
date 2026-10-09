@@ -2,17 +2,17 @@
 title: "Run the LLM Benchmark"
 summary: "Compare browser (WebLLM) and server (Ollama) extraction speed and success on 10 live recipe pages with pnpm bench:llm."
 tags: [llm, import, testing]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Benchmark script"
     path: scripts/bench-llm.ts
@@ -29,7 +29,8 @@ Use it before changing cleaning, prompts, the grammar or the model, to see wheth
 
 ## Prerequisites
 
-- For `server`: Ollama running with `gemma2:2b` (see [[run-import-with-ollama]]). The script calls `ollama stop` to force a cold start.
+- Ollama installed and on `PATH` for both modes: the script calls `ollama stop` before each run, even in `browser` mode.
+- For `server`: Ollama running with `gemma2:2b` (default; override with `OLLAMA_MODEL`, see [[run-import-with-ollama]]). The `ollama stop` call forces a cold start.
 - For `browser`: Google Chrome installed (Playwright `channel: 'chrome'`) with WebGPU. The first run downloads about 1.5 GB into `.bench-chrome/` (gitignored).
 - Network access to the 10 URLs listed in `scripts/bench-llm.ts`.
 
@@ -71,4 +72,5 @@ pnpm bench:llm server 2>&1 | tee bench-$(date +%F).log
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. Added that `ollama stop` also runs in `browser` mode, so Ollama must be installed for both modes, and documented the `OLLAMA_MODEL` override.
 - 2026-10-04: Created from the benchmark paragraph of legacy `import.md`.

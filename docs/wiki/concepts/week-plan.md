@@ -1,18 +1,18 @@
 ---
 title: "Week Plan"
-summary: "Plans keyed by household and Monday week start, slots keyed by date and position, desktop vs mobile views, deleted-recipe slots and the per-day macro stub."
+summary: "Plans keyed by household and Monday week start, slots keyed by date and position, desktop vs mobile views, unavailable-recipe slots and the per-day macro stub."
 tags: [plan, ui]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Plan data access"
     path: src/lib/db/plans.ts
@@ -28,12 +28,14 @@ sources:
     path: src/app/(app)/plan/page.tsx
   - title: "Slot schema"
     path: src/lib/schemas.ts
+  - title: "Global styles (dark-mode foreground)"
+    path: src/app/globals.css
 ---
 
 # Week Plan
 
 > [!tldr]
-> A plan is one household's week, keyed by `week_start_date` (the Monday). A slot is `(plan_id, date, position)` with an optional recipe and servings. Writes are upserts on that key. The page shows the current week only. Desktop shows a fixed 5-row grid and mobile shows any number of meals per day. Per-day macro totals are **not implemented**.
+> A plan is one household's week, keyed by `week_start_date` (the Monday). A slot is `(plan_id, date, position)` with an optional recipe and planned servings. Writes are upserts on that key. The page shows the current week only. Desktop shows a fixed 5-row grid and mobile shows any number of meals per day. Per-day macro totals are **not implemented**.
 
 ## Context
 
@@ -53,13 +55,13 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 - The recipe picker is a dialog inside `WeekPlan.tsx` that loads `GET /api/recipes` and filters by name.
 
-### Deleted recipes
+### Unavailable recipes
 
-`plan_slots.recipe_id` is `on delete set null`, so deleting a recipe keeps the slot and nulls the reference. The UI shows „przepis usunięty" when `recipe_id` is set but the joined `recipe` is null. Because deletion nulls `recipe_id`, that state comes mostly from an **RLS-hidden** recipe, not a deleted one. Covers Review Focus #4; there is no test for it (see [[test-coverage]]).
+`plan_slots.recipe_id` is `on delete set null`, so deleting a recipe keeps the slot and nulls the reference. The UI shows „przepis usunięty" (to be „przepis niedostępny", issue #16) when `recipe_id` is set but the joined `recipe` is null. Because deletion nulls `recipe_id`, that state comes mostly from an **unavailable recipe** hidden by RLS, not a deleted one. Covers Review Focus #4; there is no test for it (see [[test-coverage]]).
 
 ## Invariants and gotchas
 
-- **Servings are always 1.** `handlePick` calls `assign(…, recipeId, 1)` and there is no control to change it. The shopping list therefore buys for one portion per slot.
+- **Servings are always 1.** `handlePick` calls `assign(…, recipeId, 1)` and there is no control to change it. The shopping list therefore buys for one serving per slot.
 - **Labels aren't stored.** `label` is always sent as null. Desktop derives the label from the position and mobile shows „posiłek N", so the same slot is labelled differently in the two views.
 - A mobile slot at position 5 or higher doesn't appear in the desktop grid.
 - `new Date(plan.week_start_date)` parses `yyyy-MM-dd` as **UTC midnight**. That's fine in Poland (UTC+1/+2), but in a timezone west of UTC the columns shift back one day.
@@ -68,12 +70,12 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 ## Known gaps
 
 > [!danger] The week is frozen at build time in production
-> `src/app/(app)/plan/page.tsx` is a server component that computes `startOfWeek(new Date())`, and nothing marks it dynamic. `pnpm build` reports `/plan` as `○ (Static)`, and the pre-rendered HTML contains `"weekStart":"2026-09-28"` (the build week). A production deploy keeps showing that week until the next build. `/shopping` has the same problem. `pnpm dev` hides it because dev renders on every request. Fix: compute the week on the client, or opt the page into dynamic rendering.
+> `src/app/(app)/plan/page.tsx` is a server component that computes `startOfWeek(new Date())`, and nothing marks it dynamic. `pnpm build` reports `/plan` as `○ (Static)`, and the pre-rendered HTML contains `"weekStart":"2026-10-05"` (the week of the 2026-10-09 build). A production deploy keeps showing that week until the next build. `/shopping` has the same problem, and is also `○ (Static)`. `pnpm dev` hides it because dev renders on every request. Fix: compute the week on the client, or opt the page into dynamic rendering.
 
 - **Per-day macros are a stub.** `dayMacros` is filled with `null`, so mobile always shows „brak danych makro". Implementing it needs recipe ingredients per slot (see [[macro-calculation]]).
 - No navigation between weeks, and no drag and drop (`@dnd-kit` is installed but unused).
-- After the picker closes, `assign` errors are ignored.
-- The recipe name in a slot card is light grey on white and barely readable in dark mode.
+- `assign` and `remove` don't check the response status. They reload either way, so a failed write shows no error.
+- In dark mode the recipe name in a slot card is barely readable. It inherits the dark `--foreground` colour (`src/app/globals.css`) on a fixed `bg-white` card. The label is `text-gray-500`, not the name.
 
 ## Examples
 
@@ -95,5 +97,7 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52 (no behaviour change in the plan code). Rebuilt the build-week gap from a fresh `pnpm build` (now `2026-10-05`, `/shopping` also static). Corrected the slot-name readability note (the label is grey, not the name) and the error-handling note (`assign`/`remove` don't check the status).
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Added a gap found in the 2026-10-04 smoke test.
 - 2026-10-04: Created from legacy `plan.md`. Added the servings-always-1, label mismatch, UTC parsing and create-race notes, plus the build-time week freeze (seen in `pnpm build` output).

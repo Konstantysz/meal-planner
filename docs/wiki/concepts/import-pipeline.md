@@ -2,17 +2,17 @@
 title: "Import Pipeline"
 summary: "End-to-end URL import: fetch and clean on the server, LLM extraction in browser or server, then human review with auto-matching before save."
 tags: [import, llm, recipes]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Import dialog"
     path: src/components/import/ImportDialog.tsx
@@ -74,9 +74,9 @@ The `ImportDialog` stage machine is `idle → fetch → (model) → extract → 
 ## Invariants and gotchas
 
 - **Review is mandatory.** `ImportReviewForm.save` refuses to save until at least one ingredient is mapped („Zmapuj co najmniej jeden składnik przed zapisem.").
-- Imported recipes get `prep_time_min: null`, `diet_tags: []`, `allergens: []` and `visibility: 'household'`. The extracted `prepTime` is dropped.
+- Imported recipes get `prep_time_min: null`, `diet_tags: []`, `allergens: []` and `visibility: 'household'`. The extracted `prepTime` is dropped. Each recipe ingredient is saved with `optional: false`.
 - `recipeInstructions` can be a string, an array of strings, or an array of `{text}`. The review form normalises all three into step strings.
-- Review Focus #3 (a page with no recipe) ends in an `extractRecipe` error after retries. Nothing is saved.
+- Review Focus #3 (a page with no recipe content) must fail validation and save nothing. The repo test `rejects JSON without name (Review Focus #3)` in `tests/unit/import/extract.test.ts` covers a missing `name` with `maxRetries` 0. On the server path, `extractRecipe` throws, the extract route answers HTTP 502, and the review form is never opened.
 
 ## Known gaps
 
@@ -99,6 +99,7 @@ LLM_MODE=server pnpm dev
 - [[ingredient-auto-match]]
 - [[recipe-yield-parsing]]
 - [[recipe-management]]
+- [[0011-html-to-markdown-import]]
 
 ## Sources
 
@@ -106,4 +107,6 @@ LLM_MODE=server pnpm dev
 
 ## Changelog
 
+- 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.
+- 2026-10-09: Linked the Markdown-before-extraction decision, [[0011-html-to-markdown-import]].
 - 2026-10-04: Created from legacy `import.md`. Fixed the stale "review form doesn't auto-match" claim.

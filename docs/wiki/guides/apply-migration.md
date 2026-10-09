@@ -5,13 +5,13 @@ tags: [database, rls, dev-setup]
 status: draft
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: medium
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
 verified_commit: 19a988a
 sources:
   - title: "Existing migrations"
@@ -39,11 +39,17 @@ sources:
 
 The hosted project `tfysxpkfbumctfuxcend` is on the Free plan and connected to `Konstantysz/meal-planner` (working directory `.`, production branch `main`, "Deploy to production" on). Branching needs the Pro plan, so the PR check "Supabase Preview" is always skipped and nothing tests the migration before merge. `supabase_migrations.schema_migrations` on the hosted project records `0001`–`0004`, so a deploy applies only newer files. See [[guides]].
 
-On deploy, Supabase applies new migrations and deploys Edge Functions and Storage buckets declared in `config.toml`. Auth and API settings in `config.toml` and `seed.sql` are **ignored** for production, so the local `site_url` doesn't leak to production.
+> [!warning] Uncertain
+> The `0001`–`0004` record is a snapshot from 2026-10-04. It was not re-checked against the live project in this pass (no read-only database query was run), and migrations `0005`–`0007` now exist in the repo.
+
+On deploy, Supabase applies new migrations and deploys Edge Functions and Storage buckets declared in `config.toml`. On a persistent branch such as production, `config.toml` `[api]` and `[auth]` settings are skipped unless a `[remotes]` block opts in, so the local `site_url` doesn't leak to production. The Supabase docs list migrations, Edge Functions and Storage buckets as what gets deployed; `seed.sql` is not in that list.
+
+> [!warning] Uncertain
+> Not verified in this pass: that each migration file runs in a single transaction, that the CLI ignores `supabase/rollbacks/`, the `supabase migration repair --status reverted` command, and the `supabase db push --dry-run` behaviour. The Supabase CLI was not installed locally, so these were not run.
 
 ## Steps
 
-1. Create the file with the next number and a snake_case name, e.g. `supabase/migrations/0005_share_token_lookup_rpc.sql`. Make it safe to run once inside a transaction; Supabase applies each file in one.
+1. Create the file with the next number and a snake_case name, e.g. `supabase/migrations/0005_share_link_rpc.sql`. Make it safe to run once inside a transaction; Supabase applies each file in one.
 2. For every new table: `alter table … enable row level security;` plus its policies, in the same migration. Reuse `is_member_of(household_id)` (see [[rls-authorization]]). Scope member policies `to authenticated` and write `(select auth.uid())`.
 3. Add a manual rollback in `supabase/rollbacks/000N_<name>.down.sql`. The CLI ignores that folder.
 4. Add a verification script in `supabase/checks/000N_<name>.verify.sql`. Don't use `supabase/tests/`: `supabase test db` runs every file there as pgTAP.
@@ -62,7 +68,7 @@ On deploy, Supabase applies new migrations and deploys Edge Functions and Storag
 ## Verify
 
 - In the SQL editor: `select * from supabase_migrations.schema_migrations order by version;`
-- The verification script ends with `VERIFY 000N: ALL PASS (n checks)`. It always raises at the end, so nothing it creates is kept.
+- The verification script raises an exception whose message starts with `VERIFY 000N: ALL PASS (n checks)` (or `FAIL n`), followed by the per-check list. It always raises at the end, so nothing it creates is kept.
 
 ## Troubleshooting
 
@@ -101,5 +107,6 @@ create policy pantry_notes_all on pantry_notes for all to authenticated
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. Fixed the example migration name (`0005_share_link_rpc.sql`), the verify-script output wording, and the `config.toml` production behaviour (confirmed by the Supabase docs). Flagged the live-state snapshot and CLI-specific commands as uncertain.
 - 2026-10-04: Rewrote for the actual flow: merge into `main` deploys to production. Added rollback and verification steps.
 - 2026-10-04: Created as a draft. The CLI flow hasn't been run against the hosted project.

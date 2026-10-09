@@ -2,17 +2,17 @@
 title: "Architecture Overview"
 summary: "How a request flows from a page through hooks, API routes and lib/db to Supabase, and where each layer lives."
 tags: [architecture]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "App routes"
     path: src/app
@@ -54,11 +54,11 @@ flowchart LR
 | Layer | Location | Notes |
 |---|---|---|
 | Proxy | `src/proxy.ts` → `src/lib/supabase/middleware.ts` | Refreshes the session cookie and redirects anyone without a session. See [[auth-session]]. |
-| Pages | `src/app/(app)/*`, `(auth)/*`, `share/[token]` | `(app)` pages share `BottomNav`. The recipe detail, recipe edit and share pages are server components that query Supabase directly. |
+| Pages | `src/app/(app)/*`, `(auth)/*`, `share/[token]` | `(app)` pages share `BottomNav`. The recipe detail, recipe edit and share pages are server components that call `lib/db` (`getRecipe`, `getSharedPlan`). |
 | Client components | `src/components/{recipes,plan,shopping,import,auth}` | Fetch `/api/*`. Tailwind inline, no shared UI kit. |
 | Hooks | `src/hooks/usePlan.ts`, `useShoppingList.ts`, `useAuth.ts` | Wrap fetch plus local state. `useShoppingList` also reads and writes IndexedDB. |
 | Route handlers | `src/app/api/**/route.ts` | Thin: parse input, resolve the user's household, call `lib/db`. See [[api-routes]]. |
-| Data access | `src/lib/db/{recipes,plans,ingredients,households}.ts` | Takes a `SupabaseClient` argument and validates writes with Zod schemas from `src/lib/schemas.ts`. |
+| Data access | `src/lib/db/{recipes,plans,ingredients,households,share}.ts` | Takes a `SupabaseClient` argument and validates writes with Zod schemas from `src/lib/schemas.ts`. Share reads go through the `get_shared_plan` RPC (`share.ts`). See [[share-links]]. |
 | Pure logic | `src/lib/{macros,scaling,shopping-list,share-token,off}.ts`, `src/lib/import/*` | No I/O except `off.ts`, `import/fetch.ts` and the LLM clients. |
 | Database | `supabase/migrations/*` | See [[database-schema]] and [[rls-authorization]]. |
 
@@ -68,6 +68,7 @@ flowchart LR
 - **The household is resolved, not passed in.** Routes that need a household take the caller's *first* `household_members` row (`limit(1)`). A user in two households always acts on whichever row comes first. See [[household-model]].
 - **Types are hand-written.** `src/lib/types.ts` mirrors the schema by hand, and joined query results are cast (`as unknown as RecipeWithDetails`), so a schema change won't cause a type error.
 - **Validation sits at the lib/db boundary**, not in the route: `RecipeInputSchema`, `PlanSlotInputSchema` and `IngredientInputSchema` are parsed inside `createRecipe`, `upsertSlot` and `createIngredient`.
+- **Multi-table writes go through RPCs.** `createRecipe` calls `save_recipe` (one transaction); households are created by the `on_auth_user_created` trigger, never by the client. See [[household-model]].
 - **Only the shopping list works offline.** There is no service worker. See [[offline-shopping-store]].
 - The LLM work for recipe import runs either in the browser or on the server. See [[llm-modes]].
 
@@ -85,7 +86,7 @@ const supabase = await createServerSupabase();
 const { data: { user } } = await supabase.auth.getUser();
 const { data: household } = await supabase
   .from('household_members').select('household_id').eq('user_id', user.id).limit(1).single();
-const recipe = await createRecipe(supabase, body, user.id, household.household_id);
+const recipe = await createRecipe(supabase, body, household.household_id);
 ```
 
 ## Related
@@ -104,4 +105,5 @@ const recipe = await createRecipe(supabase, body, user.id, household.household_i
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. Added `share.ts` to the data layer, server pages now call `lib/db`, `createRecipe` takes no user id (`save_recipe` RPC), and households are created by trigger.
 - 2026-10-04: Created.

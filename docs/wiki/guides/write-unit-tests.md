@@ -2,17 +2,17 @@
 title: "Write Unit Tests"
 summary: "Vitest setup and the five mocking patterns used in this repo: pure functions, Supabase query chains, module mocks, fetch stubs, and route handlers."
 tags: [testing]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Vitest config"
     path: vitest.config.ts
@@ -96,5 +96,6 @@ expect(await listIngredients(mockSupabase)).toEqual(rows);
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. Test file paths, the mock patterns and the vitest/jsdom setup all match the code. No changes needed.
 - 2026-10-04: Created.
 - 2026-10-04: The `as any` mocks were replaced, and ESLint now enforces it.

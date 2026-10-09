@@ -2,16 +2,16 @@
 title: "Amount Scaling and Formatting"
 summary: "Unit-aware rounding and formatting of ingredient amounts, and the (currently unused) scaleAmount helper."
 tags: [recipes, macros]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
 verified_commit: 656711c
 sources:
   - title: "Scaling functions"
@@ -29,7 +29,7 @@ sources:
 
 ## Context
 
-The plan expected portion scaling in the recipe view. That UI doesn't exist yet. See [[concepts]].
+The plan expected servings scaling in the recipe view. That UI doesn't exist yet. See [[concepts]].
 
 ## How it works
 
@@ -69,4 +69,5 @@ scaleAmount({ amount: 2, unit: 'g', raw_text: '2 g' }, 1.5); // { amount: 3, uni
 
 ## Changelog
 
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Created.

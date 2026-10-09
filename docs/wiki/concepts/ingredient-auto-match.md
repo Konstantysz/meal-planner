@@ -2,17 +2,17 @@
 title: "Ingredient Auto-Match"
 summary: "How imported ingredient lines are parsed into name/amount/unit and matched to the ingredient database, with Open Food Facts and placeholder fallbacks."
 tags: [import, ingredients]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-05
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 5561f57
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts
@@ -31,7 +31,7 @@ sources:
 # Ingredient Auto-Match
 
 > [!tldr]
-> „Auto-mapuj składniki" parses each extracted line („cebula np. cukrowa 300 g") into name, amount and unit, cleans the name, and matches it by word overlap against the local ingredients. If there's no local match **with macros**, it tries Open Food Facts. If that finds nothing either, it creates a bare placeholder. New rows are created when the user clicks the button, not when they save.
+> „Auto-mapuj składniki" parses each extracted line („cebula np. cukrowa 300 g") into name, amount and unit, cleans the name, and matches it by word overlap against the local ingredients. If there's no local match **with macros**, it tries Open Food Facts. If that finds nothing either, it creates a placeholder ingredient. New rows are created when the user clicks the button, not when they save.
 
 ## Context
 
@@ -44,7 +44,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 1. `parseIngredientLines(raw)` splits compound lines („chili i kumin po 1/4 łyżeczki" becomes two entries sharing the amount). Otherwise it calls `parseIngredientLine`: one amount+unit match (numbers, `1/4`, `1,5`, „pół", „ćwierć", „niecała", optionally with „płaskiej"/„czubatej" before the unit, followed by g/kg/ml/l/szt/ząbek/łyżeczka/łyżka/szklanka/opakowanie forms). A g/kg/ml/l match wins over the first match, because macros are per 100 g. Units are normalised (`łyżki` → `łyżka`). The name is the line with every amount phrase, empty parentheses and any trailing „- comment" part removed, so quantity-first lines („200 g masła - cała kostka") and quantity-last lines both work. A leading bare number with no unit („6 średnich jajek", „250 cukru") becomes sztuki below 50 and grams from 50 up.
 2. `cleanIngredientName` drops „np. …" suggestions and parentheticals.
 3. `findBestMatch(name, local)`: exact match scores 1, substring 0.8, otherwise word overlap / max word count. Scores of 0.5 or more count as a match.
-4. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match.
+4. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match. A failed `searchOff` call counts as no OFF result.
 5. If there's neither, a `fallbackCandidate`: the name, category `inne`, null macros, `source: 'manual'`.
 
 `ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and shows a summary notice.
@@ -86,5 +86,7 @@ parseIngredientLine('niecała szklanka mąki (140 g)');   // { name: 'mąki', am
 
 ## Changelog
 
+- 2026-10-09: Re-verified against `a7f8f52`. Updated the line parser (metric preference, bare counts, modifiers, name cleaning) and the failed-`searchOff` behaviour.
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-05: Parser handles quantity-first lines (aniagotuje), prefers metric amounts, strips comment tails, and treats bare leading numbers as counts.
 - 2026-10-04: Created. Replaces the stale legacy claim that the review form doesn't auto-match.
