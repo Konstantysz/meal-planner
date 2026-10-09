@@ -54,7 +54,20 @@ describe('parseIngredientLine', () => {
   });
 
   it('returns name only when no amount/unit found', () => {
-    expect(parseIngredientLine('szczypta soli')).toEqual({ name: 'szczypta soli', amount: null, unit: null });
+    expect(parseIngredientLine('natka pietruszki')).toEqual({ name: 'natka pietruszki', amount: null, unit: null });
+  });
+
+  it.each([
+    ['szczypta soli', 'soli', 1, 'szczypta'],
+    ['sól - szczypta', 'sól', 1, 'szczypta'],
+    ['2 szczypty pieprzu', 'pieprzu', 2, 'szczypta'],
+    ['gałązka rozmarynu', 'rozmarynu', 1, 'gałązka'],
+    ['kilka gałązek tymianku', 'tymianku', 3, 'gałązka'],
+    ['parę gałązek natki', 'natki', 2, 'gałązka'],
+    ['garść rukoli', 'rukoli', 1, 'garść'],
+    ['pęczek koperku', 'koperku', 1, 'pęczek'],
+  ])('parses approximate quantity %s', (raw, name, amount, unit) => {
+    expect(parseIngredientLine(raw)).toEqual({ name, amount, unit });
   });
 });
 

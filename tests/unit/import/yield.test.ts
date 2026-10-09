@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { parseYield } from '@/lib/import/yield';
+import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
+
+describe('yieldWeightGrams', () => {
+  it.each([
+    ['1,5 kg', 1500],
+    ['700 g', 700],
+    ['500 gramów', 500],
+    ['4 porcje (ok. 1,2 kg)', null],
+    ['2 garście', null],
+    [6, null],
+    [undefined, null],
+  ])('%j → %j', (input, expected) => {
+    expect(yieldWeightGrams(input as string | number | undefined)).toBe(expected);
+  });
+});
 
 describe('parseYield', () => {
   it.each([

@@ -69,6 +69,8 @@ parseIngredientLine('czosnek świeży 6 ząbków');         // { name: 'czosnek 
 parseIngredientLines('chili i kumin po 1/4 łyżeczki'); // two entries, amount 0.25, unit 'łyżeczka'
 parseIngredientLine('pół płaskiej łyżeczki soli');      // { name: 'soli', amount: 0.5, unit: 'łyżeczka' }
 parseIngredientLine('niecała szklanka mąki (140 g)');   // { name: 'mąki', amount: 140, unit: 'g' }
+parseIngredientLine('szczypta soli');                  // { name: 'soli', amount: 1, unit: 'szczypta' }
+parseIngredientLine('kilka gałązek tymianku');         // { name: 'tymianku', amount: 3, unit: 'gałązka' } (kilka = 3, parę = 2)
 ```
 
 ## Related

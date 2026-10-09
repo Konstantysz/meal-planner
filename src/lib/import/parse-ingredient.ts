@@ -4,6 +4,21 @@ export interface ParsedIngredient {
   unit: string | null;
 }
 
+// Units with no real weight: macros skip them, the shopping list keeps them as their own unit.
+const APPROX_UNITS = [
+  'szczypta',
+  'szczypty',
+  'szczyptę',
+  'gałązka',
+  'gałązki',
+  'gałązek',
+  'garść',
+  'garści',
+  'pęczek',
+  'pęczki',
+  'pęczków',
+];
+
 const UNIT_WORDS = [
   'g',
   'kg',
@@ -23,15 +38,20 @@ const UNIT_WORDS = [
   'szklanka',
   'opakowanie',
   'opakowania',
+  ...APPROX_UNITS,
 ];
 
 // Shape words that may sit between amount and unit ("pół płaskiej łyżeczki").
 const MODIFIER = '(?:\\s+(?:płask\\S*|czubat\\S*|gładk\\S*|kopiast\\S*))*';
-const AMOUNT = '(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć|niecał\\S+)';
-const unitRe = (units: string[]) => new RegExp(`${AMOUNT}${MODIFIER}\\s*(${units.join('|')})\\b`, 'i');
+const AMOUNT = '(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć|niecał\\S+|kilka|kilku|parę)';
+// "kilka"/"parę" → a rough count; a bare approximate unit ("szczypta soli") counts as 1.
+const FUZZY_AMOUNTS: Record<string, number> = { kilka: 3, kilku: 3, parę: 2 };
+// (?![\p{L}\d]) with the u flag rather than \b: \b is ASCII-only, so "szczyptę"/"garść" would never match.
+const unitRe = (units: string[]) => new RegExp(`${AMOUNT}${MODIFIER}\\s*(${units.join('|')})(?![\\p{L}\\d])`, 'iu');
 
 const AMOUNT_UNIT_RE = unitRe(UNIT_WORDS);
-const AMOUNT_UNIT_RE_ALL = new RegExp(AMOUNT_UNIT_RE, 'gi');
+const AMOUNT_UNIT_RE_ALL = new RegExp(AMOUNT_UNIT_RE, 'giu');
+const IMPLIED_RE = new RegExp(`(?<![\\p{L}\\d])(${APPROX_UNITS.join('|')})(?![\\p{L}\\d])`, 'iu');
 const METRIC_RE = unitRe(['g', 'kg', 'ml', 'l']);
 // "6 średnich jajek", "250 cukru" — leading number with no unit word.
 const BARE_COUNT_RE = /^(\d+(?:[.,]\d+)?)\s+(?:(?:bardzo|średni\S*|duż\S*|mał\S*)\s+)*/i;
@@ -57,6 +77,13 @@ export function parseIngredientLine(raw: string): ParsedIngredient {
       amount = parseAmount(bare[1]);
       unit = amount !== null && amount < 50 ? 'sztuki' : 'g';
       rest = raw.trim().slice(bare[0].length);
+    } else {
+      const implied = raw.match(IMPLIED_RE);
+      if (implied) {
+        amount = 1;
+        unit = normalizeUnit(implied[1]);
+        rest = raw.replace(IMPLIED_RE, ' ');
+      }
     }
   }
   const name = rest
@@ -86,6 +113,7 @@ function parseAmount(s: string): number | null {
   const lower = s.toLowerCase();
   if (lower === 'pół') return 0.5;
   if (lower === 'ćwierć') return 0.25;
+  if (lower in FUZZY_AMOUNTS) return FUZZY_AMOUNTS[lower];
   if (lower.startsWith('niecał')) return 1;
   if (s.includes('/')) {
     const [num, den] = s.split('/').map((x) => Number(x.trim()));
@@ -113,5 +141,9 @@ function normalizeUnit(u: string): string {
   if (lower.startsWith('szklank')) return 'szklanka';
   if (lower.startsWith('ząbk') || lower === 'ząbek') return 'ząbek';
   if (lower.startsWith('opakowani')) return 'opakowanie';
+  if (lower.startsWith('szczypt')) return 'szczypta';
+  if (lower.startsWith('gałąz')) return 'gałązka';
+  if (lower.startsWith('garś')) return 'garść';
+  if (lower.startsWith('pęczek') || lower.startsWith('pęczk')) return 'pęczek';
   return lower;
 }

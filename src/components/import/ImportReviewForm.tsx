@@ -4,7 +4,7 @@ import type { RecipeJsonLd } from '@/lib/schemas';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
-import { parseYield } from '@/lib/import/yield';
+import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 
 export function ImportReviewForm({
   extracted,
@@ -19,6 +19,7 @@ export function ImportReviewForm({
 }) {
   const [name, setName] = useState(extracted.name);
   const [servings, setServings] = useState(parseYield(extracted.recipeYield));
+  const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
   const [steps, setSteps] = useState<string[]>(
     Array.isArray(extracted.recipeInstructions)
@@ -125,13 +126,21 @@ export function ImportReviewForm({
         Sprawdź i uzupełnij dane z importu. Lista składników wymaga mapowania na bazę.
       </p>
       <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border rounded px-3 py-2" />
-      <input
-        type="number"
-        value={servings}
-        min={1}
-        onChange={(e) => setServings(Number(e.target.value))}
-        className="w-24 border rounded px-2 py-1"
-      />
+      <div className="flex items-center gap-3">
+        <input
+          type="number"
+          value={servings}
+          min={1}
+          onChange={(e) => setServings(Number(e.target.value))}
+          className="w-24 border rounded px-2 py-1"
+        />
+        {totalGrams !== null && servings >= 1 && (
+          <span className="text-sm opacity-70">
+            Przepis podaje wagę ({totalGrams} g) — porcja ok. {Math.round(totalGrams / servings)} g. Popraw liczbę
+            porcji, jeśli to nie pasuje.
+          </span>
+        )}
+      </div>
       <div>
         <h3 className="font-semibold">Składniki (z importu: {extracted.recipeIngredient.length})</h3>
         <ul className="text-sm opacity-70 mb-2">
