@@ -54,6 +54,8 @@ const total = sumMacros(recipe.ingredients.map((ri) => {
 const per = perServing(total, recipe.servings_base);
 ```
 
+Optional ingredients (`ri.optional`) are skipped, so the totals describe the base recipe. See [[recipe-management]].
+
 `MacroSummary` renders `null` as „brak danych makro". Otherwise it shows `kcal · B · T · W`.
 
 ## Invariants and gotchas
@@ -96,4 +98,5 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 ## Changelog
 
 - 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.
+- 2026-10-05: Optional ingredients are excluded from recipe macros.
 - 2026-10-04: Created from the macros section of legacy `recipes.md`. Added the "0 kcal instead of no data" gotcha.

@@ -73,10 +73,8 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
-- The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name. Optional rows get a „(opcjonalnie)" suffix.
-- **Optional ingredients** (`recipe_ingredients.optional`, migration 0007): the detail page leaves them out of the macro total (`ri.optional` check in `src/app/(app)/recipes/[id]/page.tsx`). The migration header says the shopping list still includes them.
-  > [!warning] Uncertain
-  > The shopping-list behaviour comes only from the migration header comment. This page did not verify the shopping-list code.
+- The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name.
+- Each ingredient row has an `optional` flag (the „opcjonalny" checkbox in `IngredientPicker`, migration 0007). Optional rows are left out of the recipe macros and labelled „(opcjonalnie)" on the detail page. The shopping list does **not** treat them differently. Import does not tick the box: the extractor drops the „ewentualne dodatki" label, so the user ticks it by hand.
 
 ## Known gaps
 
@@ -114,5 +112,6 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Changelog
 
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
+- 2026-10-05: Documented the `optional` ingredient flag (0007).
 - 2026-10-04: Create goes through the `save_recipe` RPC (0006); removed the non-transactional gap. Noted that picker-created ingredients persist even when the save fails.
 - 2026-10-04: Created from legacy `recipes.md`. Added filters, delete behaviour and the duplicated enum lists.

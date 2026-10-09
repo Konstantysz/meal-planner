@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: dd67b66
+verified_commit: 5561f57
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -30,6 +30,8 @@ sources:
     path: supabase/migrations/0005_share_link_rpc.sql
   - title: "Atomic recipe save and signup trigger"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
+  - title: "Optional ingredient flag"
+    path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Ingredient seed"
     path: supabase/seed.sql
   - title: "Supabase CLI config"
@@ -39,7 +41,7 @@ sources:
 # Database Schema
 
 > [!tldr]
-> There are 10 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Six migrations exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), and the atomic recipe save plus signup trigger (0006). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
+> There are 10 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Seven migrations exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), and the optional-ingredient flag (0007). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
 
 ## Context
 
@@ -53,7 +55,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `household_members` | (`household_id`, `user_id`) | `role` ∈ {`owner`, `member`}. FK to `households` and `auth.users`, both `on delete cascade`. |
 | `ingredients` | `id` uuid | `category` ∈ 11 Polish categories. `kcal/protein/fat/carbs_per_100g` are nullable numerics. `source` ∈ {`off`, `manual`, `ai_estimate`}. Unique index on `lower(name)`. |
 | `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
-| `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` and `unit`, `raw_text`, `position` |
+| `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` and `unit`, `raw_text`, `position`, `optional` (boolean, default false; excluded from recipe macros) |
 | `recipe_steps` | `id` uuid | `recipe_id` (cascade), `position`, `text` |
 | `plans` | `id` uuid | `household_id` (cascade), `week_start_date date`, `unique (household_id, week_start_date)`, check `plans_week_start_monday` (ISO weekday 1, since 0005) |
 | `plan_slots` | `id` uuid | `plan_id` (cascade), `date`, `position`, `label`, `recipe_id` (**on delete set null**), `servings numeric > 0` default 1, `unique (plan_id, date, position)` |
@@ -71,7 +73,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `is_owner_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` is the household's `owner`. Used by `hm_delete`. `authenticated` only. Added in 0004. |
 | `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. Kept for compatibility: the app no longer calls it. `authenticated` only. |
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
-| `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006. |
+| `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
@@ -117,6 +119,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | `0004_security_hardening.sql` | Tightened member, invite and share-token policies, `is_owner_of`, function grants, FK indexes. Rollback: `supabase/rollbacks/0004_security_hardening.down.sql`. Check: `supabase/checks/0004_security_hardening.verify.sql`. |
 | `0005_share_link_rpc.sql` | `get_shared_plan`, drops the anon share policies, narrows `st_select`, deletes empty non-Monday plans, adds `plans_week_start_monday`. Rollback: `supabase/rollbacks/0005_share_link_rpc.down.sql`. Check: `supabase/checks/0005_share_link_rpc.verify.sql`. |
 | `0006_atomic_recipe_and_signup_trigger.sql` | `on_auth_user_created` trigger + `handle_new_user`, household backfill, idempotent `create_household_with_owner`, `save_recipe`. Rollback: `supabase/rollbacks/0006_atomic_recipe_and_signup_trigger.down.sql`. Check: `supabase/checks/0006_atomic_recipe_and_signup_trigger.verify.sql`. |
+| `0007_recipe_ingredient_optional.sql` | `recipe_ingredients.optional`; `save_recipe` stores it. Rollback: `supabase/rollbacks/0007_recipe_ingredient_optional.down.sql`. Check: `supabase/checks/0007_recipe_ingredient_optional.verify.sql`. |
 
 ## Seed
 
@@ -142,13 +145,14 @@ from plans p;
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`
 - `supabase/seed.sql`, `supabase/config.toml`
 - Supabase security and performance advisors, run 2026-10-04
 
 ## Changelog
 
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
+- 2026-10-05: Documented migration 0007 (`recipe_ingredients.optional`).
 - 2026-10-04: Documented migration 0006 (signup trigger, `save_recipe`, idempotent signup RPC).
 - 2026-10-04: Documented migration 0005 (`get_shared_plan`, share policies removed, Monday constraint).
 - 2026-10-04: Documented migration 0004 (policies, `is_owner_of`, grants, FK indexes).
