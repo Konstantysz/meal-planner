@@ -44,7 +44,7 @@ export function WeekPlanDesktop({
                     {slot ? (
                       <PlanSlot
                         label={LABELS[pos]}
-                        recipeName={slot.recipe?.name ?? (slot.recipe_id ? 'przepis usunięty' : null)}
+                        recipeName={slot.recipe?.name ?? (slot.recipe_id ? 'przepis niedostępny' : null)}
                         onRemove={() => onRemove(slot.id)}
                       />
                     ) : (

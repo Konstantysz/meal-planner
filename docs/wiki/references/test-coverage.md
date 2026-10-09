@@ -87,7 +87,7 @@ These are the five edge cases the original spec singled out as able to break the
 | 1 | Recipe with zero servings or no ingredients | `macros.test.ts` (`perServing` with 0 and −1) | covered |
 | 2 | Same ingredient in two units | `shopping-list.test.ts` | covered |
 | 3 | Import of a page with no recipe | `extract.test.ts` (garbage, missing `name`) | covered |
-| 4 | Slot pointing at an unavailable recipe | none. The plan specified an SQL FK test, but none exists. | **not covered** |
+| 4 | Slot pointing at an unavailable recipe | `tests/unit/plan-unavailable-recipe.test.tsx` (UI text only; no SQL FK test) | covered |
 | 5 | Ingredient without macros | `macros.test.ts` (null), `shopping-list.test.ts` (`incomplete`) | covered |
 
 ## Examples

@@ -52,7 +52,7 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 
 | String | Where | Meaning |
 |---|---|---|
-| „przepis usunięty" | Plan slot | Slot has a `recipe_id`, but the recipe could not be read. |
+| „przepis niedostępny" | Plan slot | Slot has a `recipe_id`, but the recipe could not be read. |
 | „brak danych makro" | `MacroSummary` | No macro total available. |
 | „(brak makro)" | Shopping item | The line's `incomplete` flag is set. |
 | „puste" | Plan slot | Slot with no recipe. |
@@ -74,6 +74,7 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 
 ## Changelog
 
+- 2026-10-09: Plan-slot string changed from „przepis usunięty" to „przepis niedostępny" (issue #16).
 - 2026-10-09: Re-verified against a7f8f52 (all code terms and UI strings grepped in `src/`). `RecipeJsonLd` now cites only the field-name evidence for schema.org; offline banner condition made precise.
 - 2026-10-09: Renamed from Glossary (alias kept); domain terms moved to the root `GLOSSARY.md`.
 - 2026-10-04: Created.

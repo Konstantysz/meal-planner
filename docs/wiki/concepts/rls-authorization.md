@@ -60,7 +60,7 @@ flowchart TD
 ## Invariants and gotchas
 
 - **An RLS-filtered write isn't an error.** A delete or update that RLS hides affects 0 rows and returns no error. `DELETE /api/recipes/[id]` from a non-author returns 204 and deletes nothing, and the UI then navigates away as if it had worked.
-- **An RLS-hidden join returns null.** `getWeekPlan` embeds `recipe:recipes(…)`. If the recipe isn't visible, `slot.recipe` is null while `slot.recipe_id` is set, which is why the UI shows „przepis usunięty" (to be „przepis niedostępny", issue #16) for an unavailable recipe. See [[week-plan]].
+- **An RLS-hidden join returns null.** `getWeekPlan` embeds `recipe:recipes(…)`. If the recipe isn't visible, `slot.recipe` is null while `slot.recipe_id` is set, which is why the UI shows „przepis niedostępny" for an unavailable recipe. See [[week-plan]].
 - When adding a table, enable RLS **and** write policies in the same migration. A table with RLS enabled and no policies denies everything, which fails safe but is confusing.
 
 ## Known gaps
@@ -101,6 +101,7 @@ select get_shared_plan('<token>');     -- the plan that token unlocks, or null
 
 ## Changelog
 
+- 2026-10-09: UI string for an RLS-hidden recipe changed from „przepis usunięty" to „przepis niedostępny" (issue #16).
 - 2026-10-09: Re-verified against a7f8f52 against migrations 0001, 0002, 0004, 0005 and the policy text. Corrected the route list (`/api/plans` and `/api/shopping` are GET). 0006 and 0007 add no policies.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Updated for migration 0005: sharing goes through `get_shared_plan`; token enumeration fixed.
