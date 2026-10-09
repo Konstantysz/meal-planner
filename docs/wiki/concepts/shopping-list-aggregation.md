@@ -38,7 +38,7 @@ Review Focus #2 (mixed units) and #5 (missing macros) both apply here. See [[con
 `GET /api/shopping?week=`:
 
 1. Resolves the household, then `getOrCreatePlan` and `getWeekPlan`.
-2. For each slot with a `recipe_id`, calls `getRecipe` **sequentially** and maps it into a `PlannedRecipe`. `has_macros` is `kcal_per_100g != null || protein_per_100g != null`.
+2. For each slot with a `recipe_id`, calls `getRecipe` **sequentially** and maps it into a `PlannedRecipe`. `has_macros` is `hasMacros(ingredients)` from `src/lib/macros.ts`: true if any of the four per-100g fields is non-null.
 3. Runs `aggregateShoppingList(planned)`.
 
 `aggregateShoppingList`:
@@ -55,7 +55,6 @@ The UI (`ShoppingList` → `CategoryGroup` → `ShoppingItem`) groups shopping i
 
 - **Never sum across units.** That is intentional and tested (`does NOT sum same ingredient in different units`). „2 łyżki oliwy" and „100 ml oliwy" stay as two shopping items.
 - The have-checkbox key uses the same `ingredient_id::unit` format. If you change the grouping key, change it in `shopping-store.ts`, `useShoppingList.ts` and `CategoryGroup.tsx` too.
-- `has_macros` here checks only kcal or protein, while `calculateIngredientMacros` treats any of the four fields as data. An ingredient with only fat and carbs is marked incomplete here but counts in recipe totals. Tracked in #15.
 - Slots whose recipe is RLS-hidden make `getRecipe` throw, which turns the whole response into an unhandled error (500).
 
 ## Known gaps
@@ -90,6 +89,7 @@ aggregateShoppingList([
 
 ## Changelog
 
+- 2026-10-09: `has_macros` now uses `hasMacros` (all four fields), closing the #15 mismatch. Removed the gotcha.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-09: Verified against a7f8f52 (`has_macros` in `src/app/api/shopping/route.ts`, sequential `getRecipe` per slot). Linked the has_macros mismatch to #15.
 - 2026-10-04: Created from legacy `shopping.md`. Added the has_macros mismatch and the RLS-hidden recipe failure.
