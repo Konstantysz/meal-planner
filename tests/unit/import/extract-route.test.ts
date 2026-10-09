@@ -37,6 +37,13 @@ describe('POST /api/import/extract', () => {
     expect(callOllama.mock.calls[0][1]).toContain('# Zupa');
   });
 
+  it('returns 503 with a hint when Ollama is not running', async () => {
+    callOllama.mockRejectedValue(new TypeError('fetch failed', { cause: { code: 'ECONNREFUSED' } }));
+    const res = await post({ markdown: '# Zupa' });
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toMatch(/Ollama nie działa/);
+  });
+
   it('returns 502 with the error when Ollama fails', async () => {
     callOllama.mockRejectedValue(new Error('Ollama 404: model not found'));
     const res = await post({ markdown: '# Zupa' });
