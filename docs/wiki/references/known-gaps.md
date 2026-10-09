@@ -55,7 +55,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
-| Shopping-list `has_macros` checks only kcal or protein, while recipe macros count all four fields. Tracked in #15 | [[shopping-list-aggregation#Invariants and gotchas]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
@@ -101,6 +100,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-09: Removed the shopping-list `has_macros` row (#15): the route now uses `hasMacros` across all four fields.
 - 2026-10-09: Verified all rows at a7f8f52 (grep, build, workflow runs, `gh` for #15 and secrets). Corrected the tests row (`db/ingredients`, `db/recipes`, `db/share`, `extract-route` and `ImportDialog` do have tests) and the `navigator` row (Node-version wording). Confirmed #15 is open and the has_macros mismatch is still in code.
 - 2026-10-09: Added the shopping-list `has_macros` mismatch (tracked in #15).
 - 2026-10-04: Removed the email-confirmation signup and non-transactional create rows (fixed by migration 0006). Added four gaps found in the 2026-10-04 smoke test.

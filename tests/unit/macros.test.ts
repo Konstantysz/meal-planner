@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
+import { calculateIngredientMacros, sumMacros, perServing, hasMacros } from '@/lib/macros';
 
 describe('calculateIngredientMacros', () => {
   it('computes macros for grams', () => {
@@ -52,5 +52,21 @@ describe('perServing', () => {
 
   it('returns null for negative servings', () => {
     expect(perServing({ kcal: 1000, protein: 0, fat: 0, carbs: 0 }, -1)).toBeNull();
+  });
+});
+
+describe('hasMacros', () => {
+  const none = { kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null };
+  it('is false when all four fields are null', () => {
+    expect(hasMacros(none)).toBe(false);
+  });
+  it.each(['kcal_per_100g', 'protein_per_100g', 'fat_per_100g', 'carbs_per_100g'] as const)(
+    'is true when only %s is set',
+    (field) => {
+      expect(hasMacros({ ...none, [field]: 0 })).toBe(true);
+    },
+  );
+  it('is true for fat and carbs only', () => {
+    expect(hasMacros({ ...none, fat_per_100g: 5, carbs_per_100g: 10 })).toBe(true);
   });
 });

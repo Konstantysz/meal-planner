@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getOrCreatePlan, getWeekPlan } from '@/lib/db/plans';
 import { getRecipe } from '@/lib/db/recipes';
+import { hasMacros } from '@/lib/macros';
 import { aggregateShoppingList, type PlannedRecipe } from '@/lib/shopping-list';
 import type { IngredientCategory } from '@/lib/types';
 
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
         amount: ri.amount,
         unit: ri.unit,
         raw_text: ri.raw_text,
-        has_macros: !!(ri.ingredients?.kcal_per_100g != null || ri.ingredients?.protein_per_100g != null),
+        has_macros: ri.ingredients ? hasMacros(ri.ingredients) : false,
       })),
     });
   }
