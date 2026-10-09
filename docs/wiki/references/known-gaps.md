@@ -2,17 +2,17 @@
 title: "Known Gaps"
 summary: "Ranked index of known bugs, security gaps and unfinished features, each linking to the page that documents it."
 tags: [security, spec]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 30
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: dd67b66
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -55,6 +55,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
+| Shopping-list `has_macros` checks only kcal or protein, while recipe macros count all four fields. Tracked in #15 | [[shopping-list-aggregation#Invariants and gotchas]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
@@ -64,7 +65,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
 | Logged-out API calls get a `/login` redirect instead of a 401 | [[auth-session#Invariants and gotchas]] |
-| Most of `src/lib/db`, the offline store, routes and UI have no tests; there are no RLS tests | [[test-coverage#Not covered]] |
+| Most routes and UI, the offline store, `src/lib/db/households.ts` and `src/lib/db/plans.ts` have no tests; there are no RLS tests | [[test-coverage#Not covered]] |
 
 ## Low
 
@@ -75,7 +76,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | The login page has no link to signup | [[auth-session#Known gaps]] |
 | Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
 | Slot recipe name is barely readable in dark mode | [[week-plan#Known gaps]] |
-| `useShoppingList` reads `navigator` during render. That is safe on the supported Node versions (22.22+), but fragile. | [[offline-shopping-store#Invariants and gotchas]] |
+| `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |
 | `@dnd-kit` is installed but unused | [[spec-drift#Planned but not built]] |
 
@@ -100,6 +101,8 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-09: Verified all rows at a7f8f52 (grep, build, workflow runs, `gh` for #15 and secrets). Corrected the tests row (`db/ingredients`, `db/recipes`, `db/share`, `extract-route` and `ImportDialog` do have tests) and the `navigator` row (Node-version wording). Confirmed #15 is open and the has_macros mismatch is still in code.
+- 2026-10-09: Added the shopping-list `has_macros` mismatch (tracked in #15).
 - 2026-10-04: Removed the email-confirmation signup and non-transactional create rows (fixed by migration 0006). Added four gaps found in the 2026-10-04 smoke test.
 - 2026-10-04: Removed the token-enumeration and settings wrong-week rows (fixed by migration 0005 and the settings fix).
 - 2026-10-04: Removed the household self-join row (fixed by migration 0004).

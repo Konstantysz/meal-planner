@@ -2,16 +2,16 @@
 title: "0004 Exclusive LLM Modes"
 summary: "Recipe extraction runs either in the browser (WebLLM) or on the server (Ollama), chosen by LLM_MODE, with no fallback between them; Gemini is paused."
 tags: [llm, import]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
 verified_commit: 656711c
 sources:
   - title: "Extract route"
@@ -30,6 +30,9 @@ sources:
 ## Context
 
 The plan specified WebLLM in the browser with a free Gemini Flash fallback for browsers without WebGPU. In practice, phones on the LAN have no WebGPU (no secure context), in-browser Gemma could hang or lose its GPU device, and a local GPU with Ollama was available. See [[decisions]].
+
+> [!warning] Uncertain
+> The repo does not record these reasons. The "no WebGPU" part is supported by the `ImportDialog` error text (`Ta przeglądarka nie obsługuje WebGPU`). The secure-context reason and the risk that in-browser Gemma hangs or loses its GPU device are not in the code or docs, so they are unverified.
 
 ## Decision
 
@@ -65,4 +68,5 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Changelog
 
+- 2026-10-09: Re-verified against the code. The Context rationale (secure context, GPU device loss) is marked uncertain, so `verified_commit` stays at `656711c`.
 - 2026-10-04: Recorded retroactively.

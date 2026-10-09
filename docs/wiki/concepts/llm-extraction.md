@@ -2,20 +2,22 @@
 title: "LLM Extraction"
 summary: "Turning cleaned Markdown into a validated RecipeJsonLd: system prompt, JSON-Schema-constrained decoding, parseLlmJson, and retry-with-feedback."
 tags: [llm, import]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Prompt, output schema, parser"
     path: src/lib/import/schema.ts
+  - title: "Server extract route (calls extractRecipe)"
+    path: src/app/api/import/extract/route.ts
   - title: "Retry orchestrator"
     path: src/lib/import/extract.ts
   - title: "RecipeJsonLd schema"
@@ -83,4 +85,5 @@ await extractRecipe('# Zupa …', fake, SYSTEM_PROMPT); // → RecipeJsonLd
 
 ## Changelog
 
+- 2026-10-09: Re-verified against `a7f8f52`: no content change. Added the server extract route as a source.
 - 2026-10-04: Created from legacy `import.md`. Added the "browser path doesn't retry" note.

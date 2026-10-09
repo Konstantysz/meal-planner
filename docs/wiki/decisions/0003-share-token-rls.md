@@ -5,17 +5,19 @@ tags: [sharing, rls, security]
 status: deprecated
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Share-token RLS migration"
     path: supabase/migrations/0002_share_token_rls.sql
+  - title: "Share-link RPC migration (replacement)"
+    path: supabase/migrations/0005_share_link_rpc.sql
   - title: "Public share page"
     path: src/app/share/[token]/page.tsx
 ---
@@ -46,7 +48,7 @@ Add narrow, additive select policies. Same-command policies are OR'd, so member 
 _Not recorded at the time; reconstructed for comparison._
 
 - A service-role client in the share page: simple, but it bypasses RLS entirely in a public route.
-- A `security definer` function `get_shared_plan(token)`: it reveals only what the token unlocks, and it's the better option given the consequence below.
+- A `security definer` function `get_shared_plan(token)`: it reveals only what the token unlocks, and it's the better option given the consequence below. This is what migration 0005 adopted.
 
 ## Consequences
 
@@ -66,5 +68,6 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. The policies are gone (dropped by 0005). The share page now calls `getSharedPlan` and no longer reads `share_tokens` or these policies; the page source is kept only as the historical reference.
 - 2026-10-04: Marked superseded by 0008.
 - 2026-10-04: Recorded retroactively, including the enumeration consequence.

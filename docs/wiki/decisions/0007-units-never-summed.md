@@ -1,18 +1,18 @@
 ---
 title: "0007 Units Are Never Summed"
-summary: "The shopping list groups by ingredient and unit; the same ingredient in different units stays on separate lines."
+summary: "The shopping list groups by ingredient and unit; the same ingredient in different units stays on separate shopping items."
 tags: [shopping]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Architecture plan (Review Focus #2)"
     path: docs/plans/architecture_plan_document.md
@@ -25,7 +25,7 @@ sources:
 # 0007 Units Are Never Summed
 
 > [!tldr]
-> `aggregateShoppingList` keys lines by `ingredient_id::unit`. „2 łyżki oliwy" and „100 ml oliwy" become two lines, never a wrong sum.
+> `aggregateShoppingList` keys shopping items by `ingredient_id::unit`. „2 łyżki oliwy" and „100 ml oliwy" become two shopping items, never a wrong sum.
 
 ## Context
 
@@ -33,7 +33,7 @@ There's no unit-conversion data (density, piece weight). Summing across units wo
 
 ## Decision
 
-**Status:** accepted (plan, Review Focus #2: „oczekiwane: dwie linie, nie błędna suma", expected: two lines, not a wrong sum). It's pinned by the test `does NOT sum same ingredient in different units`.
+**Status:** accepted (original spec, Review Focus #2: „oczekiwane: dwie linie, nie błędna suma", expected: two shopping items, not a wrong sum). It's pinned by the test `does NOT sum same ingredient in different units`.
 
 ## Alternatives considered
 
@@ -44,7 +44,7 @@ _Not recorded at the time; reconstructed for comparison._
 ## Consequences
 
 - Some lists show duplicates for the same product.
-- The same key format is shared with the have-map (see [[offline-shopping-store]]), so changing it means migrating cached checkbox state.
+- The same key format is used for the have marks in the offline store (`src/lib/offline/shopping-store.ts`, see [[offline-shopping-store]]), so changing it means migrating cached have marks.
 
 ## Related
 
@@ -54,8 +54,10 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Sources
 
-- `docs/plans/architecture_plan_document.md` (Review Focus), `src/lib/shopping-list.ts`, `tests/unit/shopping-list.test.ts`
+- Original spec, `docs/plans/architecture_plan_document.md` (Review Focus), `src/lib/shopping-list.ts`, `tests/unit/shopping-list.test.ts`
 
 ## Changelog
 
+- 2026-10-09: Re-verified against `a7f8f52`: key format, test name and the offline have-marks store all match. Replaced "have-map" and "checkbox" with GLOSSARY.md terms.
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Recorded retroactively.

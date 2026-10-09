@@ -2,22 +2,24 @@
 title: "0001 RLS Is the Authorization Boundary"
 summary: "Authorization is enforced by Postgres RLS keyed on household membership, not by checks in route handlers."
 tags: [rls, security, architecture]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Architecture plan (Global Constraints)"
     path: docs/plans/architecture_plan_document.md
   - title: "Initial RLS"
     path: supabase/migrations/0001_initial.sql
+  - title: "Security hardening (RLS tightened)"
+    path: supabase/migrations/0004_security_hardening.sql
   - title: "Agent orientation"
     path: AGENTS.md
 ---
@@ -25,7 +27,7 @@ sources:
 # 0001 RLS Is the Authorization Boundary
 
 > [!tldr]
-> Every table with user data has RLS on. Route handlers use the user's own session and trust the database to filter. The only explicit application-level check is in `inviteMember`.
+> Every table with user data has RLS on. Route handlers use the user's own session and trust the database to filter. The only application-level membership check is in `inviteMember`; other routes scope by the caller's first `household_members` row and rely on RLS. Routes return 401 without a session, which is authentication, not authorization.
 
 ## Context
 
@@ -33,11 +35,11 @@ The app is a single Next.js deployment talking to Supabase with the public anon 
 
 ## Decision
 
-**Status:** accepted (plan, Global Constraints: "Supabase RLS włączone na każdej tabeli z danymi użytkownika", RLS on for every table with user data).
+**Status:** accepted (original spec, Global Constraints: "Supabase RLS włączone na każdej tabeli z danymi użytkownika", RLS on for every table with user data).
 
 - Enable RLS on every table and grant access through `is_member_of(household_id)` (`security definer`).
 - Route handlers use `createServerSupabase()` (cookie-bound) and never the service-role key.
-- Add an application check only where RLS can't express the rule or a mistake would be costly. So far that's one place: `inviteMember` checks caller membership explicitly (commit `64e3275`).
+- Add an application check only where RLS can't express the rule or a mistake would be costly. In code that is one place: `inviteMember` checks caller membership explicitly (commit `64e3275`). Its check is redundant with RLS since migration 0004.
 
 ## Alternatives considered
 
@@ -59,8 +61,10 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Sources
 
-- `docs/plans/architecture_plan_document.md` (Global Constraints), `supabase/migrations/0001_initial.sql`, `AGENTS.md`
+- Original spec, `docs/plans/architecture_plan_document.md` (Global Constraints), `supabase/migrations/0001_initial.sql`, `AGENTS.md`
 
 ## Changelog
 
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
+- 2026-10-09: Re-verified against a7f8f52. Corrected the "only explicit check" wording (authentication 401s are not authorization checks); added migration 0004 as a source.
 - 2026-10-04: Recorded retroactively from the plan and code.

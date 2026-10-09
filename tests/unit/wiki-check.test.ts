@@ -5,7 +5,7 @@ const fm = (title: string, extra = '') => `---
 title: "${title}"
 summary: "s"
 tags: [meta]
-status: review
+status: stable
 owner: "@o"
 created: 2026-10-04
 updated: 2026-10-04
@@ -54,7 +54,7 @@ describe('checkWiki', () => {
   it('enforces the stable-page invariants and repo source paths', () => {
     const files = valid();
     files[2].content = page('Week plan', '[[concepts]]\n\n## Slots')
-      .replace('status: review', 'status: stable')
+      .replace('status: stable', 'status: stable')
       .replace('sources: []', 'sources:\n  - title: "x"\n    path: src/missing.ts');
     const errors = checkWiki(files, (p) => p !== 'src/missing.ts').join('\n');
     expect(errors).toContain('stable page needs last_reviewed');

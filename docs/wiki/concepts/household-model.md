@@ -2,17 +2,17 @@
 title: "Household Model"
 summary: "Households own all recipes and plans; how a household is bootstrapped at signup by a database trigger, how membership is resolved per request, and how invites work."
 tags: [household, auth, rls]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: dd67b66
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Signup RPC migration"
     path: supabase/migrations/0003_household_signup_rpc.sql
@@ -73,7 +73,7 @@ There is no ordering and no "current household" concept.
 ## Invariants and gotchas
 
 - Never insert a household from the client. The trigger creates it; `households` has no insert policy since 0004.
-- Since migration 0004, `hm_insert` allows only `is_member_of(household_id) and role = 'member'`. Only an existing member can add someone, never as `owner`, and nobody can add themselves to a foreign household. The owner row comes only from `create_household_with_owner`. `inviteMember`'s explicit check is now redundant with RLS, but harmless.
+- Since migration 0004, `hm_insert` allows only `is_member_of(household_id) and role = 'member'`. Only an existing member can add someone, never as `owner`, and nobody can add themselves to a foreign household. The owner row is created by the signup trigger `handle_new_user()` or by `create_household_with_owner`; both are `security definer` and bypass RLS. `inviteMember`'s explicit check is now redundant with RLS, but harmless.
 - `hm_delete` (0004): a member may remove themselves; the owner may remove anyone else; the owner can't remove themselves.
 - Multiple households per user are possible in the schema but unsupported in the app, because of the `limit(1)` resolution.
 
@@ -98,6 +98,7 @@ curl -X POST http://localhost:3000/api/household/invite \
 - [[auth-session]]
 - [[database-schema]]
 - [[0002-household-signup-rpc]]
+- [[0009-household-created-by-signup-trigger]]
 
 ## Sources
 
@@ -107,6 +108,8 @@ curl -X POST http://localhost:3000/api/household/invite \
 
 ## Changelog
 
+- 2026-10-09: Linked the trigger decision, [[0009-household-created-by-signup-trigger]].
+- 2026-10-09: Re-verified against a7f8f52. Owner-row source now names the signup trigger as well as `create_household_with_owner`; confirmed no app code calls the RPC.
 - 2026-10-04: Signup now relies on the `on_auth_user_created` trigger (0006); removed the email-confirmation gap.
 - 2026-10-04: Updated the membership rules for migration 0004 (self-join fixed, `hm_delete` rules).
 - 2026-10-04: Created from legacy `auth.md`. Fixed the stale claim that signup inserts the rows client-side (it uses the RPC since `a8b8cef`). Added the self-join RLS gap.

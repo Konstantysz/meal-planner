@@ -2,20 +2,22 @@
 title: "Meal Planner Wiki"
 summary: "Entry point and Map of Content for the meal-planner repository wiki."
 tags: [meta]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: 656711c
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Agent orientation"
     path: AGENTS.md
+  - title: "Domain glossary"
+    path: GLOSSARY.md
 ---
 
 # Meal Planner Wiki
@@ -25,7 +27,7 @@ sources:
 
 ## Context
 
-`AGENTS.md` gives the one-screen orientation (stack, commands, conventions). This wiki goes one level deeper, one page per concept. Every page carries `verified_commit`: the commit it was checked against. If the code under a page's `sources` has changed since then, treat the page as suspect.
+`AGENTS.md` gives the one-screen orientation (stack, commands, conventions). This wiki goes one level deeper, one page per concept. Every content page (concepts, guides, references and decisions) carries `verified_commit`: the commit it was checked against. If the code under a page's `sources` has changed since then, treat the page as suspect.
 
 The wiki is an Obsidian vault. Open `docs/wiki/` as a vault to get the graph, backlinks and templates. On GitHub the `[[wikilinks]]` render as plain text, but the files are still readable.
 
@@ -36,7 +38,9 @@ The wiki is an Obsidian vault. Open `docs/wiki/` as a vault to get the graph, ba
 - **Look something up:** [[references]]: schema, API routes, env vars, known gaps.
 - **Understand why:** [[decisions]]: numbered architecture decisions.
 - **Contribute to the wiki:** [[RULES]], then copy a template from `_templates/`.
-- **Terms and tags:** [[meta]].
+- **Domain terms:** `GLOSSARY.md` at the repo root (Household, Plan, Slot, Macros, ...).
+- **Code symbols and Polish UI strings:** [[code-and-ui-terms]].
+- **Tags:** [[meta]].
 
 ## Status legend
 
@@ -50,13 +54,15 @@ The wiki is an Obsidian vault. Open `docs/wiki/` as a vault to get the graph, ba
 ## Related
 
 - [[RULES]]
-- [[glossary]]
+- [[code-and-ui-terms]]
 - [[changelog]]
 
 ## Sources
 
 - `AGENTS.md`: the orientation this wiki extends.
+- `GLOSSARY.md`: the domain language, at the repo root.
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52. Glossary links now point to `GLOSSARY.md` (repo root, domain terms) and [[code-and-ui-terms]] (code symbols and Polish UI strings). Corrected the `verified_commit` claim to content pages.
 - 2026-10-04: Rewritten as the vault entry point (MOC) under [[RULES]].

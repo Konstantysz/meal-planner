@@ -2,22 +2,24 @@
 title: "Recipe Management"
 summary: "Recipe create (atomic save_recipe RPC), list with diet/allergen filters, detail, delete, and the read-only edit page."
 tags: [recipes, ui]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: dd67b66
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
   - title: "save_recipe RPC"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
+  - title: "save_recipe RPC with optional flag"
+    path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -57,21 +59,24 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 | Edit | `/recipes/[id]/edit`, `RecipeForm readOnly` | none (no save) |
 | Delete | `RecipeActions` „Usuń" | `DELETE /api/recipes/[id]` |
 
-`createRecipe(supabase, input, householdId)` validates against `RecipeInputSchema`, then makes **one** call: `rpc('save_recipe', { p_household_id, p_recipe })` (migration 0006). The function inserts the recipe, its ingredients and its steps in one transaction, so a failure leaves nothing behind. It is `security invoker`, so `rec_insert`, `ri_all` and `rs_all` still apply, and the author is always `auth.uid()` (an `author_id` in the payload is ignored). It also rejects a recipe without ingredients or steps (`22023`).
+`createRecipe(supabase, input, householdId)` validates against `RecipeInputSchema`, then makes **one** call: `rpc('save_recipe', { p_household_id, p_recipe })` (migration 0006, redefined in 0007). The function inserts the recipe, its ingredients and its steps in one transaction, so a failure leaves nothing behind. It is `security invoker`, so `rec_insert`, `ri_all` and `rs_all` still apply, and the author is always `auth.uid()` (an `author_id` in the payload is ignored). It also rejects a recipe without ingredients or steps (`22023`). Each ingredient object may carry `optional`; a missing value is stored as `false`.
 
 Filtering:
 
 - `diet`: `contains('diet_tags', diet)`. A recipe must have **all** the selected diets.
 - `exclude`: rows are fetched first and then filtered in JS (`!r.allergens.some(...)`).
 
-Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a bare ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. See [[ingredient-database]].
+Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a bare ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
 
 ## Invariants and gotchas
 
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
-- The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name.
+- The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name. Optional rows get a „(opcjonalnie)" suffix.
+- **Optional ingredients** (`recipe_ingredients.optional`, migration 0007): the detail page leaves them out of the macro total (`ri.optional` check in `src/app/(app)/recipes/[id]/page.tsx`). The migration header says the shopping list still includes them.
+  > [!warning] Uncertain
+  > The shopping-list behaviour comes only from the migration header comment. This page did not verify the shopping-list code.
 
 ## Known gaps
 
@@ -104,8 +109,10 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 - `src/lib/db/recipes.ts`, `src/lib/schemas.ts`, `src/app/api/recipes/**`
 - `src/components/recipes/*`, `src/app/(app)/recipes/**`
+- `supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql`, `supabase/migrations/0007_recipe_ingredient_optional.sql`
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
 - 2026-10-04: Create goes through the `save_recipe` RPC (0006); removed the non-transactional gap. Noted that picker-created ingredients persist even when the save fails.
 - 2026-10-04: Created from legacy `recipes.md`. Added filters, delete behaviour and the duplicated enum lists.

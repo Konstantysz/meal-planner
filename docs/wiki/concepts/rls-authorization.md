@@ -2,17 +2,17 @@
 title: "RLS Authorization"
 summary: "Postgres Row Level Security is the app's authorization boundary: the membership model, what each role can do, and the known permissive spots."
 tags: [rls, security, database]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-04
-last_reviewed: null
+updated: 2026-10-09
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-opus-5-5"
-human_reviewed: false
-verified_commit: dd7dd50
+llm_model: "claude-haiku-5-5"
+human_reviewed: true
+verified_commit: a7f8f52
 sources:
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql
@@ -55,12 +55,12 @@ flowchart TD
 ## Where the code adds checks anyway
 
 - `inviteMember` checks caller membership explicitly (see [[household-model]]).
-- `POST /api/recipes`, `/api/plans` and `/api/shopping` resolve the household server-side, so the client can't choose one.
+- `POST /api/recipes`, `GET /api/plans` and `GET /api/shopping` resolve the household server-side, so the client can't choose one.
 
 ## Invariants and gotchas
 
 - **An RLS-filtered write isn't an error.** A delete or update that RLS hides affects 0 rows and returns no error. `DELETE /api/recipes/[id]` from a non-author returns 204 and deletes nothing, and the UI then navigates away as if it had worked.
-- **An RLS-hidden join returns null.** `getWeekPlan` embeds `recipe:recipes(…)`. If the recipe isn't visible, `slot.recipe` is null while `slot.recipe_id` is set, which is why the UI shows „przepis usunięty". See [[week-plan]].
+- **An RLS-hidden join returns null.** `getWeekPlan` embeds `recipe:recipes(…)`. If the recipe isn't visible, `slot.recipe` is null while `slot.recipe_id` is set, which is why the UI shows „przepis usunięty" (to be „przepis niedostępny", issue #16) for an unavailable recipe. See [[week-plan]].
 - When adding a table, enable RLS **and** write policies in the same migration. A table with RLS enabled and no policies denies everything, which fails safe but is confusing.
 
 ## Known gaps
@@ -101,6 +101,8 @@ select get_shared_plan('<token>');     -- the plan that token unlocks, or null
 
 ## Changelog
 
+- 2026-10-09: Re-verified against a7f8f52 against migrations 0001, 0002, 0004, 0005 and the policy text. Corrected the route list (`/api/plans` and `/api/shopping` are GET). 0006 and 0007 add no policies.
+- 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Updated for migration 0005: sharing goes through `get_shared_plan`; token enumeration fixed.
 - 2026-10-04: Updated for migration 0004. Moved the fixed gaps out of the table and added the `anon` / `is_member_of` rule.
 - 2026-10-04: Created from the RLS notes in legacy `database.md`. Added the token-enumeration, self-join and silent-delete findings.

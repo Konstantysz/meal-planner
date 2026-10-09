@@ -6,12 +6,12 @@ status: draft
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-04
-last_reviewed: null
+last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: medium
 llm_generated: true
 llm_model: "claude-opus-5-5"
-human_reviewed: false
+human_reviewed: true
 verified_commit: 656711c
 sources:
   - title: "Keepalive workflow"

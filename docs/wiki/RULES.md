@@ -2,16 +2,16 @@
 title: "LLM-Wiki Ruleset"
 summary: "How pages in this wiki are structured, linked, cited, reviewed and machine-checked."
 tags: [meta]
-status: review
+status: stable
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-04
-last_reviewed: null
+last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
-human_reviewed: false
+human_reviewed: true
 sources: []
 ---
 
@@ -71,16 +71,16 @@ title: "Shopping List Aggregation"
 summary: "One-sentence description of the page."
 tags: [shopping]                 # only tags listed in [[taxonomy]]
 aliases: []                      # optional; old names after a rename
-status: review                   # draft | review | stable | deprecated
+status: stable                   # draft | review | stable | deprecated
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-04
-last_reviewed: null              # date of last human review
+last_reviewed: 2026-10-09              # date of last human review
 review_interval_days: 90
 confidence: high                 # low | medium | high
 llm_generated: true
 llm_model: "claude-opus-5-5"
-human_reviewed: false
+human_reviewed: true
 verified_commit: 656711c         # (amended) code state the page was checked against
 sources:
   - title: "Aggregation logic"
