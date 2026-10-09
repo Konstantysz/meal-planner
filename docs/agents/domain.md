@@ -6,7 +6,8 @@ How the engineering skills should consume this repo's domain documentation when 
 
 - **`GLOSSARY.md`** at the repo root, or
 - **`GLOSSARY-MAP.md`** at the repo root if it exists: it points at one `GLOSSARY.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`**: read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+- **`docs/wiki/decisions/`**: this repo's ADRs live in the wiki, not `docs/adr/`. Read the ones that touch the area you're about to work in (index: `docs/wiki/decisions/decisions.md`). To record a new one, copy `docs/wiki/_templates/decision.md`, take the next number, and follow `docs/wiki/RULES.md`; never create `docs/adr/`.
+- **`docs/wiki/concepts/`**: code-level concept pages. `GLOSSARY.md` holds the domain language; the wiki page `docs/wiki/_meta/code-and-ui-terms.md` holds code symbols and Polish UI strings.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 

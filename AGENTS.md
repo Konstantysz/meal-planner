@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Meal planner
 
-PWA for meal planning: recipe database, URL import (jadłonomia, aniagotuje), week plan, shopping list. Built from `docs/plans/architecture_plan_document.md` via subagent-driven-development — see that file for full task-by-task spec.
+PWA for meal planning: recipe database, URL import (jadłonomia, aniagotuje), week plan, shopping list. Built from `docs/plans/architecture_plan_document.md`, a historical spec: check `docs/wiki/references/spec-drift.md` before trusting it.
 
 ## Stack
 Next.js 16 (App Router; middleware is `src/proxy.ts`) + TypeScript + Tailwind + Supabase (Postgres + Auth + RLS). Vitest + React Testing Library. Zod for all validation. `cheerio`/`turndown` for HTML→Markdown import pipeline, `@mlc-ai/web-llm` (browser) or Ollama (server, `LLM_MODE=server`) for recipe extraction; the Gemini fallback is paused. `idb` for offline shopping-list storage. `@dnd-kit` for drag-and-drop (planned, not yet used).
@@ -25,12 +25,12 @@ pnpm lint         # ESLint (flat config, eslint-config-next)
 pnpm format       # Prettier write (CI runs format:check)
 pnpm wiki:check   # validate docs/wiki (frontmatter, links, markdownlint)
 ```
-CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck and test on every PR. The pre-commit hook checks staged files the same way.
+CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:check and build on every PR. The pre-commit hook checks staged files the same way.
 
 ## Conventions
 - Shared types in `src/lib/types.ts`; Zod schemas in `src/lib/schemas.ts`. No `any` — use `unknown` + Zod parsing at boundaries.
 - Code, comments and all documentation (README, AGENTS.md, wiki, commit messages, PR descriptions and comments) in English; UI text in Polish.
-- Every function in `src/lib/` has a unit test in `tests/unit/`.
+- Most exported functions in `src/lib/` have a unit test in `tests/unit/`. The uncovered ones are listed in `docs/wiki/references/test-coverage.md` (Not covered); new functions need a test.
 - Macros stored per 100g on ingredients, per-serving on recipes (computed, not stored).
 - RLS is the authorization boundary — API routes generally trust it rather than re-implementing checks, except where explicitly noted (see `docs/wiki/concepts/rls-authorization.md` for the exceptions and loose policies).
 - Writes that span tables go through RPCs, not client-side insert chains: recipes via `save_recipe` (`createRecipe`), households via the `on_auth_user_created` trigger (never insert a household from the client). Public share links only via `get_shared_plan` (`getSharedPlan`); never add `anon` select policies for sharing.
@@ -43,9 +43,11 @@ CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck and test on e
 - What changed and why, migration by migration: `docs/wiki/references/migration-history.md`.
 
 ## Environment
-Node 24 (vitest 5 / jsdom 30 don't start on Node 20; CI uses 24), pnpm 9.15.9 via corepack. `.env.local` (gitignored) needs `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY` only for `scripts/backfill-ingredient-macros.ts`. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `GEMINI_API_KEY` (Gemini fallback, currently commented out). Optional: `LLM_MODE=server` (LLM runs on server via Ollama, see `docs/wiki/concepts/llm-modes.md`; all vars in `docs/wiki/references/env-vars.md`), `OLLAMA_URL`, `OLLAMA_MODEL`. Setup and Windows gotchas: `docs/wiki/guides/local-dev-setup.md`.
+Node 24 (CI pins 24; vitest 5 and jsdom 30 declare engines that exclude Node 20), pnpm 9.15.9 via corepack. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `SUPABASE_SERVICE_ROLE_KEY` is only for `scripts/backfill-ingredient-macros.ts`; the app never reads it. Gemini fallback is paused.
+Before adding or changing an env var: `docs/wiki/references/env-vars.md`. Setup and Windows gotchas: `docs/wiki/guides/local-dev-setup.md`.
 
 ## Where to look next
-- `docs/wiki/references/migration-history.md` — start here if you missed the 2026-10-04 database audit (migrations 0004–0006).
-- `docs/wiki/` — Obsidian vault, entry point `docs/wiki/README.md`. One page per concept (`concepts/`), task (`guides/`), lookup table (`references/`) and decision (`decisions/`). Read the relevant page before working in an area; update it in the same PR when behaviour changes. Rules: `docs/wiki/RULES.md`. Open bugs and risks: `docs/wiki/references/known-gaps.md`.
-- `docs/plans/architecture_plan_document.md` — the original spec (check `docs/wiki/references/spec-drift.md` before trusting it), task-by-task, including a "Review Focus" section naming known-risky edge cases (zero servings, mixed-unit shopping list items, deleted-recipe plan slots, etc.) and which task's tests cover each.
+- Before changing `supabase/migrations/`, RLS or an RPC: `docs/wiki/references/migration-history.md`.
+- Before changing an area: read its page in `docs/wiki/` (entry `docs/wiki/README.md`, concepts in `concepts/concepts.md`) and update it in the same PR. Rules: `docs/wiki/RULES.md`. Open bugs and risks: `docs/wiki/references/known-gaps.md`.
+- Before naming a domain concept: `GLOSSARY.md`. Why-decisions (ADRs): `docs/wiki/decisions/`.
+- Edge cases (zero servings, mixed-unit shopping items, deleted-recipe slots): the "Review Focus" section of `docs/plans/architecture_plan_document.md` names them and the tests covering each.

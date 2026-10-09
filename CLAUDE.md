@@ -12,4 +12,4 @@ Default state labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-fo
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: `GLOSSARY.md` at the repo root; ADRs live in `docs/wiki/decisions/`, not `docs/adr/`. Before exploring or naming domain concepts, see `docs/agents/domain.md`.
