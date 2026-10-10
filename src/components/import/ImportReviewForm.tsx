@@ -64,7 +64,7 @@ export function ImportReviewForm({
           unit: r.unit ?? ingredient.default_unit,
           raw_text: r.raw_text,
           position: picked.length,
-          optional: false,
+          optional: r.optional ?? false,
         });
       }
       setIngredients(picked);

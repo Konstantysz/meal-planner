@@ -109,4 +109,21 @@ describe('autoMatchIngredients', () => {
     expect(results[0].amount).toBe(0.25);
     expect(results[1].amount).toBe(0.25);
   });
+
+  it('passes optional through from the parsed line', async () => {
+    const searchOff = vi.fn().mockResolvedValue([]);
+    const results = await autoMatchIngredients(['cebula 100 g', 'natka pietruszki 1 łyżka ewentualnie'], [], {
+      searchOff,
+    });
+    expect(results[0].optional).toBeFalsy();
+    expect(results.at(-1)?.optional).toBe(true);
+  });
+
+  it('produces no result for the fasolka water line', async () => {
+    const searchOff = vi.fn().mockResolvedValue([]);
+    const results = await autoMatchIngredients(['woda do moczenia suchej fasoli + litr wody do gotowania fasoli'], [], {
+      searchOff,
+    });
+    expect(results).toEqual([]);
+  });
 });

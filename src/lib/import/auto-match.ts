@@ -8,6 +8,7 @@ export interface AutoMatchResult {
   raw_text: string;
   amount: number | null;
   unit: string | null;
+  optional?: boolean;
   ingredient: Ingredient | null;
   /** Set when no local match with macros was found but an OFF candidate could be created on confirm. */
   offCandidate: IngredientInput | null;
@@ -26,7 +27,7 @@ export async function autoMatchIngredients(
 ): Promise<AutoMatchResult[]> {
   const results: AutoMatchResult[] = [];
   for (const raw of rawLines) {
-    for (const { name, amount, unit } of parseIngredientLines(raw)) {
+    for (const { name, amount, unit, optional } of parseIngredientLines(raw)) {
       const cleanName = cleanIngredientName(name) || name;
 
       const local = findBestMatch(cleanName, localIngredients);
@@ -49,7 +50,7 @@ export async function autoMatchIngredients(
               default_unit: null,
               source: 'manual',
             };
-      results.push({ raw_text: cleanName, amount, unit, ingredient, offCandidate, fallbackCandidate });
+      results.push({ raw_text: cleanName, amount, unit, optional, ingredient, offCandidate, fallbackCandidate });
     }
   }
   return results;
