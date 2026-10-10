@@ -5,7 +5,7 @@ tags: [import, llm]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-10
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
@@ -37,11 +37,12 @@ The model's context is small: gemma-2-2b in the browser shares 4,096 tokens acro
 
 ## How it works
 
-1. **Strip noise:** `script, style, nav, footer, header, aside, iframe, noscript, svg`; media (`img, picture, figure, video`), `form, button`; ad and cookie selectors; comment, share and social blocks; and **nested `[itemtype*="Recipe"]` cards inside the main recipe** (related recipes, whose ingredients used to leak into extraction).
-2. **Pick content:** the first match with more than 200 characters of text, in this order: `article[itemtype*="Recipe"]` → `.article-content` → `.entry-content` → `.recipe-content` → `main article` → `article` → `main`; otherwise `body`.
-3. **Markdown:** turndown with ATX headings and `-` bullets. A custom rule keeps link text and drops URLs. Three or more newlines collapse to two.
-4. **`polishQuotes`:** `"x"` → `„x”`, and any leftover `"` → `”`.
-5. **`cropToRecipe`:** if the result is over `MAX_MARKDOWN_CHARS` (6000), find every line that starts with `składniki` or `ingredients` (case-insensitive, after any non-letter prefix such as `#`), score each by the number of digits in the next 600 characters, slice from the best one, put the `# title` back in front, and cut to 6000.
+1. **Strip noise:** `script, style, nav, footer, header, aside, iframe, noscript, svg`; media (`img, picture, figure, video`), `form, button` (except `button.ing-header`, the ingredient group headers); ad and cookie selectors; comment, share and social blocks; and **nested `[itemtype*="Recipe"]` cards inside the main recipe** (related recipes, whose ingredients used to leak into extraction).
+2. **Quantity first:** for `[itemprop="recipeIngredient"]` items that have separate `.ingredient-name` and `.ingredient-qty` spans (aniagotuje), the text is rewritten to "quantity name". Flattened as "name quantity" the model dropped trailing quantities such as "garść łodyg"; the group headers kept above also stop a second list ("Składniki do podania") from being lost.
+3. **Pick content:** the first match with more than 200 characters of text, in this order: `article[itemtype*="Recipe"]` → `.article-content` → `.entry-content` → `.recipe-content` → `main article` → `article` → `main`; otherwise `body`.
+4. **Markdown:** turndown with ATX headings and `-` bullets. A custom rule keeps link text and drops URLs. Three or more newlines collapse to two.
+5. **`polishQuotes`:** `"x"` → `„x”`, and any leftover `"` → `”`.
+6. **`cropToRecipe`:** if the result is over `MAX_MARKDOWN_CHARS` (6000), find every line that starts with `składniki` or `ingredients` (case-insensitive, after any non-letter prefix such as `#`), score each by the number of digits in the next 600 characters, slice from the best one, put the `# title` back in front, and cut to 6000.
 
 ## Invariants and gotchas
 
@@ -74,5 +75,6 @@ md.length <= 6000; // true
 
 ## Changelog
 
+- 2026-10-10: Quantity-first rewrite for split name/quantity ingredient spans; keep `button.ing-header` group headers.
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected the crop rule (any line starting with the header word, not only Markdown headings) and the fixture description.
 - 2026-10-04: Created from legacy `import.md` (cleaning sections). Added the JSON-LD gap.
