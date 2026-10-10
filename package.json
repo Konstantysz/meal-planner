@@ -15,6 +15,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "wiki:fix": "markdownlint-cli2 --fix",
     "wiki:stale": "tsx scripts/wiki-stale.ts",
+    "coverage:check": "tsx scripts/test-coverage-check.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
