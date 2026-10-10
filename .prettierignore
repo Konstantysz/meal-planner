@@ -8,3 +8,6 @@ supabase/.temp/
 
 # Vendored agent skills (installed by `npx skills`, not our code)
 .claude/skills/
+
+# Agent worktrees (full repo copies)
+.claude/worktrees/

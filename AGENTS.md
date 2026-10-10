@@ -44,7 +44,7 @@ CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:c
 - What changed and why, migration by migration: `docs/wiki/references/migration-history.md`.
 
 ## Parallel agents
-Subagents editing code at the same time each get `isolation: "worktree"`, one per issue or PR.
+Subagents editing code at the same time each get `isolation: "worktree"`, one per issue or PR. Base each worktree on the integration branch and run `pnpm install --frozen-lockfile` first. Removing one on Windows can fail with "Filename too long": see `docs/wiki/guides/local-dev-setup.md`.
 
 ## Environment
 Node 24 (CI pins 24; vitest 5 and jsdom 30 declare engines that exclude Node 20), pnpm 9.15.9 via corepack. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `SUPABASE_SERVICE_ROLE_KEY` is only for `scripts/backfill-ingredient-macros.ts`; the app never reads it. Gemini fallback is paused.
