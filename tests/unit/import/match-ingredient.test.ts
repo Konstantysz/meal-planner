@@ -42,4 +42,22 @@ describe('findBestMatch', () => {
   it('returns null on empty ingredient list', () => {
     expect(findBestMatch('cebula', [])).toBeNull();
   });
+
+  it.each([
+    ['czosnku', 'czosnek'],
+    ['pomidorów', 'pomidor'],
+    ['kiełbasy', 'kiełbasa'],
+    ['fasoli', 'fasola'],
+    ['boczku', 'boczek'],
+  ])('matches inflected %s to %s', (query, name) => {
+    expect(findBestMatch(query, [ing('sól'), ing(name)])?.name).toBe(name);
+  });
+
+  it('matches inflected words inside multi-word names', () => {
+    expect(findBestMatch('kiełbasy wędzonej', [ing('kiełbasa wędzona')])?.name).toBe('kiełbasa wędzona');
+  });
+
+  it('does not match short different words (sól vs sos)', () => {
+    expect(findBestMatch('sól', [ing('sos')])).toBeNull();
+  });
 });
