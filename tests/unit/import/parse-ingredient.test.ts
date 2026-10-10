@@ -110,3 +110,33 @@ describe('cleanIngredientName', () => {
     expect(cleanIngredientName('cebula')).toBe('cebula');
   });
 });
+
+describe('amount descriptions stay out of the name', () => {
+  it.each([
+    ['2 dojrzałe pomidory o wadze około 300 g', 'dojrzałe pomidory', 300, 'g'],
+    ['ser feta o masie 200 g', 'ser feta', 200, 'g'],
+    ['4 jabłka średniej wielkości', 'jabłka', 4, 'sztuki'],
+  ])('%s', (raw, name, amount, unit) => {
+    expect(parseIngredientLines(raw)).toEqual([{ name, amount, unit }]);
+  });
+});
+
+describe('quantity belongs to the first alternative', () => {
+  it('ignores the amount of a later "lub" option', () => {
+    expect(parseIngredientLines('pół cebuli lub 2 łyżki szczypiorku')).toEqual([
+      { name: 'cebuli', amount: 0.5, unit: 'sztuki' },
+    ]);
+  });
+  it('still reads a trailing " - 100 g" comment that follows the alternatives', () => {
+    expect(parseIngredientLines('2 szalotki lub 1 cebula - 100 g')[0]).toMatchObject({ name: 'szalotki', amount: 100 });
+  });
+});
+
+describe('"ewentualnie"', () => {
+  it('does not flag an ingredient whose tail only names a substitute', () => {
+    expect(parseIngredientLines('200 g groszku - ewentualnie mrożony')[0].optional).toBeUndefined();
+  });
+  it('flags a line that ends with it', () => {
+    expect(parseIngredientLines('szczypiorek 1 łyżka ewentualnie')[0].optional).toBe(true);
+  });
+});

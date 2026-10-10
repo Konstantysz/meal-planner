@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { cleanHtml, cropToRecipe } from '@/lib/import/clean';
+import { cleanHtml, cropToRecipe, extractIngredients } from '@/lib/import/clean';
 import { MAX_MARKDOWN_CHARS } from '@/lib/import/schema';
 
 describe('cleanHtml', () => {
@@ -83,5 +83,23 @@ describe('cleanHtml quotes', () => {
     const md = cleanHtml('<article><p>Wątróbka nie będzie "strzelać" na patelni, 2" rura</p></article>');
     expect(md).toContain('nie będzie „strzelać” na patelni');
     expect(md).not.toContain('"');
+  });
+});
+
+describe('extractIngredients', () => {
+  const li = (inner: string) => `<li><span itemprop="recipeIngredient">${inner}</span></li>`;
+
+  it('returns every ingredient line in page order, whitespace collapsed', () => {
+    const html = `<article><ul>${li('150 g  ryżu - ewentualnie brązowy')}${li('<span class="ingredient-name">sól</span><span class="ingredient-qty"> szczypta</span>')}</ul></article>`;
+    expect(extractIngredients(html)).toEqual(['150 g ryżu - ewentualnie brązowy', 'szczypta sól']);
+  });
+
+  it('skips related-recipe cards nested in the recipe', () => {
+    const html = `<article itemtype="https://schema.org/Recipe"><ul>${li('mąka')}</ul><div itemtype="https://schema.org/Recipe"><ul>${li('cudze')}</ul></div></article>`;
+    expect(extractIngredients(html)).toEqual(['mąka']);
+  });
+
+  it('is empty when the page has no ingredient markup', () => {
+    expect(extractIngredients('<article><p>proza</p></article>')).toEqual([]);
   });
 });

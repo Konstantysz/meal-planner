@@ -15,10 +15,10 @@ const RECIPE = { name: 'Zupa', recipeIngredient: ['a'], recipeInstructions: ['b'
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** Routes fetch by "METHOD path"; mode is what GET /api/import/extract reports. */
-function stubFetch(mode: Response) {
+function stubFetch(mode: Response, ingredients?: string[]) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${url}`;
-    if (key === 'POST /api/import/fetch') return json({ markdown: '# Zupa' });
+    if (key === 'POST /api/import/fetch') return json({ markdown: '# Zupa', ingredients });
     if (key === 'GET /api/import/extract') return mode;
     if (key === 'POST /api/import/extract') return json(RECIPE);
     throw new Error(`unexpected fetch ${key}`);
@@ -50,6 +50,18 @@ describe('ImportDialog', () => {
     expect(calledExtractPost(f)).toBe(true);
     expect(engine.hasWebGpu).not.toHaveBeenCalled();
     expect(engine.extractWithWebLlm).not.toHaveBeenCalled();
+  });
+
+  it('uses the ingredient lines read from the page instead of the LLM output', async () => {
+    stubFetch(json({ mode: 'server' }), ['150 g ryżu - ewentualnie brązowy', 'sól']);
+    const onExtracted = await runImport();
+
+    await waitFor(() =>
+      expect(onExtracted).toHaveBeenCalledWith(
+        { ...RECIPE, recipeIngredient: ['150 g ryżu - ewentualnie brązowy', 'sól'] },
+        'https://a.pl/x',
+      ),
+    );
   });
 
   it('browser mode: extracts with WebLLM', async () => {

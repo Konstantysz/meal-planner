@@ -26,7 +26,7 @@ export function ImportDialog({
         body: JSON.stringify({ url }),
       });
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
-      const { markdown } = await fr.json();
+      const { markdown, ingredients } = (await fr.json()) as { markdown: string; ingredients?: string[] };
 
       // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
       const mr = await fetch('/api/import/extract');
@@ -56,7 +56,7 @@ export function ImportDialog({
         recipe = await extractWithWebLlm(markdown);
       }
       setStage('done');
-      onExtracted(recipe, url);
+      onExtracted(ingredients?.length ? { ...recipe, recipeIngredient: ingredients } : recipe, url);
     } catch (e) {
       setError(String(e));
       setStage('error');

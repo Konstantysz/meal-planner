@@ -42,3 +42,20 @@ describe('splitIngredientLine', () => {
     expect(texts('szczypta soli i pieprzu')).toEqual(['szczypta soli', 'szczypta pieprzu']);
   });
 });
+
+describe('commas in a plain line', () => {
+  it('treats "A b, C lub D" as alternatives and keeps the first', () => {
+    expect(texts('200 g sera żółtego, edamskiego lub gouda')).toEqual(['200 g sera żółtego']);
+  });
+  it('keeps an adjective list intact', () => {
+    expect(texts('0.5 dojrzałej, słodkiej gruszki lub 1 jabłko')).toEqual([
+      '0.5 dojrzałej, słodkiej gruszki lub 1 jabłko',
+    ]);
+  });
+  it('splits a number-free topping list into separate ingredients', () => {
+    expect(texts('rukola, parmezan, orzeszki pinii')).toEqual(['rukola', 'parmezan', 'orzeszki pinii']);
+  });
+  it('does not split a line that has an amount', () => {
+    expect(texts('2 pomidory, pokrojone w kostkę')).toEqual(['2 pomidory, pokrojone w kostkę']);
+  });
+});

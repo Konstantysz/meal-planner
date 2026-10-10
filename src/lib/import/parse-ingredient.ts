@@ -26,7 +26,11 @@ interface Quantity {
   unit: string | null;
 }
 
-const OPTIONAL_RE = /możn[ae] pominąć|ewentualnie/i;
+// "ewentualnie" only flags the whole line when it stands alone ("natka 1 łyżka ewentualnie");
+// "ewentualnie kiełki ze słoika" names a substitute and says nothing about this ingredient.
+const OPTIONAL_RE = /możn[ae] pominąć|^\s*ewentualnie(?![\p{L}])\s*$|ewentualnie\s*$/iu;
+// A rejected alternative ("... lub też pół łyżeczki chili"); a trailing " - comment" stays.
+const ALTERNATIVE_RE = /\s+lub(?:\s+też)?\s+[^-–—]*/i;
 // The "po" quantity connector ("po 2 łyżki"), not "po" inside a name ("makaron po włosku").
 const PO_CONNECTOR_RE = new RegExp(String.raw`(?<![\p{L}])po\s+(?=${QTY_SRC})`, 'giu');
 const WATER_RE = /^wod[aęy](?![\p{L}])/iu;
@@ -36,9 +40,18 @@ const FILLER_RE = new RegExp(
   'giu',
 );
 
+// Describes the amount, not the ingredient: "o wadze około 80 g", "średniej wielkości".
+const QUALIFIER_RE = /(?<![\p{L}])(?:o\s+(?:wadze|masie|ciężarze)|około|wielkości)(?![\p{L}])/giu;
+
 // Stage 2: metric amount anywhere (macros are per 100 g), else the first amount+unit, else a bare
 // leading count (< 50 → sztuki, else grams), else an approximate unit with no number (→ 1).
-function extractQuantity(text: string): Quantity {
+function extractQuantity(line: string): Quantity {
+  // The amount belongs to the first alternative; later ones are only a fallback.
+  const first = quantityOf(line.replace(ALTERNATIVE_RE, ' '));
+  return first.amount === null ? quantityOf(line) : first;
+}
+
+function quantityOf(text: string): Quantity {
   const match = text.match(METRIC_RE) ?? text.match(AMOUNT_UNIT_RE);
   if (match) return { amount: parseAmount(match[1]), unit: normalizeUnit(match[2]) };
   const bare = text.trim().match(LEADING_COUNT_RE);
@@ -58,6 +71,7 @@ function stripName(alt: string): string {
     .replace(IMPLIED_RE_ALL, ' ')
     .replace(new RegExp(`(?<![\\p{L}])${SHAPE_ADJ}(?![\\p{L}])`, 'giu'), ' ')
     .replace(FILLER_RE, ' ')
+    .replace(QUALIFIER_RE, ' ')
     .replace(/(?<![\p{L}])(?:ewentualnie|możn[ae] pominąć)(?![\p{L}])/giu, ' ')
     .trim()
     .replace(LEADING_COUNT_RE, '')

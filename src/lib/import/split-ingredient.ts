@@ -49,10 +49,27 @@ function splitShared(piece: string): string[] {
   return [piece];
 }
 
+// "A b, C lub D": the comma opens alternatives, not a second ingredient. Needs 2+ real words before it,
+// so an adjective list ("pół świeżej, ostrej papryczki lub …") is left alone.
+const COMMA_ALTERNATIVE_RE = /^(.+?),\s+[^,]+?\s+lub\s+[^-–—]*/iu;
+
+function dropCommaAlternatives(text: string): string {
+  const m = text.match(COMMA_ALTERNATIVE_RE);
+  if (!m || (m[1].match(/\p{L}{2,}/gu) ?? []).length < 2) return text;
+  return m[1] + text.slice(m[0].length);
+}
+
+// ponytail: 2+ commas and no number at all reads as a topping list ("kolendra, limonka, orzechy").
+const isAmountlessList = (text: string) => !/\d/.test(text) && text.split(',').length > 2;
+
 /** Stage 1: one raw line becomes one or more single-ingredient texts. */
 export function splitIngredientLine(raw: string): IngredientPart[] {
   const label = raw.match(LABEL_RE);
-  if (!label) return splitShared(raw.trim()).map((text) => ({ text, optional: false }));
+  if (!label) {
+    const text = dropCommaAlternatives(raw.trim());
+    const pieces = isAmountlessList(text) ? splitOutsideParens(text) : [text];
+    return pieces.flatMap(splitShared).map((part) => ({ text: part, optional: false }));
+  }
 
   const optional = OPTIONAL_LABEL_RE.test(label[1]);
   return splitOutsideParens(label[2])
