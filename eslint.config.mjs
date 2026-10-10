@@ -13,5 +13,5 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', '.bench-chrome/**']),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', '.bench-chrome/**', '.claude/worktrees/**']),
 ]);

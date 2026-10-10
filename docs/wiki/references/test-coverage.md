@@ -5,7 +5,7 @@ tags: [testing]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-10
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
@@ -18,6 +18,8 @@ sources:
     path: tests/unit
   - title: "Vitest config"
     path: vitest.config.ts
+  - title: "Coverage check script"
+    path: scripts/test-coverage-check.ts
   - title: "Architecture plan (Review Focus)"
     path: docs/plans/architecture_plan_document.md
 ---
@@ -29,7 +31,7 @@ sources:
 
 ## Context
 
-`AGENTS.md` says most exported functions in `src/lib/` have a unit test. The gaps are listed below. Coverage percentage isn't measured, since no coverage script or provider is configured. Function-level mapping was checked by searching each exported name in `tests/unit/` at a7f8f52. See [[references]].
+`AGENTS.md` says most exported functions in `src/lib/` have a unit test. The gaps are listed below. Coverage percentage isn't measured, since no coverage script or provider is configured. Function-level mapping was checked by searching each exported name in `tests/unit/` at a7f8f52. `pnpm coverage:check` (CI and pre-commit) now enforces it: an exported function in `src/lib/` must be referenced under `tests/` or named in the Not covered section below. See [[references]].
 
 ## Covered
 
@@ -115,6 +117,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
