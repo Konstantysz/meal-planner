@@ -116,7 +116,7 @@ describe('autoMatchIngredients', () => {
       searchOff,
     });
     expect(results[0].optional).toBeFalsy();
-    expect(results.at(-1)?.optional).toBe(true);
+    expect(results.find((r) => r.fallbackCandidate?.name === 'natka pietruszki')?.optional).toBe(true);
   });
 
   it('produces no result for the fasolka water line', async () => {

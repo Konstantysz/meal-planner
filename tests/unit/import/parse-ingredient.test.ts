@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { parseIngredientLine, parseIngredientLines, cleanIngredientName } from '@/lib/import/parse-ingredient';
 
+describe('po handling', () => {
+  it('keeps "po" that is part of the name', () => {
+    expect(parseIngredientLine('makaron po włosku 200 g').name).toBe('makaron po włosku');
+  });
+  it('drops the "po" quantity connector', () => {
+    expect(parseIngredientLine('po 2 łyżki oleju').name).toBe('oleju');
+  });
+});
+
 describe('parseIngredientLine', () => {
   it('parses simple grams', () => {
     expect(parseIngredientLine('kiełbasa hiszpańska chorizo np. dulce 200 g')).toEqual({

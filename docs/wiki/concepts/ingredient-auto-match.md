@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: 187d7e3
+verified_commit: 7627e7b
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts
@@ -50,7 +50,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 1. `parseIngredientLines(raw)` runs five stages, each owning one class of problem. A new edge case belongs to exactly one stage:
    1. **Split** (`split-ingredient.ts`): one line becomes several parts. A label prefix („przyprawy:", „przyprawy i zioła:", „dodatki:") is dropped and the rest is split on `,` and `;` outside parentheses, and on „ i " when an amount follows it. Labels with „dodatki", „do podania" or „ewentualnie" mark every part optional. A shared amount is split too: „A i B po <ilość>", „po <ilość> A i B", „szczypta A i B".
    2. **Quantity** (`normalizeText` and `extractQuantity`): text is first normalised to plain digits: Polish number words („pół", „półtora", „jedna trzecia", „dwie trzecie"), Unicode fractions, mixed numbers („1 i 1/2"), „2 x 5" (10) and ranges („30-40", the upper bound wins). Then a metric amount anywhere in the part wins, including the „- około 160 g" tail (macros are per 100 g). Otherwise the first amount+unit, then a bare leading count (below 50 sztuki, else grams), then an approximate unit with no number („łyżka cukru", „spora garść" count as 1). Up to two adjective-like words may sit between amount and unit („2 małe ząbki"). Units are normalised (`łyżek` → `łyżka`, `gramów` → `g`). „liście" and „listki" are not units; they stay in the name.
-   3. **Name** (`extractName`): cut the „- …" tail, parentheses, quoted brand names and „np. …", keep the first „ lub " alternative that isn't water, then strip amount phrases, size words („duża", „średnia", „spora", „ulubiona"…), „po" and a trailing `*` or `..`.
+   3. **Name** (`extractName`): cut the „- …" tail, parentheses, quoted brand names and „np. …", keep the first „ lub " alternative that isn't water, then strip amount phrases, size words („duża", „średnia", „spora", „ulubiona"…), the „po" quantity connector (not „po" inside a name like „makaron po włosku") and a trailing `*` or `..`.
    4. **Flags**: „można pominąć" or „ewentualnie" in the part sets `optional: true` (also set by the stage 1 label). `ParsedIngredient.optional` exists only when true. `autoMatchIngredients` passes it through and `ImportReviewForm` uses `r.optional ?? false`.
    5. **Water filter**: a part is dropped only when every „ lub " alternative is water („woda do moczenia…").
 
@@ -68,8 +68,9 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 - A macro-less local match is kept only when OFF has nothing (commit `df8755a`). Before that fix, placeholders shadowed real data.
 - The parser keeps one quantity: „400 g - 2 sztuki" gives 400 g, and „3 łyżki oleju - około 30 g" gives 30 g. That's a deliberate `ponytail:` simplification. The bare-number rule (under 50 is a piece count) is a heuristic.
 - A failed create (for example a name collision with `lower(name)`) silently drops that line. The notice then reports fewer matches.
-- Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a changed stem, like „jajka" vs. „jajko" (prefix 3). A `ponytail:` comment names a lemmatizer or fuzzy library as the upgrade.
+- Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a changed stem, like „jajka" vs. „jajko" (prefix 3). Two `ponytail:` comments in `match-ingredient.ts` mark this: word-overlap scoring (upgrade: a real fuzzy library) and the common-prefix heuristic (not a lemmatizer).
 - Names are not converted to their base form. When nothing matches, the new ingredient is created under the name as written („czosnku"). See [[known-gaps]].
+- The water filter looks at each „ lub " alternative as a whole, so „pomidory + woda" stays one ingredient named „pomidory + woda". See [[known-gaps]].
 
 ## Corpus workflow
 

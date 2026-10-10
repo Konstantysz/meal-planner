@@ -1,6 +1,7 @@
 import {
   AMOUNT_UNIT_RE,
   AMOUNT_UNIT_RE_ALL,
+  QTY_SRC,
   IMPLIED_RE,
   IMPLIED_RE_ALL,
   LEADING_COUNT_RE,
@@ -26,6 +27,8 @@ interface Quantity {
 }
 
 const OPTIONAL_RE = /możn[ae] pominąć|ewentualnie/i;
+// The "po" quantity connector ("po 2 łyżki"), not "po" inside a name ("makaron po włosku").
+const PO_CONNECTOR_RE = new RegExp(String.raw`(?<![\p{L}])po\s+(?=${QTY_SRC})`, 'giu');
 const WATER_RE = /^wod[aęy](?![\p{L}])/iu;
 // Size/filler words that never belong to the ingredient name.
 const FILLER_RE = new RegExp(
@@ -50,11 +53,12 @@ function extractQuantity(text: string): Quantity {
 // Stage 3 (per alternative): strips every amount phrase, fillers and decorations from one name.
 function stripName(alt: string): string {
   return alt
+    .replace(PO_CONNECTOR_RE, ' ')
     .replace(AMOUNT_UNIT_RE_ALL, ' ')
     .replace(IMPLIED_RE_ALL, ' ')
     .replace(new RegExp(`(?<![\\p{L}])${SHAPE_ADJ}(?![\\p{L}])`, 'giu'), ' ')
     .replace(FILLER_RE, ' ')
-    .replace(/(?<![\p{L}])(?:po|ewentualnie|możn[ae] pominąć)(?![\p{L}])/giu, ' ')
+    .replace(/(?<![\p{L}])(?:ewentualnie|możn[ae] pominąć)(?![\p{L}])/giu, ' ')
     .trim()
     .replace(LEADING_COUNT_RE, '')
     .replace(/\*+/g, '')
@@ -80,10 +84,9 @@ function extractName(text: string): { name: string; water: boolean } {
   return { name: alternatives[0] ?? '', water: alternatives.length > 0 };
 }
 
-function parsePart(raw: string): { parsed: ParsedIngredient; water: boolean } {
-  const text = normalizeText(raw);
+function parsePart(text: string): { parsed: ParsedIngredient; water: boolean } {
   const { name, water } = extractName(text);
-  const parsed: ParsedIngredient = { name: name || raw.trim(), ...extractQuantity(text) };
+  const parsed: ParsedIngredient = { name: name || text.trim(), ...extractQuantity(text) };
   // Stage 4: flags.
   if (OPTIONAL_RE.test(text)) parsed.optional = true;
   return { parsed, water };
@@ -92,7 +95,7 @@ function parsePart(raw: string): { parsed: ParsedIngredient; water: boolean } {
 // ponytail: staged heuristics (split → quantity → name → flags → water), not an NLP parser;
 // a new edge case belongs to exactly one stage, plus a line in tests/unit/import/ingredient-corpus.test.ts.
 export function parseIngredientLine(raw: string): ParsedIngredient {
-  return parsePart(raw).parsed;
+  return parsePart(normalizeText(raw)).parsed;
 }
 
 // One raw line → one ParsedIngredient per named ingredient. Water-only parts are dropped (stage 5).

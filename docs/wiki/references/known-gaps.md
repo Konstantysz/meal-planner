@@ -72,6 +72,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Gap | Details |
 |---|---|
 | `/` is the create-next-app page; metadata says "Create Next App" | [[spec-drift#Leftover scaffold]] |
+| The water filter only drops a part whose every „ lub " alternative starts with „woda"; „pomidory + woda" is kept as one ingredient | [[ingredient-auto-match#Invariants and gotchas]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
 | The login page has no link to signup | [[auth-session#Known gaps]] |
 | Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
