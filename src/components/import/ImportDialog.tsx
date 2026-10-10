@@ -1,14 +1,14 @@
 'use client';
 import { useState } from 'react';
 import { ensureEngineReady, extractWithWebLlm, hasWebGpu } from '@/lib/import/engine';
-import type { RecipeJsonLd } from '@/lib/schemas';
+import type { ExtractedRecipe } from '@/lib/import/schema';
 
 export function ImportDialog({
   onClose,
   onExtracted,
 }: {
   onClose: () => void;
-  onExtracted: (r: RecipeJsonLd, url: string) => void;
+  onExtracted: (r: ExtractedRecipe, url: string) => void;
 }) {
   const [url, setUrl] = useState('');
   const [stage, setStage] = useState<'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error'>('idle');
@@ -26,13 +26,13 @@ export function ImportDialog({
         body: JSON.stringify({ url }),
       });
       if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
-      const { markdown } = await fr.json();
+      const { markdown } = (await fr.json()) as { markdown: string };
 
       // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
       const mr = await fetch('/api/import/extract');
       if (!mr.ok) throw new Error(`Nie udało się odczytać trybu LLM (${mr.status})`);
       const { mode } = await mr.json();
-      let recipe: RecipeJsonLd;
+      let recipe: ExtractedRecipe;
       if (mode === 'server') {
         setStage('extract');
         const er = await fetch('/api/import/extract', {

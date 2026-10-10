@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation';
 import { RecipeForm } from '@/components/recipes/RecipeForm';
 import { ImportDialog } from '@/components/import/ImportDialog';
 import { ImportReviewForm } from '@/components/import/ImportReviewForm';
-import type { RecipeJsonLd } from '@/lib/schemas';
+import type { ExtractedRecipe } from '@/lib/import/schema';
 
 export default function NewRecipePage() {
   const router = useRouter();
   const [showImport, setShowImport] = useState(false);
-  const [extracted, setExtracted] = useState<{ data: RecipeJsonLd; url: string } | null>(null);
+  const [extracted, setExtracted] = useState<{ data: ExtractedRecipe; url: string } | null>(null);
 
   if (extracted) {
     return (

@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "backfill:macros": "tsx scripts/backfill-ingredient-macros.ts",
     "bench:llm": "tsx scripts/bench-llm.ts",
+    "eval:ingredients": "tsx scripts/eval-ingredients.ts",
     "wiki:check": "tsx scripts/wiki-check.ts && markdownlint-cli2",
     "prepare": "git config core.hooksPath .githooks",
     "wiki:fix": "markdownlint-cli2 --fix",

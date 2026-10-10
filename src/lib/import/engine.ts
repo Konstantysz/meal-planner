@@ -1,7 +1,6 @@
 'use client';
 import { CreateWebWorkerMLCEngine, type WebWorkerMLCEngine, type InitProgressReport } from '@mlc-ai/web-llm';
-import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, parseLlmJson } from './schema';
-import type { RecipeJsonLd } from '@/lib/schemas';
+import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, parseLlmJson, type ExtractedRecipe } from './schema';
 
 const MODEL_ID = 'gemma-2-2b-it-q4f16_1-MLC';
 const INIT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -31,7 +30,7 @@ export async function ensureEngineReady(onProgress?: (p: InitProgressReport) => 
   ]);
 }
 
-export async function extractWithWebLlm(markdown: string): Promise<RecipeJsonLd> {
+export async function extractWithWebLlm(markdown: string): Promise<ExtractedRecipe> {
   if (!enginePromise) throw new Error('engine not initialized');
   const engine = await enginePromise;
   let chunks;

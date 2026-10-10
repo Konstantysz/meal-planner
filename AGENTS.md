@@ -52,6 +52,7 @@ Before adding or changing an env var: `docs/wiki/references/env-vars.md`. Setup 
 
 ## Where to look next
 - Before changing `supabase/migrations/`, RLS or an RPC: `docs/wiki/references/migration-history.md`.
-- Before changing an area: read its page in `docs/wiki/` (entry `docs/wiki/README.md`, concepts in `concepts/concepts.md`) and update it in the same PR. Rules: `docs/wiki/RULES.md`. Open bugs and risks: `docs/wiki/references/known-gaps.md`.
-- Before naming a domain concept: `GLOSSARY.md`. Why-decisions (ADRs): `docs/wiki/decisions/`.
+- Before proposing or changing a design: its page in `docs/wiki/` (entry `docs/wiki/README.md`, concepts in `concepts/concepts.md`; update it in the same PR) and the ADRs in `docs/wiki/decisions/`. Rules: `docs/wiki/RULES.md`. Open bugs and risks: `docs/wiki/references/known-gaps.md`.
+- Before naming a domain concept: `GLOSSARY.md`.
+- Review standards: `CODING_STANDARDS.md`.
 - Edge cases (zero servings, mixed-unit shopping items, deleted-recipe slots): the "Review Focus" section of `docs/plans/architecture_plan_document.md` names them and the tests covering each.

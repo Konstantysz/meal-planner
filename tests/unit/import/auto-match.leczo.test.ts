@@ -2,21 +2,22 @@ import { describe, it, expect, vi } from 'vitest';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import type { Ingredient } from '@/lib/types';
 import type { IngredientInput } from '@/lib/schemas';
+import type { ExtractedIngredient } from '@/lib/import/schema';
 
-// Real 10-line ingredient list extracted from an actual imported recipe
-// (aniagotuje.pl "Leczo z chorizo"), used to catch regressions end-to-end
-// instead of only on synthetic single-line cases.
-const LECZO_LINES = [
-  'kiełbasa hiszpańska chorizo np. dulce 200 g',
-  'papryka świeża np. czerwona 400 g - 2 sztuki',
-  'cebula np. cukrowa 300 g',
-  'cukinia zielona lub żółta 650 g - 2 sztuki',
-  'pomidory 500 g',
-  'czosnek świeży 6 ząbków',
-  'olej roślinny do smażenia 40 ml',
-  'słodka papryka w proszku 1 łyżeczka',
-  'sól pół łyżeczki',
-  'chili i kumin po 1/4 łyżeczki',
+// The 10-line ingredient list of aniagotuje.pl "Leczo z chorizo" as the LLM structures it
+// ("chili i kumin po 1/4 łyżeczki" arrives as two entries), to catch regressions end-to-end.
+const LECZO_LINES: ExtractedIngredient[] = [
+  { name: 'kiełbasa hiszpańska chorizo', amount: 200, unit: 'g', optional: false },
+  { name: 'papryka świeża', amount: 400, unit: 'g', optional: false },
+  { name: 'cebula', amount: 300, unit: 'g', optional: false },
+  { name: 'cukinia zielona', amount: 650, unit: 'g', optional: false },
+  { name: 'pomidory', amount: 500, unit: 'g', optional: false },
+  { name: 'czosnek świeży', amount: 6, unit: 'ząbek', optional: false },
+  { name: 'olej roślinny do smażenia', amount: 40, unit: 'ml', optional: false },
+  { name: 'słodka papryka w proszku', amount: 1, unit: 'łyżeczka', optional: false },
+  { name: 'sól', amount: 0.5, unit: 'łyżeczka', optional: false },
+  { name: 'chili', amount: 0.25, unit: 'łyżeczka', optional: false },
+  { name: 'kumin', amount: 0.25, unit: 'łyżeczka', optional: false },
 ];
 
 function ing(name: string): Ingredient {
@@ -55,7 +56,7 @@ describe('autoMatchIngredients — leczo z chorizo (integration)', () => {
     const OFF_CATALOG: Record<string, IngredientInput> = {
       'kiełbasa hiszpańska chorizo': off('Chorizo'),
       'papryka świeża': off('Papryka czerwona'),
-      'cukinia zielona lub żółta': off('Cukinia'),
+      'cukinia zielona': off('Cukinia'),
       'olej roślinny do smażenia': off('Olej roślinny'),
     };
     const searchOff = vi.fn(async (q: string) => {
@@ -65,7 +66,6 @@ describe('autoMatchIngredients — leczo z chorizo (integration)', () => {
 
     const results = await autoMatchIngredients(LECZO_LINES, localIngredients, { searchOff });
 
-    // 10 lines, but "chili i kumin po 1/4 łyżeczki" splits into 2 -> 11 results.
     expect(results).toHaveLength(11);
     for (const r of results) {
       expect(r.ingredient !== null || r.offCandidate !== null || r.fallbackCandidate !== null).toBe(true);
@@ -88,7 +88,7 @@ describe('autoMatchIngredients — leczo z chorizo (integration)', () => {
     expect(results[9].fallbackCandidate?.name).toBe('chili');
     expect(results[10].fallbackCandidate?.name).toBe('kumin');
 
-    // Amounts/units parsed correctly regardless of match source
+    // Amounts/units carried over regardless of match source
     expect(results[0]).toMatchObject({ amount: 200, unit: 'g' });
     expect(results[1]).toMatchObject({ amount: 400, unit: 'g' });
     expect(results[5]).toMatchObject({ amount: 6, unit: 'ząbek' });
