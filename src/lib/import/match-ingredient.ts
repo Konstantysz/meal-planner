@@ -24,12 +24,21 @@ function scoreMatch(query: string, candidate: string): number {
   if (query === candidate) return 1;
   if (candidate.includes(query) || query.includes(candidate)) return 0.8;
 
-  const queryWords = new Set(query.split(' ').filter(Boolean));
+  const queryWords = query.split(' ').filter(Boolean);
   const candidateWords = candidate.split(' ').filter(Boolean);
-  if (queryWords.size === 0 || candidateWords.length === 0) return 0;
+  if (queryWords.length === 0 || candidateWords.length === 0) return 0;
 
-  const overlap = candidateWords.filter((w) => queryWords.has(w)).length;
-  return overlap / Math.max(queryWords.size, candidateWords.length);
+  const overlap = candidateWords.filter((w) => queryWords.some((q) => wordsMatch(q, w))).length;
+  return overlap / Math.max(queryWords.length, candidateWords.length);
+}
+
+// ponytail: common-prefix heuristic for Polish inflection (czosnku/czosnek), not a lemmatizer.
+// Words under 4 letters need an exact match (sól != sos).
+function wordsMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i >= 4 && i >= Math.min(a.length, b.length) - 3;
 }
 
 function normalize(s: string): string {
