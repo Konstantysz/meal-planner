@@ -1,126 +1,107 @@
+import {
+  AMOUNT_UNIT_RE,
+  AMOUNT_UNIT_RE_ALL,
+  IMPLIED_RE,
+  IMPLIED_RE_ALL,
+  LEADING_COUNT_RE,
+  METRIC_RE,
+  SHAPE_ADJ,
+  normalizeText,
+  normalizeUnit,
+  parseAmount,
+} from './ingredient-text';
+import { splitIngredientLine } from './split-ingredient';
+
 export interface ParsedIngredient {
   name: string;
   amount: number | null;
   unit: string | null;
+  /** Set only when true. */
+  optional?: boolean;
 }
 
-// Units with no real weight: macros skip them, the shopping list keeps them as their own unit.
-const APPROX_UNITS = [
-  'szczypta',
-  'szczypty',
-  'szczyptę',
-  'gałązka',
-  'gałązki',
-  'gałązek',
-  'garść',
-  'garści',
-  'pęczek',
-  'pęczki',
-  'pęczków',
-];
+interface Quantity {
+  amount: number | null;
+  unit: string | null;
+}
 
-const UNIT_WORDS = [
-  'g',
-  'kg',
-  'ml',
-  'l',
-  'szt',
-  'sztuki',
-  'sztuka',
-  'ząbki',
-  'ząbków',
-  'ząbek',
-  'łyżeczki',
-  'łyżeczka',
-  'łyżki',
-  'łyżka',
-  'szklanki',
-  'szklanka',
-  'opakowanie',
-  'opakowania',
-  ...APPROX_UNITS,
-];
+const OPTIONAL_RE = /możn[ae] pominąć|ewentualnie/i;
+const WATER_RE = /^wod[aęy](?![\p{L}])/iu;
+// Size/filler words that never belong to the ingredient name.
+const FILLER_RE = new RegExp(
+  `(?<![\\p{L}])(?:duż|mał|większ|mniejsz|spor|ulubion|średni)(?:ej|ego|ych|ymi|ym|ch|[aeyąo])?(?![\\p{L}])`,
+  'giu',
+);
 
-// Shape words that may sit between amount and unit ("pół płaskiej łyżeczki").
-const MODIFIER = '(?:\\s+(?:płask\\S*|czubat\\S*|gładk\\S*|kopiast\\S*))*';
-const AMOUNT = '(\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?|pół|ćwierć|niecał\\S+|kilka|kilku|parę)';
-// "kilka"/"parę" → a rough count; a bare approximate unit ("szczypta soli") counts as 1.
-const FUZZY_AMOUNTS: Record<string, number> = { kilka: 3, kilku: 3, parę: 2 };
-// (?![\p{L}\d]) with the u flag rather than \b: \b is ASCII-only, so "szczyptę"/"garść" would never match.
-const unitRe = (units: string[]) => new RegExp(`${AMOUNT}${MODIFIER}\\s*(${units.join('|')})(?![\\p{L}\\d])`, 'iu');
-
-const AMOUNT_UNIT_RE = unitRe(UNIT_WORDS);
-const AMOUNT_UNIT_RE_ALL = new RegExp(AMOUNT_UNIT_RE, 'giu');
-const IMPLIED_RE = new RegExp(`(?<![\\p{L}\\d])(${APPROX_UNITS.join('|')})(?![\\p{L}\\d])`, 'iu');
-const METRIC_RE = unitRe(['g', 'kg', 'ml', 'l']);
-// "6 średnich jajek", "250 cukru" — leading number with no unit word.
-const BARE_COUNT_RE = /^(\d+(?:[.,]\d+)?)\s+(?:(?:bardzo|średni\S*|duż\S*|mał\S*)\s+)*/i;
-
-// "chili i kumin po 1/4 łyżeczki" — two ingredient names sharing one trailing amount+unit.
-const COMPOUND_RE = /^(.+?)\s+i\s+(.+?)\s+po\s+(.+)$/i;
-
-// ponytail: keeps one amount+unit (a metric one if present, since macros are per 100 g,
-// else the first) and strips every amount phrase and " - comment" tail from the name;
-// not a full NLP parser. Bare leading counts: < 50 → sztuki, else grams.
-export function parseIngredientLine(raw: string): ParsedIngredient {
-  const match = raw.match(METRIC_RE) ?? raw.match(AMOUNT_UNIT_RE);
-  let amount: number | null = null;
-  let unit: string | null = null;
-  let rest = raw;
-  if (match) {
-    amount = parseAmount(match[1]);
-    unit = normalizeUnit(match[2]);
-    rest = raw.replace(AMOUNT_UNIT_RE_ALL, ' ');
-  } else {
-    const bare = raw.trim().match(BARE_COUNT_RE);
-    if (bare) {
-      amount = parseAmount(bare[1]);
-      unit = amount !== null && amount < 50 ? 'sztuki' : 'g';
-      rest = raw.trim().slice(bare[0].length);
-    } else {
-      const implied = raw.match(IMPLIED_RE);
-      if (implied) {
-        amount = 1;
-        unit = normalizeUnit(implied[1]);
-        rest = raw.replace(IMPLIED_RE, ' ');
-      }
-    }
+// Stage 2: metric amount anywhere (macros are per 100 g), else the first amount+unit, else a bare
+// leading count (< 50 → sztuki, else grams), else an approximate unit with no number (→ 1).
+function extractQuantity(text: string): Quantity {
+  const match = text.match(METRIC_RE) ?? text.match(AMOUNT_UNIT_RE);
+  if (match) return { amount: parseAmount(match[1]), unit: normalizeUnit(match[2]) };
+  const bare = text.trim().match(LEADING_COUNT_RE);
+  if (bare) {
+    const amount = parseAmount(bare[0].trim());
+    return { amount, unit: amount !== null && amount < 50 ? 'sztuki' : 'g' };
   }
-  const name = rest
-    .replace(/\(\s*\)/g, ' ')
-    .replace(/\s[-–].*$/, '')
+  const implied = text.match(IMPLIED_RE);
+  return implied ? { amount: 1, unit: normalizeUnit(implied[1]) } : { amount: null, unit: null };
+}
+
+// Stage 3 (per alternative): strips every amount phrase, fillers and decorations from one name.
+function stripName(alt: string): string {
+  return alt
+    .replace(AMOUNT_UNIT_RE_ALL, ' ')
+    .replace(IMPLIED_RE_ALL, ' ')
+    .replace(new RegExp(`(?<![\\p{L}])${SHAPE_ADJ}(?![\\p{L}])`, 'giu'), ' ')
+    .replace(FILLER_RE, ' ')
+    .replace(/(?<![\p{L}])(?:po|ewentualnie|możn[ae] pominąć)(?![\p{L}])/giu, ' ')
+    .trim()
+    .replace(LEADING_COUNT_RE, '')
+    .replace(/\*+/g, '')
     .replace(/\s+/g, ' ')
-    .replace(/^[\s,–-]+|[\s,–(-]+$/g, '');
-  return { name: name || raw.trim(), amount, unit };
+    .replace(/^[\s,–-]+|[\s,–(+-]+$/g, '')
+    .replace(/\.{2,}$/, '')
+    .trim();
 }
 
-// Splits a compound line ("chili i kumin po 1/4 łyżeczki") into one ParsedIngredient
-// per named ingredient, each getting the shared amount+unit. Falls back to a single
-// result via parseIngredientLine when the line isn't in that "X i Y po <qty>" shape.
+// Stage 3: cut tails and asides, then keep the first " lub " alternative that isn't water.
+function extractName(text: string): { name: string; water: boolean } {
+  const base = text
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/"[^"]*"|„[^”]*”/g, ' ')
+    .replace(/\s[-–—].*$/, '')
+    .replace(/(?<![\p{L}])np\..*$/iu, '');
+  const alternatives = stripName(base)
+    .split(/\s+lub\s+/i)
+    .map((alt) => alt.trim())
+    .filter(Boolean);
+  const kept = alternatives.find((alt) => !WATER_RE.test(alt));
+  if (kept) return { name: kept, water: false };
+  return { name: alternatives[0] ?? '', water: alternatives.length > 0 };
+}
+
+function parsePart(raw: string): { parsed: ParsedIngredient; water: boolean } {
+  const text = normalizeText(raw);
+  const { name, water } = extractName(text);
+  const parsed: ParsedIngredient = { name: name || raw.trim(), ...extractQuantity(text) };
+  // Stage 4: flags.
+  if (OPTIONAL_RE.test(text)) parsed.optional = true;
+  return { parsed, water };
+}
+
+// ponytail: staged heuristics (split → quantity → name → flags → water), not an NLP parser;
+// a new edge case belongs to exactly one stage, plus a line in tests/unit/import/ingredient-corpus.test.ts.
+export function parseIngredientLine(raw: string): ParsedIngredient {
+  return parsePart(raw).parsed;
+}
+
+// One raw line → one ParsedIngredient per named ingredient. Water-only parts are dropped (stage 5).
 export function parseIngredientLines(raw: string): ParsedIngredient[] {
-  const compound = raw.match(COMPOUND_RE);
-  if (compound) {
-    const [, first, second, rest] = compound;
-    const { amount, unit } = parseIngredientLine(`_ ${rest}`);
-    if (unit) {
-      return [first, second].map((name) => ({ name: name.trim(), amount, unit }));
-    }
-  }
-  return [parseIngredientLine(raw)];
-}
-
-function parseAmount(s: string): number | null {
-  const lower = s.toLowerCase();
-  if (lower === 'pół') return 0.5;
-  if (lower === 'ćwierć') return 0.25;
-  if (lower in FUZZY_AMOUNTS) return FUZZY_AMOUNTS[lower];
-  if (lower.startsWith('niecał')) return 1;
-  if (s.includes('/')) {
-    const [num, den] = s.split('/').map((x) => Number(x.trim()));
-    return den ? num / den : null;
-  }
-  const n = Number(s.replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+  return splitIngredientLine(normalizeText(raw)).flatMap(({ text, optional }) => {
+    const { parsed, water } = parsePart(text);
+    if (water) return [];
+    return [optional ? { ...parsed, optional: true } : parsed];
+  });
 }
 
 // Strips "np. X" (e.g. suggestions) and parenthetical asides that add noise —
@@ -131,19 +112,4 @@ export function cleanIngredientName(name: string): string {
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-function normalizeUnit(u: string): string {
-  const lower = u.toLowerCase();
-  if (lower.startsWith('szt')) return 'sztuki';
-  if (lower.startsWith('łyżeczk')) return 'łyżeczka';
-  if (lower.startsWith('łyżk')) return 'łyżka';
-  if (lower.startsWith('szklank')) return 'szklanka';
-  if (lower.startsWith('ząbk') || lower === 'ząbek') return 'ząbek';
-  if (lower.startsWith('opakowani')) return 'opakowanie';
-  if (lower.startsWith('szczypt')) return 'szczypta';
-  if (lower.startsWith('gałąz')) return 'gałązka';
-  if (lower.startsWith('garś')) return 'garść';
-  if (lower.startsWith('pęczek') || lower.startsWith('pęczk')) return 'pęczek';
-  return lower;
 }

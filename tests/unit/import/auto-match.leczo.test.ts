@@ -55,7 +55,7 @@ describe('autoMatchIngredients — leczo z chorizo (integration)', () => {
     const OFF_CATALOG: Record<string, IngredientInput> = {
       'kiełbasa hiszpańska chorizo': off('Chorizo'),
       'papryka świeża': off('Papryka czerwona'),
-      'cukinia zielona lub żółta': off('Cukinia'),
+      'cukinia zielona': off('Cukinia'),
       'olej roślinny do smażenia': off('Olej roślinny'),
     };
     const searchOff = vi.fn(async (q: string) => {

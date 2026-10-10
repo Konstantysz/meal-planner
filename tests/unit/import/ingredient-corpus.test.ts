@@ -1,7 +1,7 @@
 // Corpus of real ingredient lines (aniagotuje, taken verbatim 2026-10-10) with their expected parse.
 // Bad import? Paste its lines here first, then fix the parser stage that owns the failure.
 import { describe, it, expect } from 'vitest';
-import { parseIngredientLines, type ParsedIngredient } from '@/lib/import/parse-ingredient';
+import { parseIngredientLines } from '@/lib/import/parse-ingredient';
 
 interface Expected {
   name: string;
@@ -185,8 +185,7 @@ const CASES = Object.entries(CORPUS).flatMap(([source, rows]) =>
 
 describe('ingredient corpus', () => {
   it.each(CASES)('$source: $raw', ({ raw, expected }) => {
-    // `optional` is added to ParsedIngredient by the implementation; read it structurally until then.
-    const actual: (ParsedIngredient & { optional?: boolean })[] = parseIngredientLines(raw);
+    const actual = parseIngredientLines(raw);
     expect(actual).toHaveLength(expected.length);
     expected.forEach((want, i) => {
       const got = actual[i];
