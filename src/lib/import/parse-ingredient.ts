@@ -86,10 +86,9 @@ function extractName(text: string): { name: string; water: boolean } {
 
 function parsePart(text: string): { parsed: ParsedIngredient; water: boolean } {
   const { name, water } = extractName(text);
-  const parsed: ParsedIngredient = { name: name || text.trim(), ...extractQuantity(text) };
   // Stage 4: flags.
-  if (OPTIONAL_RE.test(text)) parsed.optional = true;
-  return { parsed, water };
+  const optional = OPTIONAL_RE.test(text) ? { optional: true } : {};
+  return { parsed: { name: name || text.trim(), ...extractQuantity(text), ...optional }, water };
 }
 
 // ponytail: staged heuristics (split → quantity → name → flags → water), not an NLP parser;

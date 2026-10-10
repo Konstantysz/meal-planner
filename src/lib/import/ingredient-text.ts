@@ -98,7 +98,7 @@ const END = String.raw`(?![\p{L}\d])`;
 const START = String.raw`(?<![\p{L}\d])`;
 
 /** Source of "<amount> [adjectives] <unit>"; capture=true exposes groups 1 (amount) and 2 (unit). */
-export function amountUnitSrc(units: string[], capture: boolean): string {
+function amountUnitSrc(units: string[], capture: boolean): string {
   const [o, c] = capture ? ['(', ')'] : ['(?:', ')'];
   return String.raw`(?<![\d.,/])${o}${NUM}${c}${MOD}\s*${o}${alt(units)}${c}${END}`;
 }

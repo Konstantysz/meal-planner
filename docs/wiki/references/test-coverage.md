@@ -53,6 +53,9 @@ sources:
 | `src/lib/import/parse-ingredient.ts` | `tests/unit/import/parse-ingredient.test.ts` |
 | `src/lib/import/match-ingredient.ts` | `tests/unit/import/match-ingredient.test.ts` |
 | `src/lib/import/auto-match.ts` | `auto-match.test.ts` + `auto-match.leczo.test.ts` (real 10-line list) |
+| `src/lib/import/ingredient-text.ts` | `tests/unit/import/ingredient-text.test.ts` |
+| `src/lib/import/split-ingredient.ts` | `tests/unit/import/split-ingredient.test.ts` |
+| `src/lib/import/ingredient-text.ts`, `parse-ingredient.ts`, `split-ingredient.ts` | `tests/unit/import/ingredient-corpus.test.ts` (real aniagotuje lines, end to end) |
 | `src/lib/import/yield.ts` | `tests/unit/import/yield.test.ts` (`it.each` table) |
 | `src/app/api/import/extract/route.ts` | `tests/unit/import/extract-route.test.ts` |
 | `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` |

@@ -68,7 +68,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 - A macro-less local match is kept only when OFF has nothing (commit `df8755a`). Before that fix, placeholders shadowed real data.
 - The parser keeps one quantity: „400 g - 2 sztuki" gives 400 g, and „3 łyżki oleju - około 30 g" gives 30 g. That's a deliberate `ponytail:` simplification. The bare-number rule (under 50 is a piece count) is a heuristic.
 - A failed create (for example a name collision with `lower(name)`) silently drops that line. The notice then reports fewer matches.
-- Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a changed stem, like „jajka" vs. „jajko" (prefix 3). Two `ponytail:` comments in `match-ingredient.ts` mark this: word-overlap scoring (upgrade: a real fuzzy library) and the common-prefix heuristic (not a lemmatizer).
+- Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a short stem, like „mąki" vs. „mąka" (prefix 3, under the 4-letter minimum). Two `ponytail:` comments in `match-ingredient.ts` mark this: word-overlap scoring (upgrade: a real fuzzy library) and the common-prefix heuristic (not a lemmatizer).
 - Names are not converted to their base form. When nothing matches, the new ingredient is created under the name as written („czosnku"). See [[known-gaps]].
 - The water filter looks at each „ lub " alternative as a whole, so „pomidory + woda" stays one ingredient named „pomidory + woda". See [[known-gaps]].
 

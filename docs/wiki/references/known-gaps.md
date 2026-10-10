@@ -102,7 +102,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
-- 2026-10-10: Added the inflected-name and model-output row for ingredient auto-match.
+- 2026-10-10: Added the inflected-name and model-output row and the water-filter row (`pomidory + woda` stays one ingredient) for ingredient auto-match.
 - 2026-10-09: Removed the shopping-list `has_macros` row (#15): the route now uses `hasMacros` across all four fields.
 - 2026-10-09: Verified all rows at a7f8f52 (grep, build, workflow runs, `gh` for #15 and secrets). Corrected the tests row (`db/ingredients`, `db/recipes`, `db/share`, `extract-route` and `ImportDialog` do have tests) and the `navigator` row (Node-version wording). Confirmed #15 is open and the has_macros mismatch is still in code.
 - 2026-10-09: Added the shopping-list `has_macros` mismatch (tracked in #15).

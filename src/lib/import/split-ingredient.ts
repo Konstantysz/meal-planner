@@ -17,8 +17,8 @@ const SHARED_APPROX_RE = new RegExp(
   `^((?:\\d+(?:[.,]\\d+)?\\s*)?(?:${SHAREABLE_UNITS.join('|')}))\\s+(.+?)\\s+i\\s+(.+)$`,
   'iu',
 );
-// " i " followed by a new amount: "1 łyżeczka soli i 1/3 łyżeczki pieprzu"
-const AND_AMOUNT_RE = /\s+i\s+(?=\d)/;
+// " i " followed by a new amount: "1 łyżeczka soli i 1/3 łyżeczki pieprzu", "łyżka soli i szczypta pieprzu"
+const AND_AMOUNT_RE = new RegExp(`\\s+i\\s+(?=\\d|${QTY_SRC})`, 'iu');
 
 /** Splits `text` on commas and semicolons that sit outside parentheses. */
 function splitOutsideParens(text: string): string[] {

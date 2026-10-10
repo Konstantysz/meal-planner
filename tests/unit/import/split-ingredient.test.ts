@@ -27,6 +27,7 @@ describe('splitIngredientLine', () => {
       '1/3 łyżeczki pieprzu',
     ]);
     expect(texts('przyprawy: sól i pieprz')).toEqual(['sól i pieprz']);
+    expect(texts('przyprawy: łyżka soli i szczypta pieprzu')).toEqual(['łyżka soli', 'szczypta pieprzu']);
   });
 
   it('shares a trailing "po" amount', () => {
