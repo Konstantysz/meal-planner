@@ -22,6 +22,11 @@ if [ -n "$code" ]; then
   fi
 fi
 
+# New src/lib exports must be tested or listed under "Not covered" in the coverage map.
+if printf '%s\n' "$staged" | grep -qE '^(src/lib/|tests/|scripts/test-coverage-check\.ts$|docs/wiki/references/test-coverage\.md$)'; then
+  pnpm -s coverage:check || fail "coverage:check failed. Add a test or list the function under 'Not covered'."
+fi
+
 # docs/wiki/RULES.md §9
 if printf '%s\n' "$staged" | grep -qE '^(docs/wiki/|scripts/wiki-check\.ts$|\.markdownlint-cli2\.jsonc$)'; then
   pnpm -s wiki:check || fail "wiki:check failed. 'pnpm wiki:fix' auto-fixes markdown style; fix the rest by hand."
