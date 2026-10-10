@@ -18,7 +18,8 @@ const CONTENT_SELECTORS = [
 
 const NOISE = [
   'script, style, nav, footer, header, aside, iframe, noscript, svg',
-  'img, picture, figure, video, form, button',
+  // Group headers ("Składniki do podania") are buttons; keep them so a second list stays labelled.
+  'img, picture, figure, video, form, button:not(.ing-header)',
   '[class*="ad-"], [class*="advert"], [id*="cookie"]',
   '[id*="comment"], [class*="comment"], [class*="share"], [class*="social"]',
   // Related-recipe cards nested inside the main recipe: their ingredients leak into extraction.
@@ -28,6 +29,13 @@ const NOISE = [
 export function cleanHtml(html: string): string {
   const $ = cheerio.load(html);
   $(NOISE).remove();
+  // aniagotuje renders name and quantity as separate spans; flattened they read "tymianek garść
+  // łodyg" and the model drops the trailing quantity. Quantity-first matches the output format.
+  $('[itemprop="recipeIngredient"]').each((_, el) => {
+    const qty = $(el).find('.ingredient-qty').text().trim();
+    const name = $(el).find('.ingredient-name').text().trim();
+    if (qty && name) $(el).text(`${qty} ${name}`);
+  });
 
   let content = '';
   for (const sel of CONTENT_SELECTORS) {
