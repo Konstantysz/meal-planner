@@ -34,6 +34,7 @@ Each guide is a single task with prerequisites, steps and a way to verify the re
 | [[run-import-with-ollama]] | review |
 | [[run-llm-benchmark]] | review |
 | [[configure-ci-secrets]] | draft: not yet executed |
+| [[haiku-fallback-handoff]] | draft: handoff, nothing built |
 
 ## Related
 

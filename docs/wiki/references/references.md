@@ -37,6 +37,8 @@ References are kept dense and are re-verified every 180 days. Part of [[README]]
 | [[known-gaps]] | Ranked list of bugs, security gaps and unfinished work |
 | [[migration-history]] | Every migration: PR, reason, live verification; the 2026-10-04 audit |
 
+| [[haiku-url-extraction-experiment]] | One-off cost and quality test of a URL-only Haiku parse |
+
 ## Related
 
 - [[RULES]]
