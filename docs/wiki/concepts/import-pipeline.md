@@ -5,14 +5,14 @@ tags: [import, llm, recipes]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
-last_reviewed: 2026-10-09
+updated: 2026-10-10
+last_reviewed: 2026-10-10
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: a7f8f52
+verified_commit: acf949e
 sources:
   - title: "Import dialog"
     path: src/components/import/ImportDialog.tsx
@@ -47,7 +47,7 @@ sequenceDiagram
   participant W as WebLLM worker
   participant R as ImportReviewForm
   D->>F: POST {url}
-  F-->>D: {markdown} (fetchPage + cleanHtml)
+  F-->>D: {markdown, ingredients} (fetchPage + cleanHtml + extractIngredients)
   D->>X: GET (mode?)
   alt mode = server
     D->>X: POST {markdown}
@@ -56,6 +56,7 @@ sequenceDiagram
     D->>W: ensureEngineReady + extractWithWebLlm
     W-->>D: RecipeJsonLd
   end
+  D->>D: page ingredients replace the model's recipeIngredient
   D->>R: onExtracted(recipe, url)
   R->>R: Auto-mapuj składniki (optional)
   R->>R: POST /api/recipes
@@ -73,6 +74,7 @@ The `ImportDialog` stage machine is `idle → fetch → (model) → extract → 
 
 ## Invariants and gotchas
 
+- **Ingredients bypass the model when the page has them.** `/api/import/fetch` also returns `ingredients`, the lines of every `itemprop="recipeIngredient"` node. When that list is non-empty, `ImportDialog` replaces the extracted `recipeIngredient` with it. gemma2-2b retyped the list badly: it looped (an 18-line list came back three times), dropped trailing lines and cut " - około 15 g" comments. Pages without that markup keep the model's list. The model still extracts name, steps and yield, and it still sees the ingredient section in its input.
 - **Review is mandatory.** `ImportReviewForm.save` refuses to save until at least one ingredient is mapped („Zmapuj co najmniej jeden składnik przed zapisem.").
 - Imported recipes get `prep_time_min: null`, `diet_tags: []`, `allergens: []` and `visibility: 'household'`. The extracted `prepTime` is dropped. Each recipe ingredient is saved with `optional: false`.
 - `recipeInstructions` can be a string, an array of strings, or an array of `{text}`. The review form normalises all three into step strings.
@@ -107,6 +109,7 @@ LLM_MODE=server pnpm dev
 
 ## Changelog
 
+- 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.
 - 2026-10-09: Linked the Markdown-before-extraction decision, [[0011-html-to-markdown-import]].
 - 2026-10-04: Created from legacy `import.md`. Fixed the stale "review form doesn't auto-match" claim.

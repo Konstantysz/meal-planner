@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: 7627e7b
+verified_commit: acf949e
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts
@@ -48,10 +48,10 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 `autoMatchIngredients(rawLines, localIngredients, { searchOff })`, for each line:
 
 1. `parseIngredientLines(raw)` runs five stages, each owning one class of problem. A new edge case belongs to exactly one stage:
-   1. **Split** (`split-ingredient.ts`): one line becomes several parts. A label prefix („przyprawy:", „przyprawy i zioła:", „dodatki:") is dropped and the rest is split on `,` and `;` outside parentheses, and on „ i " when an amount follows it. Labels with „dodatki", „do podania" or „ewentualnie" mark every part optional. A shared amount is split too: „A i B po <ilość>", „po <ilość> A i B", „szczypta A i B".
-   2. **Quantity** (`normalizeText` and `extractQuantity`): text is first normalised to plain digits: Polish number words („pół", „półtora", „jedna trzecia", „dwie trzecie"), Unicode fractions, mixed numbers („1 i 1/2"), „2 x 5" (10) and ranges („30-40", the upper bound wins). Then a metric amount anywhere in the part wins, including the „- około 160 g" tail (macros are per 100 g). Otherwise the first amount+unit, then a bare leading count (below 50 sztuki, else grams), then an approximate unit with no number („łyżka cukru", „spora garść" count as 1). Up to two adjective-like words may sit between amount and unit („2 małe ząbki"). Units are normalised (`łyżek` → `łyżka`, `gramów` → `g`). „liście" and „listki" are not units; they stay in the name.
-   3. **Name** (`extractName`): cut the „- …" tail, parentheses, quoted brand names and „np. …", keep the first „ lub " alternative that isn't water, then strip amount phrases, size words („duża", „średnia", „spora", „ulubiona"…), the „po" quantity connector (not „po" inside a name like „makaron po włosku") and a trailing `*` or `..`.
-   4. **Flags**: „można pominąć" or „ewentualnie" in the part sets `optional: true` (also set by the stage 1 label). `ParsedIngredient.optional` exists only when true. `autoMatchIngredients` passes it through and `ImportReviewForm` uses `r.optional ?? false`.
+   1. **Split** (`split-ingredient.ts`): one line becomes several parts. A label prefix („przyprawy:", „przyprawy i zioła:", „dodatki:") is dropped and the rest is split on `,` and `;` outside parentheses, and on „ i " when an amount follows it. Labels with „dodatki", „do podania" or „ewentualnie" mark every part optional. In a line without a label, a comma that opens alternatives („350 g filetu z kurczaka, krewetek lub tofu") drops them and keeps the first; it needs two or more words before the comma, so an adjective list („pół świeżej, ostrej papryczki") stays whole. A line with two or more commas and no number is split into separate ingredients („kolendra, limonka, orzechy"). A shared amount is split too: „A i B po <ilość>", „po <ilość> A i B", „szczypta A i B".
+   2. **Quantity** (`normalizeText` and `extractQuantity`): text is first normalised to plain digits: Polish number words („pół", „półtora", „jedna trzecia", „dwie trzecie"), Unicode fractions, mixed numbers („1 i 1/2"), „2 x 5" (10) and ranges („30-40", the upper bound wins). The amount belongs to the first „ lub " alternative (a later option's amount is only a fallback, so „pół papryczki lub pół łyżeczki chili" is 0.5 sztuki). Then a metric amount anywhere in the part wins, including the „- około 160 g" tail (macros are per 100 g). Otherwise the first amount+unit, then a bare leading count (below 50 sztuki, else grams), then an approximate unit with no number („łyżka cukru", „spora garść" count as 1). Up to two adjective-like words may sit between amount and unit („2 małe ząbki"). Units are normalised (`łyżek` → `łyżka`, `gramów` → `g`). „liście" and „listki" are not units; they stay in the name.
+   3. **Name** (`extractName`): cut the „- …" tail, parentheses, quoted brand names and „np. …", keep the first „ lub " alternative that isn't water, then strip amount phrases, descriptions of the amount („o wadze", „o masie", „około", „wielkości"), size words („duża", „średnia", „spora", „ulubiona"…), the „po" quantity connector (not „po" inside a name like „makaron po włosku") and a trailing `*` or `..`.
+   4. **Flags**: „można pominąć", or „ewentualnie" at the end of the part, sets `optional: true` („- ewentualnie kiełki ze słoika" names a substitute and doesn't) (also set by the stage 1 label). `ParsedIngredient.optional` exists only when true. `autoMatchIngredients` passes it through and `ImportReviewForm` uses `r.optional ?? false`.
    5. **Water filter**: a part is dropped only when every „ lub " alternative is water („woda do moczenia…").
 
    `parseIngredientLine` runs stages 2 to 4 on a single part.
@@ -79,7 +79,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 ## Known gaps
 
 - Ingredient rows are created when the user clicks „Auto-mapuj", so they stay in the shared table even if the user then cancels the import.
-- The parser sees the model's output, which may rephrase the page's lines, so the corpus (verbatim page text) proves the parser, not the whole import.
+- When a page has no `recipeIngredient` markup, the parser sees the model's output, which may rephrase or drop parts of the page's lines. With markup it sees the page text verbatim (see [[import-pipeline]]).
 - OFF results are often packaged products (brand names), and the first hit is taken without ranking.
 
 ## Examples
@@ -108,6 +108,7 @@ parseIngredientLine('kilka gałązek tymianku');         // { name: 'tymianku', 
 
 ## Changelog
 
+- 2026-10-10: Parser rules found on an unseen recipe: amount descriptions out of names, quantity from the first alternative, comma alternatives and topping lists, „ewentualnie" as a substitute (`acf949e`).
 - 2026-10-10: Documented the five parser stages, the corpus workflow and prefix matching (`187d7e3`).
 - 2026-10-09: Re-verified against `a7f8f52`. Updated the line parser (metric preference, bare counts, modifiers, name cleaning) and the failed-`searchOff` behaviour.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
