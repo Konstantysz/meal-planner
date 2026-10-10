@@ -5,8 +5,8 @@ tags: [security, spec]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
-last_reviewed: 2026-10-09
+updated: 2026-10-10
+last_reviewed: 2026-10-10
 review_interval_days: 30
 confidence: high
 llm_generated: true
@@ -56,6 +56,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
+| Auto-match creates new ingredients under inflected names as written („czosnku"), and the parser sees model output that may rephrase page lines | [[ingredient-auto-match#Invariants and gotchas]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
@@ -100,6 +101,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-10: Added the inflected-name and model-output row for ingredient auto-match.
 - 2026-10-09: Removed the shopping-list `has_macros` row (#15): the route now uses `hasMacros` across all four fields.
 - 2026-10-09: Verified all rows at a7f8f52 (grep, build, workflow runs, `gh` for #15 and secrets). Corrected the tests row (`db/ingredients`, `db/recipes`, `db/share`, `extract-route` and `ImportDialog` do have tests) and the `navigator` row (Node-version wording). Confirmed #15 is open and the has_macros mismatch is still in code.
 - 2026-10-09: Added the shopping-list `has_macros` mismatch (tracked in #15).
