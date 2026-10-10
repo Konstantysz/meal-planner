@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: 187d7e3
+verified_commit: 7627e7b
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts
