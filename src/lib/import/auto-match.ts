@@ -1,6 +1,6 @@
 import type { Ingredient } from '@/lib/types';
 import type { IngredientInput } from '@/lib/schemas';
-import { parseIngredientLines, cleanIngredientName } from './parse-ingredient';
+import type { ExtractedIngredient } from './schema';
 import { findBestMatch } from './match-ingredient';
 
 export interface AutoMatchResult {
@@ -21,37 +21,34 @@ export interface AutoMatchDeps {
 }
 
 export async function autoMatchIngredients(
-  rawLines: string[],
+  ingredients: ExtractedIngredient[],
   localIngredients: Ingredient[],
   deps: AutoMatchDeps,
 ): Promise<AutoMatchResult[]> {
   const results: AutoMatchResult[] = [];
-  for (const raw of rawLines) {
-    for (const { name, amount, unit, optional } of parseIngredientLines(raw)) {
-      const cleanName = cleanIngredientName(name) || name;
-
-      const local = findBestMatch(cleanName, localIngredients);
-      const hasMacros =
-        !!local &&
-        [local.kcal_per_100g, local.protein_per_100g, local.fat_per_100g, local.carbs_per_100g].some((v) => v != null);
-      const offCandidate = hasMacros ? null : ((await deps.searchOff(cleanName).catch(() => []))[0] ?? null);
-      // A macro-less local match is kept only when OFF has nothing better.
-      const ingredient = offCandidate ? null : local;
-      const fallbackCandidate: IngredientInput | null =
-        ingredient || offCandidate
-          ? null
-          : {
-              name: cleanName,
-              category: 'inne',
-              kcal_per_100g: null,
-              protein_per_100g: null,
-              fat_per_100g: null,
-              carbs_per_100g: null,
-              default_unit: null,
-              source: 'manual',
-            };
-      results.push({ raw_text: cleanName, amount, unit, optional, ingredient, offCandidate, fallbackCandidate });
-    }
+  for (const { name, amount, unit, optional } of ingredients) {
+    const cleanName = name.trim();
+    const local = findBestMatch(cleanName, localIngredients);
+    const hasMacros =
+      !!local &&
+      [local.kcal_per_100g, local.protein_per_100g, local.fat_per_100g, local.carbs_per_100g].some((v) => v != null);
+    const offCandidate = hasMacros ? null : ((await deps.searchOff(cleanName).catch(() => []))[0] ?? null);
+    // A macro-less local match is kept only when OFF has nothing better.
+    const ingredient = offCandidate ? null : local;
+    const fallbackCandidate: IngredientInput | null =
+      ingredient || offCandidate
+        ? null
+        : {
+            name: cleanName,
+            category: 'inne',
+            kcal_per_100g: null,
+            protein_per_100g: null,
+            fat_per_100g: null,
+            carbs_per_100g: null,
+            default_unit: null,
+            source: 'manual',
+          };
+    results.push({ raw_text: cleanName, amount, unit, optional, ingredient, offCandidate, fallbackCandidate });
   }
   return results;
 }

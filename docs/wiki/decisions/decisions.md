@@ -42,6 +42,7 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 | 0009 | [[0009-household-created-by-signup-trigger]] | accepted |
 | 0010 | [[0010-global-ingredient-catalog]] | accepted |
 | 0011 | [[0011-html-to-markdown-import]] | accepted |
+| 0012 | [[0012-llm-structures-ingredients]] | accepted |
 
 ## Related
 
@@ -53,6 +54,7 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 
 ## Changelog
 
+- 2026-10-11: Added 0012 (LLM structures ingredients).
 - 2026-10-09: Added 0009 (signup trigger), 0010 (global ingredient catalog) and 0011 (HTML to Markdown import); fixed the intro on how records were made.
 - 2026-10-09: Marked 0002 superseded by the signup trigger (migration 0006).
 - 2026-10-04: Added 0008; marked 0003 superseded.

@@ -1,9 +1,7 @@
 // Corpus of real ingredient lines (aniagotuje, taken verbatim 2026-10-10) with their expected parse.
-// Bad import? Paste its lines here first, then fix the parser stage that owns the failure.
-import { describe, it, expect } from 'vitest';
-import { parseIngredientLines } from '@/lib/import/parse-ingredient';
+// Used by scripts/eval-ingredients.ts to score the LLM; not a CI test.
 
-interface Expected {
+export interface Expected {
   name: string;
   amount: number | null;
   unit: string | null;
@@ -17,7 +15,7 @@ const o = (name: string): Expected => e(name, null, null, true);
 
 type Row = readonly [raw: string, expected: Expected[]];
 
-const CORPUS: Record<string, Row[]> = {
+export const CORPUS: Record<string, Row[]> = {
   'fasolka-po-bretonsku': [
     ['500 g fasoli suchej "Piękny Jaś"', [e('fasoli suchej', 500, 'g')]],
     ['woda do moczenia suchej fasoli + litr wody do gotowania fasoli', []],
@@ -25,6 +23,8 @@ const CORPUS: Record<string, Row[]> = {
     ['400 g ulubionej kiełbasy - może być lekko podsuszana', [e('kiełbasy', 400, 'g')]],
     ['1 duża cebula - około 160 g', [e('cebula', 160, 'g')]],
     ['5 ząbków czosnku - około 25 g', [e('czosnku', 25, 'g')]],
+    ['375 ml - 1,5 szklanki bulion lub rosół', [e('bulion', 375, 'ml')]],
+    ['1 średnia sztuka - około 200 g cebula', [e('cebula', 200, 'g')]],
     ['1500 g pomidorów świeżych (mogą być z puszki)', [e('pomidorów świeżych', 1500, 'g')]],
     ['30-40 g koncentratu pomidorowego', [e('koncentratu pomidorowego', 40, 'g')]],
     [
@@ -178,22 +178,3 @@ const CORPUS: Record<string, Row[]> = {
     ['1 1/2 łyżki miodu', [e('miodu', 1.5, 'łyżka')]],
   ],
 };
-
-const CASES = Object.entries(CORPUS).flatMap(([source, rows]) =>
-  rows.map(([raw, expected]) => ({ source, raw, expected })),
-);
-
-describe('ingredient corpus', () => {
-  it.each(CASES)('$source: $raw', ({ raw, expected }) => {
-    const actual = parseIngredientLines(raw);
-    expect(actual).toHaveLength(expected.length);
-    expected.forEach((want, i) => {
-      const got = actual[i];
-      expect(got.name).toBe(want.name);
-      expect(got.unit).toBe(want.unit);
-      if (want.amount === null) expect(got.amount).toBeNull();
-      else expect(got.amount).toBeCloseTo(want.amount, 5);
-      expect(got.optional).toBe(want.optional);
-    });
-  });
-});

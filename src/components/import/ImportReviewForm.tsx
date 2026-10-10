@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import type { RecipeJsonLd } from '@/lib/schemas';
+import type { ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
@@ -12,7 +12,7 @@ export function ImportReviewForm({
   onCancel,
   onSaved,
 }: {
-  extracted: RecipeJsonLd;
+  extracted: ExtractedRecipe;
   sourceUrl: string;
   onCancel: () => void;
   onSaved: (id: string) => void;
@@ -145,7 +145,7 @@ export function ImportReviewForm({
         <h3 className="font-semibold">Składniki (z importu: {extracted.recipeIngredient.length})</h3>
         <ul className="text-sm opacity-70 mb-2">
           {extracted.recipeIngredient.map((x, i) => (
-            <li key={i}>· {x}</li>
+            <li key={i}>· {[x.amount, x.unit, x.name].filter((p) => p != null).join(' ')}</li>
           ))}
         </ul>
         <button

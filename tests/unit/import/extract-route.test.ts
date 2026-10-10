@@ -30,7 +30,9 @@ describe('POST /api/import/extract', () => {
   });
 
   it('extracts via Ollama', async () => {
-    callOllama.mockResolvedValue('{"name":"Zupa","recipeIngredient":["a"],"recipeInstructions":["b"]}');
+    callOllama.mockResolvedValue(
+      '{"name":"Zupa","recipeIngredient":[{"name":"a","amount":null,"unit":null,"optional":false}],"recipeInstructions":["b"]}',
+    );
     const res = await post({ markdown: '# Zupa' });
     expect(res.status).toBe(200);
     expect((await res.json()).name).toBe('Zupa');

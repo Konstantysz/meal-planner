@@ -56,7 +56,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
-| Auto-match creates new ingredients under inflected names as written („czosnku"), and the parser sees model output that may rephrase page lines | [[ingredient-auto-match#Invariants and gotchas]] |
+| Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
@@ -102,6 +102,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-11: Closed the inflected-name gap („czosnku") and the model-output row for auto-match (the model returns base-form names now); added the model-quality row.
 - 2026-10-10: Added the inflected-name and model-output row and the water-filter row (`pomidory + woda` stays one ingredient) for ingredient auto-match.
 - 2026-10-09: Removed the shopping-list `has_macros` row (#15): the route now uses `hasMacros` across all four fields.
 - 2026-10-09: Verified all rows at a7f8f52 (grep, build, workflow runs, `gh` for #15 and secrets). Corrected the tests row (`db/ingredients`, `db/recipes`, `db/share`, `extract-route` and `ImportDialog` do have tests) and the `navigator` row (Node-version wording). Confirmed #15 is open and the has_macros mismatch is still in code.

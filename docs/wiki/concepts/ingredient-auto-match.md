@@ -1,27 +1,25 @@
 ---
 title: "Ingredient Auto-Match"
-summary: "How imported ingredient lines are parsed into name/amount/unit and matched to the ingredient database, with Open Food Facts and placeholder fallbacks."
+summary: "How the structured ingredients returned by the model are matched to the ingredient database, with Open Food Facts and placeholder fallbacks."
 tags: [import, ingredients]
-status: stable
+status: draft
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
-last_reviewed: 2026-10-10
+updated: 2026-10-11
+last_reviewed: 2026-10-11
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: acf949e
+llm_model: "claude-sonnet-5-5"
+human_reviewed: false
+verified_commit: c9c43ec
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts
-  - title: "Line parser"
-    path: src/lib/import/parse-ingredient.ts
-  - title: "Line splitter (stage 1)"
-    path: src/lib/import/split-ingredient.ts
-  - title: "Amount and unit vocabulary"
-    path: src/lib/import/ingredient-text.ts
+  - title: "Structured ingredient schema and prompt"
+    path: src/lib/import/schema.ts
+  - title: "Unit normalisation"
+    path: src/lib/import/unit.ts
   - title: "Name matcher"
     path: src/lib/import/match-ingredient.ts
   - title: "Review form"
@@ -29,7 +27,9 @@ sources:
   - title: "Auto-match tests"
     path: tests/unit/import/auto-match.test.ts
   - title: "Ingredient corpus"
-    path: tests/unit/import/ingredient-corpus.test.ts
+    path: tests/fixtures/ingredient-corpus.ts
+  - title: "Evaluation script"
+    path: scripts/eval-ingredients.ts
   - title: "Leczo regression test"
     path: tests/unit/import/auto-match.leczo.test.ts
 ---
@@ -37,80 +37,68 @@ sources:
 # Ingredient Auto-Match
 
 > [!tldr]
-> „Auto-mapuj składniki" parses each extracted line („cebula np. cukrowa 300 g") into name, amount and unit, cleans the name, and matches it by word overlap (with a prefix rule for Polish endings) against the local ingredients. If there's no local match **with macros**, it tries Open Food Facts. If that finds nothing either, it creates a placeholder ingredient. New rows are created when the user clicks the button, not when they save.
+> The model returns each ingredient as `{ name, amount, unit, optional }` ([[0012-llm-structures-ingredients]]). „Auto-mapuj składniki" matches each name by word overlap (with a prefix rule for Polish endings) against the local ingredients. If there's no local match **with macros**, it tries Open Food Facts. If that finds nothing either, it creates a placeholder ingredient. New rows are created when the user clicks the button, not when they save.
 
 ## Context
 
-Before this existed (commit `e7cda69`), users had to re-pick every imported ingredient by hand. See [[concepts]], [[import-pipeline]] and [[ingredient-database]].
+Before this existed (commit `e7cda69`), users had to re-pick every imported ingredient by hand. A chain of Polish regexes used to split ingredient strings into name, amount and unit; the model does that now. See [[concepts]], [[import-pipeline]], [[llm-extraction]] and [[ingredient-database]].
 
 ## How it works
 
-`autoMatchIngredients(rawLines, localIngredients, { searchOff })`, for each line:
+`autoMatchIngredients(ingredients, localIngredients, { searchOff })`, for each `ExtractedIngredient`:
 
-1. `parseIngredientLines(raw)` runs five stages, each owning one class of problem. A new edge case belongs to exactly one stage:
-   1. **Split** (`split-ingredient.ts`): one line becomes several parts. A label prefix („przyprawy:", „przyprawy i zioła:", „dodatki:") is dropped and the rest is split on `,` and `;` outside parentheses, and on „ i " when an amount follows it. Labels with „dodatki", „do podania" or „ewentualnie" mark every part optional. In a line without a label, a comma that opens alternatives („350 g filetu z kurczaka, krewetek lub tofu") drops them and keeps the first; it needs two or more words before the comma, so an adjective list („pół świeżej, ostrej papryczki") stays whole. A line with two or more commas and no number is split into separate ingredients („kolendra, limonka, orzechy"). A shared amount is split too: „A i B po <ilość>", „po <ilość> A i B", „szczypta A i B".
-   2. **Quantity** (`normalizeText` and `extractQuantity`): text is first normalised to plain digits: Polish number words („pół", „półtora", „jedna trzecia", „dwie trzecie"), Unicode fractions, mixed numbers („1 i 1/2"), „2 x 5" (10) and ranges („30-40", the upper bound wins). The amount belongs to the first „ lub " alternative (a later option's amount is only a fallback, so „pół papryczki lub pół łyżeczki chili" is 0.5 sztuki). Then a metric amount anywhere in the part wins, including the „- około 160 g" tail (macros are per 100 g). Otherwise the first amount+unit, then a bare leading count (below 50 sztuki, else grams), then an approximate unit with no number („łyżka cukru", „spora garść" count as 1). Up to two adjective-like words may sit between amount and unit („2 małe ząbki"). Units are normalised (`łyżek` → `łyżka`, `gramów` → `g`). „liście" and „listki" are not units; they stay in the name.
-   3. **Name** (`extractName`): cut the „- …" tail, parentheses, quoted brand names and „np. …", keep the first „ lub " alternative that isn't water, then strip amount phrases, descriptions of the amount („o wadze", „o masie", „około", „wielkości"), size words („duża", „średnia", „spora", „ulubiona"…), the „po" quantity connector (not „po" inside a name like „makaron po włosku") and a trailing `*` or `..`.
-   4. **Flags**: „można pominąć", or „ewentualnie" at the end of the part, sets `optional: true` („- ewentualnie kiełki ze słoika" names a substitute and doesn't) (also set by the stage 1 label). `ParsedIngredient.optional` exists only when true. `autoMatchIngredients` passes it through and `ImportReviewForm` uses `r.optional ?? false`.
-   5. **Water filter**: a part is dropped only when every „ lub " alternative is water („woda do moczenia…").
+1. The name is used as returned (the prompt asks for the base form, without amounts or comments). `parseLlmJson` has already run `normalizeUnit` over the unit (`łyżek` → `łyżka`, `gramów` → `g`; `unit.ts`).
+2. `findBestMatch(name, local)`: exact match scores 1, substring 0.8, otherwise word overlap / max word count, where two words match when equal or when `wordsMatch` finds a common prefix of at least 4 letters that is at least `min(len) - 3` („czosnku" ~ „czosnek", „pomidorów" ~ „pomidor"). Words under 4 letters need an exact match („sól" ≠ „sos"). Scores of 0.5 or more count as a match.
+3. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match. A failed `searchOff` call counts as no OFF result.
+4. If there's neither, a `fallbackCandidate`: the name, category `inne`, null macros, `source: 'manual'`.
 
-   `parseIngredientLine` runs stages 2 to 4 on a single part.
-2. `cleanIngredientName` drops „np. …" suggestions and parentheticals.
-3. `findBestMatch(name, local)`: exact match scores 1, substring 0.8, otherwise word overlap / max word count, where two words match when equal or when `wordsMatch` finds a common prefix of at least 4 letters that is at least `min(len) - 3` („czosnku" ~ „czosnek", „pomidorów" ~ „pomidor", „boczku" ~ „boczek"). Words under 4 letters need an exact match („sól" ≠ „sos"). Scores of 0.5 or more count as a match.
-4. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match. A failed `searchOff` call counts as no OFF result.
-5. If there's neither, a `fallbackCandidate`: the name, category `inne`, null macros, `source: 'manual'`.
-
-`ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and shows a summary notice.
+`ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and shows a summary notice. The review form lists each import line as `amount unit name`.
 
 ## Invariants and gotchas
 
 - `raw_text` stored on the recipe is the **clean name only**. Amount and unit live in their own fields.
 - A macro-less local match is kept only when OFF has nothing (commit `df8755a`). Before that fix, placeholders shadowed real data.
-- The parser keeps one quantity: „400 g - 2 sztuki" gives 400 g, and „3 łyżki oleju - około 30 g" gives 30 g. That's a deliberate `ponytail:` simplification. The bare-number rule (under 50 is a piece count) is a heuristic.
+- What the model does with a line (one weight per entry, ranges, „lub", water, several ingredients on one line) is set by `SYSTEM_PROMPT`, not by code. A bad import is a prompt or model problem: add the line to the corpus and run `pnpm eval:ingredients`.
 - A failed create (for example a name collision with `lower(name)`) silently drops that line. The notice then reports fewer matches.
-- Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a short stem, like „mąki" vs. „mąka" (prefix 3, under the 4-letter minimum). Two `ponytail:` comments in `match-ingredient.ts` mark this: word-overlap scoring (upgrade: a real fuzzy library) and the common-prefix heuristic (not a lemmatizer).
-- Names are not converted to their base form. When nothing matches, the new ingredient is created under the name as written („czosnku"). See [[known-gaps]].
-- The water filter looks at each „ lub " alternative as a whole, so „pomidory + woda" stays one ingredient named „pomidory + woda". See [[known-gaps]].
+- Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a short stem, like „mąki" vs. „mąka" (prefix 3, under the 4-letter minimum). Two `ponytail:` comments in `match-ingredient.ts` mark this.
 
-## Corpus workflow
+## Measuring the model
 
-`tests/unit/import/ingredient-corpus.test.ts` holds real aniagotuje ingredient lines (verbatim from the pages' `.ingredient-text`), each with its expected parse, grouped by recipe, plus extra word-amount lines. After a bad import, paste the failing lines there first (red), then fix the one stage that owns the failure (green). Amounts are compared with `toBeCloseTo` (for 1/3). `parse-ingredient.test.ts` keeps the focused cases.
+`tests/fixtures/ingredient-corpus.ts` holds real aniagotuje ingredient lines with their expected entries, grouped by recipe. `pnpm eval:ingredients` (needs a local Ollama; `OLLAMA_MODEL` picks the model) sends each recipe's lines as a „Składniki" page and prints, per line, whether name, amount and unit came back right, plus totals. A name counts as a hit when its words match the expected ones with `wordsMatch`, so a base form passes. It is not a CI test: the result depends on the model.
+
+Scores on the 115 expected entries (2026-10-11, `eval:ingredients`):
+
+| Model | name | amount | unit |
+|---|---|---|---|
+| gemma2:2b (default) | 97% | 70% | 57% |
+| gemma4:e2b | 97% | 87% | 89% |
+
+Names are solid on both; amount and unit are where the 2B model falls short, so a stronger model is the next step, not more rules.
 
 ## Known gaps
 
 - Ingredient rows are created when the user clicks „Auto-mapuj", so they stay in the shared table even if the user then cancels the import.
-- When a page has no `recipeIngredient` markup, the parser sees the model's output, which may rephrase or drop parts of the page's lines. With markup it sees the page text verbatim (see [[import-pipeline]]).
+- Quality depends on the model: gemma2:2b can drop a „- około 160 g" weight or invent an amount ([[known-gaps]]).
 - OFF results are often packaged products (brand names), and the first hit is taken without ranking.
-
-## Examples
-
-```ts
-parseIngredientLine('czosnek świeży 6 ząbków');         // { name: 'czosnek świeży', amount: 6, unit: 'ząbek' }
-parseIngredientLines('chili i kumin po 1/4 łyżeczki'); // two entries, amount 0.25, unit 'łyżeczka'
-parseIngredientLine('pół płaskiej łyżeczki soli');      // { name: 'soli', amount: 0.5, unit: 'łyżeczka' }
-parseIngredientLine('niecała szklanka mąki (140 g)');   // { name: 'mąki', amount: 140, unit: 'g' }
-parseIngredientLine('szczypta soli');                  // { name: 'soli', amount: 1, unit: 'szczypta' }
-parseIngredientLine('kilka gałązek tymianku');         // { name: 'tymianku', amount: 3, unit: 'gałązka' } (kilka = 3, parę = 2)
-```
 
 ## Related
 
 - [[concepts]]
 - [[import-pipeline]]
+- [[llm-extraction]]
 - [[ingredient-database]]
 - [[recipe-yield-parsing]]
+- [[0012-llm-structures-ingredients]]
 
 ## Sources
 
-- `src/lib/import/{auto-match,parse-ingredient,split-ingredient,ingredient-text,match-ingredient}.ts`, `src/components/import/ImportReviewForm.tsx`
-- `tests/unit/import/auto-match*.test.ts`, `parse-ingredient.test.ts`, `match-ingredient.test.ts`, `ingredient-corpus.test.ts`
+- `src/lib/import/{auto-match,match-ingredient,unit,schema}.ts`, `src/components/import/ImportReviewForm.tsx`, `scripts/eval-ingredients.ts`
+- `tests/unit/import/auto-match*.test.ts`, `match-ingredient.test.ts`, `schema.test.ts`; `tests/fixtures/ingredient-corpus.ts`
 - Commits `e7cda69` (auto-match) and `df8755a` (keep macro-less local matches)
 
 ## Changelog
 
-- 2026-10-10: Parser rules found on an unseen recipe: amount descriptions out of names, quantity from the first alternative, comma alternatives and topping lists, „ewentualnie" as a substitute (`acf949e`).
-- 2026-10-10: Documented the five parser stages, the corpus workflow and prefix matching (`187d7e3`).
-- 2026-10-09: Re-verified against `a7f8f52`. Updated the line parser (metric preference, bare counts, modifiers, name cleaning) and the failed-`searchOff` behaviour.
+- 2026-10-11: The model now structures ingredients; the staged regex parser, its corpus test and `cleanIngredientName` are removed ([[0012-llm-structures-ingredients]]).
+- 2026-10-09: Re-verified against `a7f8f52`. Updated the failed-`searchOff` behaviour.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
-- 2026-10-05: Parser handles quantity-first lines (aniagotuje), prefers metric amounts, strips comment tails, and treats bare leading numbers as counts.
 - 2026-10-04: Created. Replaces the stale legacy claim that the review form doesn't auto-match.

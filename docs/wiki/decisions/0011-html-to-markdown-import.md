@@ -5,7 +5,7 @@ tags: [import, llm]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-11
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: medium
@@ -35,7 +35,7 @@ sources:
 
 ## Context
 
-The plan asked for `cleanHtml(html): string` returning Markdown (Task 14) and for a JSON-LD `Recipe` shape as the extraction contract (Global Constraints). The model is a small one ([[0005-json-schema-constrained-decoding]]), so `cleanHtml` also limits the text to 6000 characters (`MAX_MARKDOWN_CHARS`). See [[decisions]].
+The LLM is the universal extractor: one path reads any recipe page, so the app carries no per-site parsing code (owner, 2026-10-11). The plan asked for `cleanHtml(html): string` returning Markdown (Task 14) and for a JSON-LD `Recipe` shape as the extraction contract (Global Constraints). The model is a small one ([[0005-json-schema-constrained-decoding]]), so `cleanHtml` also limits the text to 6000 characters (`MAX_MARKDOWN_CHARS`). See [[decisions]].
 
 ## Decision
 
@@ -45,9 +45,10 @@ The plan asked for `cleanHtml(html): string` returning Markdown (Task 14) and fo
 - ASCII quotes become „ ” ([[html-cleaning]]).
 - Over-budget pages are cropped to the title and the most number-dense ingredients section.
 - The model returns the JSON-LD-shaped `RecipeJsonLd`, which is the output contract, not a copy of the page's markup.
+- A path around the model needs a new ADR that supersedes this one. That covers reading page markup, a per-site selector, or a parser doing the model's job.
 
 > [!warning] Uncertain
-> Neither the plan nor the commits record why the page's JSON-LD is not used directly, or whether site coverage (jadłonomia, aniagotuje) was checked. The reason is not recorded; the alternatives below are reconstructed.
+> Whether site coverage (jadłonomia, aniagotuje) was checked is not recorded; the alternatives below are reconstructed.
 
 ## Alternatives considered
 
@@ -79,4 +80,5 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Changelog
 
+- 2026-10-11: Recorded the owner's reason (universal extractor, no per-site code) and that a bypass needs a superseding ADR.
 - 2026-10-09: Recorded retroactively from the plan, `src/lib/import/*` and commit `a3f9d84`. Rationale for skipping page JSON-LD marked uncertain.

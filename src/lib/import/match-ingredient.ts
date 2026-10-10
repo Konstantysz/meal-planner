@@ -34,7 +34,7 @@ function scoreMatch(query: string, candidate: string): number {
 
 // ponytail: common-prefix heuristic for Polish inflection (czosnku/czosnek), not a lemmatizer.
 // Words under 4 letters need an exact match (sól != sos).
-function wordsMatch(a: string, b: string): boolean {
+export function wordsMatch(a: string, b: string): boolean {
   if (a === b) return true;
   let i = 0;
   while (i < a.length && i < b.length && a[i] === b[i]) i++;

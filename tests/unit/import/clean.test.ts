@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { cleanHtml, cropToRecipe, extractIngredients } from '@/lib/import/clean';
+import { cleanHtml, cropToRecipe } from '@/lib/import/clean';
 import { MAX_MARKDOWN_CHARS } from '@/lib/import/schema';
 
 describe('cleanHtml', () => {
@@ -12,17 +12,6 @@ describe('cleanHtml', () => {
     expect(md).toContain('Body');
     expect(md).not.toContain('<style>');
     expect(md).not.toContain('footer');
-  });
-
-  it('puts quantity before name and keeps group headers (aniagotuje split spans)', () => {
-    const li = (name: string, qty: string) =>
-      `<li><span itemprop="recipeIngredient"><span class="ingredient-name">${name}</span><span class="ingredient-qty"> ${qty}</span></span></li>`;
-    const md = cleanHtml(
-      `<article>${'<p>padding text </p>'.repeat(20)}<button class="ing-header"><strong>Składniki do podania</strong></button><ul>${li('świeży tymianek', 'garść łodyg')}${li('sól i pieprz', 'po pół łyżeczki')}</ul></article>`,
-    );
-    expect(md).toContain('Składniki do podania');
-    expect(md).toContain('garść łodyg świeży tymianek');
-    expect(md).toContain('po pół łyżeczki sól i pieprz');
   });
 
   it('extracts article content from jadlonomia fixture', () => {
@@ -83,23 +72,5 @@ describe('cleanHtml quotes', () => {
     const md = cleanHtml('<article><p>Wątróbka nie będzie "strzelać" na patelni, 2" rura</p></article>');
     expect(md).toContain('nie będzie „strzelać” na patelni');
     expect(md).not.toContain('"');
-  });
-});
-
-describe('extractIngredients', () => {
-  const li = (inner: string) => `<li><span itemprop="recipeIngredient">${inner}</span></li>`;
-
-  it('returns every ingredient line in page order, whitespace collapsed', () => {
-    const html = `<article><ul>${li('150 g  ryżu - ewentualnie brązowy')}${li('<span class="ingredient-name">sól</span><span class="ingredient-qty"> szczypta</span>')}</ul></article>`;
-    expect(extractIngredients(html)).toEqual(['150 g ryżu - ewentualnie brązowy', 'szczypta sól']);
-  });
-
-  it('skips related-recipe cards nested in the recipe', () => {
-    const html = `<article itemtype="https://schema.org/Recipe"><ul>${li('mąka')}</ul><div itemtype="https://schema.org/Recipe"><ul>${li('cudze')}</ul></div></article>`;
-    expect(extractIngredients(html)).toEqual(['mąka']);
-  });
-
-  it('is empty when the page has no ingredient markup', () => {
-    expect(extractIngredients('<article><p>proza</p></article>')).toEqual([]);
   });
 });

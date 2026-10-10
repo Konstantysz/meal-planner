@@ -47,15 +47,11 @@ sources:
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
 | `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
 | `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` |
-| `src/lib/import/schema.ts` | `tests/unit/import/schema.test.ts` |
+| `src/lib/import/schema.ts`, `unit.ts` | `tests/unit/import/schema.test.ts` (structured ingredients, `normalizeUnit`) |
 | `src/lib/import/engine.ts` | `tests/unit/import/engine.test.ts` (web-llm and `Worker` mocked) |
 | `src/lib/import/ollama.ts` | `tests/unit/import/ollama.test.ts` |
-| `src/lib/import/parse-ingredient.ts` | `tests/unit/import/parse-ingredient.test.ts` |
 | `src/lib/import/match-ingredient.ts` | `tests/unit/import/match-ingredient.test.ts` |
 | `src/lib/import/auto-match.ts` | `auto-match.test.ts` + `auto-match.leczo.test.ts` (real 10-line list) |
-| `src/lib/import/ingredient-text.ts` | `tests/unit/import/ingredient-text.test.ts` |
-| `src/lib/import/split-ingredient.ts` | `tests/unit/import/split-ingredient.test.ts` |
-| `src/lib/import/ingredient-text.ts`, `parse-ingredient.ts`, `split-ingredient.ts` | `tests/unit/import/ingredient-corpus.test.ts` (real aniagotuje lines, end to end) |
 | `src/lib/import/yield.ts` | `tests/unit/import/yield.test.ts` (`it.each` table) |
 | `src/app/api/import/extract/route.ts` | `tests/unit/import/extract-route.test.ts` |
 | `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` |

@@ -26,33 +26,9 @@ const NOISE = [
   '[itemtype*="Recipe"] [itemtype*="Recipe"]',
 ].join(', ');
 
-const INGREDIENT = '[itemprop="recipeIngredient"]';
-
-// aniagotuje renders name and quantity as separate spans; flattened they read "tymianek garść
-// łodyg" and the model drops the trailing quantity. Quantity-first matches the output format.
-function ingredientText($: cheerio.CheerioAPI, el: Parameters<typeof $>[0]): string {
-  const qty = $(el).find('.ingredient-qty').text().trim();
-  const name = $(el).find('.ingredient-name').text().trim();
-  return qty && name ? `${qty} ${name}` : $(el).text().replace(/\s+/g, ' ').trim();
-}
-
-// Ingredient lines straight from the page's markup, in order. A small LLM retypes this list badly
-// (loops, drops " - około 15 g" comments), so when the markup has it the model isn't asked for it.
-export function extractIngredients(html: string): string[] {
-  const $ = cheerio.load(html);
-  $(NOISE).remove();
-  return $(INGREDIENT)
-    .map((_, el) => ingredientText($, el))
-    .get()
-    .filter(Boolean);
-}
-
 export function cleanHtml(html: string): string {
   const $ = cheerio.load(html);
   $(NOISE).remove();
-  $(INGREDIENT).each((_, el) => {
-    $(el).text(ingredientText($, el));
-  });
 
   let content = '';
   for (const sel of CONTENT_SELECTORS) {
