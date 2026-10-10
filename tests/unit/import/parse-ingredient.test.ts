@@ -4,7 +4,7 @@ import { parseIngredientLine, parseIngredientLines, cleanIngredientName } from '
 describe('parseIngredientLine', () => {
   it('parses simple grams', () => {
     expect(parseIngredientLine('kiełbasa hiszpańska chorizo np. dulce 200 g')).toEqual({
-      name: 'kiełbasa hiszpańska chorizo np. dulce',
+      name: 'kiełbasa hiszpańska chorizo',
       amount: 200,
       unit: 'g',
     });
@@ -36,7 +36,7 @@ describe('parseIngredientLine', () => {
 
   it('takes first amount when multiple present', () => {
     expect(parseIngredientLine('papryka świeża np. czerwona 400 g - 2 sztuki')).toEqual({
-      name: 'papryka świeża np. czerwona',
+      name: 'papryka świeża',
       amount: 400,
       unit: 'g',
     });
@@ -80,9 +80,7 @@ describe('parseIngredientLines', () => {
   });
 
   it('returns a single result for a non-compound line', () => {
-    expect(parseIngredientLines('cebula np. cukrowa 300 g')).toEqual([
-      { name: 'cebula np. cukrowa', amount: 300, unit: 'g' },
-    ]);
+    expect(parseIngredientLines('cebula np. cukrowa 300 g')).toEqual([{ name: 'cebula', amount: 300, unit: 'g' }]);
   });
 
   it('falls back to a single result when "i...po" pattern has no unit', () => {
