@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findBestMatch } from '@/lib/import/match-ingredient';
+import { findBestMatch, wordsMatch } from '@/lib/import/match-ingredient';
 import type { Ingredient } from '@/lib/types';
 
 function ing(name: string): Ingredient {
@@ -59,5 +59,12 @@ describe('findBestMatch', () => {
 
   it('does not match short different words (sól vs sos)', () => {
     expect(findBestMatch('sól', [ing('sos')])).toBeNull();
+  });
+});
+
+describe('wordsMatch', () => {
+  it('matches Polish endings by common prefix, but not short words', () => {
+    expect(wordsMatch('czosnku', 'czosnek')).toBe(true);
+    expect(wordsMatch('sól', 'sos')).toBe(false);
   });
 });
