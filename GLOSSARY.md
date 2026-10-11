@@ -40,6 +40,14 @@ _Avoid_: share key, share code, link id, link (for the secret itself)
 A household's dish, made of recipe ingredients and ordered steps, with base servings and optional prep time.
 _Avoid_: dish, meal (a meal is what a slot holds), przepis (code and UI only)
 
+**Step**:
+One ordered instruction of a recipe: an optional title and its details. A source page may give only a general title (a heading) with the real detail in the text beneath it.
+_Avoid_: instruction, direction, krok (UI label only)
+
+**Source author**:
+The person or site credited with a recipe's original authorship: the name from an imported page, or a household member who wrote the recipe themselves. Not the same as who saved it.
+_Avoid_: author (alone, it is ambiguous with the member who saved the recipe), creator, owner
+
 **Ingredient**:
 A catalogue entry, shared across all households, with macros per 100 g. Any signed-in user can add or edit one.
 _Avoid_: product (an Open Food Facts term), food, item
