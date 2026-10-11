@@ -30,7 +30,7 @@ Use it before changing cleaning, prompts, the grammar or the model, to see wheth
 ## Prerequisites
 
 - Ollama installed and on `PATH` for both modes: the script calls `ollama stop` before each run, even in `browser` mode.
-- For `server`: Ollama running with `gemma2:2b` (default; override with `OLLAMA_MODEL`, see [[run-import-with-ollama]]). The `ollama stop` call forces a cold start.
+- For `server`: Ollama running with `gemma4:e2b` (default; override with `OLLAMA_MODEL`, see [[run-import-with-ollama]]). The `ollama stop` call forces a cold start.
 - For `browser`: Google Chrome installed (Playwright `channel: 'chrome'`) with WebGPU. The first run downloads about 1.5 GB into `.bench-chrome/` (gitignored).
 - Network access to the 10 URLs listed in `scripts/bench-llm.ts`.
 

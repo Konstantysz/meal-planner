@@ -70,15 +70,15 @@ Scores on the 115 expected entries (2026-10-11, `eval:ingredients`):
 
 | Model | name | amount | unit |
 |---|---|---|---|
-| gemma2:2b (default) | 97% | 70% | 57% |
-| gemma4:e2b | 97% | 87% | 89% |
+| gemma2:2b | 97% | 70% | 57% |
+| gemma4:e2b (default) | 97% | 87% | 89% |
 
-Names are solid on both; amount and unit are where the 2B model falls short, so a stronger model is the next step, not more rules.
+Names are solid on both; amount and unit are where the 2B model falls short, which is why `gemma4:e2b` is now the default (see [[ollama-model-experiment]]).
 
 ## Known gaps
 
 - Ingredient rows are created when the user clicks „Auto-mapuj", so they stay in the shared table even if the user then cancels the import.
-- Quality depends on the model: gemma2:2b can drop a „- około 160 g" weight or invent an amount ([[known-gaps]]).
+- Quality depends on the model: the old default gemma2:2b could drop a „- około 160 g" weight or invent an amount ([[known-gaps]]).
 - OFF results are often packaged products (brand names), and the first hit is taken without ranking.
 
 ## Related

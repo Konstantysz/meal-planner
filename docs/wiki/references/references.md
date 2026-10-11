@@ -37,7 +37,7 @@ References are kept dense and are re-verified every 180 days. Part of [[README]]
 | [[known-gaps]] | Ranked list of bugs, security gaps and unfinished work |
 | [[migration-history]] | Every migration: PR, reason, live verification; the 2026-10-04 audit |
 | [[haiku-url-extraction-experiment]] | One-off cost and quality test of a URL-only Haiku parse |
-| [[ollama-model-experiment]] | Benchmark of alternatives to gemma2:2b on a 6 GB GPU |
+| [[ollama-model-experiment]] | Speed and quality benchmark of alternatives to gemma2:2b on a 6 GB GPU (gemma4:e2b won) |
 
 ## Related
 

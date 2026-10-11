@@ -1,9 +1,9 @@
 import { LLM_OUTPUT_SCHEMA } from './schema';
 
-// Same model family as the in-browser WebLLM path (gemma-2-2b), served by a local Ollama.
-export const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'gemma2:2b';
+// gemma4:e2b beats gemma2:2b on ingredient amount/unit (88-92% vs 75%, see ollama-model-experiment).
+export const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'gemma4:e2b';
 const BASE_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-// Cold start (model load into VRAM) + generation took ≤ 20 s in the benchmark; this only catches a hung Ollama.
+// Cold start (model load into VRAM) + generation took ≤ 35 s per page in the benchmark; this only catches a hung Ollama.
 const TIMEOUT_MS = 120_000;
 
 export async function callOllama(system: string, user: string): Promise<string> {
@@ -19,7 +19,7 @@ export async function callOllama(system: string, user: string): Promise<string> 
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      // Ollama's default ctx (2048) truncates longer recipe pages; gemma2 supports 8k.
+      // Ollama's default ctx (2048) truncates longer recipe pages; 8k fits both gemma2 and gemma4.
       // num_predict matches the browser path's max_tokens (engine.ts).
       options: { temperature: 0.1, num_ctx: 8192, num_predict: 1536 },
     }),
