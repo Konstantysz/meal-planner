@@ -3,14 +3,22 @@
  * Each recipe's lines go to the real Ollama as a "## Składniki" page; every expected entry is looked
  * up in the output and checked for name (word-prefix match, so a base form counts), amount and unit.
  *
- * Needs: running Ollama with OLLAMA_MODEL (default gemma2:2b).
+ * Needs: running Ollama with OLLAMA_MODEL (default gemma4:e2b).
  * Usage: pnpm eval:ingredients
  */
+import { readFileSync } from 'node:fs';
 import { extractRecipe } from '../src/lib/import/extract';
 import { callOllama, OLLAMA_MODEL } from '../src/lib/import/ollama';
-import { SYSTEM_PROMPT, type ExtractedIngredient } from '../src/lib/import/schema';
+import { SYSTEM_PROMPT as DEFAULT_PROMPT, type ExtractedIngredient } from '../src/lib/import/schema';
 import { wordsMatch } from '../src/lib/import/match-ingredient';
 import { CORPUS, type Expected } from '../tests/fixtures/ingredient-corpus';
+
+// PROMPT_FILE=path.md evaluates a candidate prompt (text from the first "Jesteś" line on) instead of SYSTEM_PROMPT.
+const SYSTEM_PROMPT = process.env.PROMPT_FILE
+  ? readFileSync(process.env.PROMPT_FILE, 'utf8')
+      .replace(/^[\s\S]*?(?=Jesteś)/, '')
+      .trim()
+  : DEFAULT_PROMPT;
 
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 const words = (s: string) => fold(s).split(/\s+/).filter(Boolean);
@@ -25,12 +33,22 @@ const nameHit = (want: string, got: string) =>
 const amountHit = (want: number | null, got: number | null) =>
   want === null ? got === null : got !== null && Math.abs(got - want) < 0.01;
 
+// Ranks candidates that pass nameHit: a real word match (pieprzu/pieprz) beats a bare 3-letter stem (pieprzu/pierś).
+const closeness = (want: string, got: string) =>
+  words(want).reduce((s, w) => s + (words(got).some((g) => wordsMatch(w, g)) ? 2 : 0), 0);
+
 const tally = { name: 0, amount: 0, unit: 0, total: 0 };
 
-function score(want: Expected, got: ExtractedIngredient[]): string {
+// Takes the closest unused output entry, so one output can't score two expected lines (cebula 160 g / 200 g).
+function score(want: Expected, pool: ExtractedIngredient[]): string {
   tally.total++;
-  const hit = got.find((g) => nameHit(want.name, g.name));
+  const hits = pool.filter((g) => nameHit(want.name, g.name));
+  const hit = hits.reduce<ExtractedIngredient | undefined>(
+    (best, g) => (!best || closeness(want.name, g.name) > closeness(want.name, best.name) ? g : best),
+    undefined,
+  );
   if (!hit) return `  ✗ ${want.name}: missing`;
+  pool.splice(pool.indexOf(hit), 1);
   const flags = { name: true, amount: amountHit(want.amount, hit.amount), unit: want.unit === hit.unit };
   for (const k of ['name', 'amount', 'unit'] as const) if (flags[k]) tally[k]++;
   const mark = flags.amount && flags.unit ? '✓' : '~';
@@ -45,10 +63,11 @@ async function main() {
     console.log(`\n${source}`);
     try {
       const { recipeIngredient } = await extractRecipe(md, callOllama, SYSTEM_PROMPT);
+      const pool = [...recipeIngredient];
       for (const [raw, expected] of rows) {
         console.log(` ${raw}`);
         if (expected.length === 0) console.log('  (expected nothing)');
-        for (const want of expected) console.log(score(want, recipeIngredient));
+        for (const want of expected) console.log(score(want, pool));
       }
     } catch (e) {
       const n = rows.reduce((s, [, exp]) => s + exp.length, 0);
