@@ -12,6 +12,8 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 
+Creating a batch of related issues: create them all first, take each number from the URL `gh issue create` prints, then add the cross-references (`Blocked by #N`, parents) by editing bodies. Issue and PR numbers share one sequence, so a predicted number is often wrong.
+
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
 ## Pull requests as a triage surface
