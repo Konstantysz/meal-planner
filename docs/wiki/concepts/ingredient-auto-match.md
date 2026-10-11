@@ -28,6 +28,8 @@ sources:
     path: tests/unit/import/auto-match.test.ts
   - title: "Ingredient corpus"
     path: tests/fixtures/ingredient-corpus.ts
+  - title: "Eval scoring"
+    path: src/lib/import/eval-score.ts
   - title: "Evaluation script"
     path: scripts/eval-ingredients.ts
   - title: "Leczo regression test"
@@ -58,13 +60,20 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 
 - `raw_text` stored on the recipe is the **clean name only**. Amount and unit live in their own fields.
 - A macro-less local match is kept only when OFF has nothing (commit `df8755a`). Before that fix, placeholders shadowed real data.
-- What the model does with a line (one weight per entry, ranges, „lub", water, several ingredients on one line) is set by `SYSTEM_PROMPT`, not by code. A bad import is a prompt or model problem: add the line to the corpus and run `pnpm eval:ingredients`.
+- What the model does with a line (one weight per entry, ranges, „lub", water, several ingredients on one line) is set by `SYSTEM_PROMPT`, not by code. A bad import is a prompt or model problem: name the class of mistake it belongs to and fix that class, then measure (see "Measuring the model" below).
 - A failed create (for example a name collision with `lower(name)`) silently drops that line. The notice then reports fewer matches.
 - Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a short stem, like „mąki" vs. „mąka" (prefix 3, under the 4-letter minimum). Two `ponytail:` comments in `match-ingredient.ts` mark this.
 
 ## Measuring the model
 
 `tests/fixtures/ingredient-corpus.ts` holds real aniagotuje ingredient lines with their expected entries, grouped by recipe. `pnpm eval:ingredients` (needs a local Ollama; `OLLAMA_MODEL` picks the model) sends each recipe's lines as a „Składniki" page and prints, per line, whether name, amount and unit came back right, plus totals. A name counts as a hit when its words match the expected ones with `wordsMatch`, so a base form passes. It is not a CI test: the result depends on the model.
+
+How to change the prompt, schema, `normalizeUnit` or the model without overfitting:
+
+- **Held-out.** The corpus is the test set. Tune from classes of mistake that repeat across recipes (a modifier read as a unit, a weight losing to a count) and write the prompt examples yourself, on products that are in no corpus. A line copied from the corpus into the prompt inflates the score.
+- **Candidate prompts.** `PROMPT_FILE=path.md pnpm eval:ingredients` scores a prompt from a file (text from the first „Jesteś" on) without touching `SYSTEM_PROMPT`.
+- **Noise.** The same prompt and code scored 194, 197 and 207 full hits (✓) over 115 entries in separate series of three runs. Run three times per variant and read differences under about 3 pp (10 ✓) as noise.
+- **Consistency.** `tests/unit/import/eval-score.test.ts` fails when a corpus unit or a unit named in `SYSTEM_PROMPT` is not in `UNITS`.
 
 Scores on the 115 expected entries (2026-10-11, `eval:ingredients`):
 
@@ -78,7 +87,7 @@ Names are solid on both; amount and unit are where the 2B model falls short, whi
 ## Known gaps
 
 - Ingredient rows are created when the user clicks „Auto-mapuj", so they stay in the shared table even if the user then cancels the import.
-- Quality depends on the model: the old default gemma2:2b could drop a „- około 160 g" weight or invent an amount ([[known-gaps]]).
+- Quality depends on the model: gemma2:2b could drop a „- około 160 g" weight or invent an amount ([[known-gaps]]).
 - OFF results are often packaged products (brand names), and the first hit is taken without ranking.
 
 ## Related

@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { extractRecipe } from '../src/lib/import/extract';
 import { callOllama, OLLAMA_MODEL } from '../src/lib/import/ollama';
 import { SYSTEM_PROMPT as DEFAULT_PROMPT, type ExtractedIngredient } from '../src/lib/import/schema';
-import { wordsMatch } from '../src/lib/import/match-ingredient';
+import { matchEntry } from '../src/lib/import/eval-score';
 import { CORPUS, type Expected } from '../tests/fixtures/ingredient-corpus';
 
 // PROMPT_FILE=path.md evaluates a candidate prompt (text from the first "Jesteś" line on) instead of SYSTEM_PROMPT.
@@ -20,40 +20,19 @@ const SYSTEM_PROMPT = process.env.PROMPT_FILE
       .trim()
   : DEFAULT_PROMPT;
 
-const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
-const words = (s: string) => fold(s).split(/\s+/).filter(Boolean);
-// Corpus names keep the page's inflection ("soli"), the model gives the base form ("sól"): fold diacritics
-// and accept a shared 3-letter stem, which wordsMatch rejects for short words.
-const stemMatch = (a: string, b: string) =>
-  wordsMatch(a, b) || (a.length >= 3 && b.length >= 3 && a.slice(0, 3) === b.slice(0, 3));
-// Every word of the expected name needs a matching word in the output name (or the reverse).
-const nameHit = (want: string, got: string) =>
-  words(want).every((w) => words(got).some((g) => stemMatch(w, g))) ||
-  words(got).every((g) => words(want).some((w) => stemMatch(w, g)));
-const amountHit = (want: number | null, got: number | null) =>
-  want === null ? got === null : got !== null && Math.abs(got - want) < 0.01;
-
-// Ranks candidates that pass nameHit: a real word match (pieprzu/pieprz) beats a bare 3-letter stem (pieprzu/pierś).
-const closeness = (want: string, got: string) =>
-  words(want).reduce((s, w) => s + (words(got).some((g) => wordsMatch(w, g)) ? 2 : 0), 0);
-
 const tally = { name: 0, amount: 0, unit: 0, total: 0 };
 
-// Takes the closest unused output entry, so one output can't score two expected lines (cebula 160 g / 200 g).
-function score(want: Expected, pool: ExtractedIngredient[]): string {
+function score(want: Expected, pool: ExtractedIngredient[]): { line: string; rest: ExtractedIngredient[] } {
   tally.total++;
-  const hits = pool.filter((g) => nameHit(want.name, g.name));
-  const hit = hits.reduce<ExtractedIngredient | undefined>(
-    (best, g) => (!best || closeness(want.name, g.name) > closeness(want.name, best.name) ? g : best),
-    undefined,
-  );
-  if (!hit) return `  ✗ ${want.name}: missing`;
-  pool.splice(pool.indexOf(hit), 1);
-  const flags = { name: true, amount: amountHit(want.amount, hit.amount), unit: want.unit === hit.unit };
-  for (const k of ['name', 'amount', 'unit'] as const) if (flags[k]) tally[k]++;
-  const mark = flags.amount && flags.unit ? '✓' : '~';
-  const detail = `${hit.amount ?? '-'} ${hit.unit ?? '-'} ${hit.name}`;
-  return `  ${mark} want ${want.amount ?? '-'} ${want.unit ?? '-'} ${want.name} | got ${detail}`;
+  const m = matchEntry(want, pool);
+  if (!m.hit) return { line: `  ✗ ${want.name}: missing`, rest: m.rest };
+  for (const k of ['name', 'amount', 'unit'] as const) if (m[k]) tally[k]++;
+  const mark = m.amount && m.unit ? '✓' : '~';
+  const detail = `${m.hit.amount ?? '-'} ${m.hit.unit ?? '-'} ${m.hit.name}`;
+  return {
+    line: `  ${mark} want ${want.amount ?? '-'} ${want.unit ?? '-'} ${want.name} | got ${detail}`,
+    rest: m.rest,
+  };
 }
 
 async function main() {
@@ -63,11 +42,15 @@ async function main() {
     console.log(`\n${source}`);
     try {
       const { recipeIngredient } = await extractRecipe(md, callOllama, SYSTEM_PROMPT);
-      const pool = [...recipeIngredient];
+      let pool = recipeIngredient;
       for (const [raw, expected] of rows) {
         console.log(` ${raw}`);
         if (expected.length === 0) console.log('  (expected nothing)');
-        for (const want of expected) console.log(score(want, pool));
+        for (const want of expected) {
+          const r = score(want, pool);
+          pool = r.rest;
+          console.log(r.line);
+        }
       }
     } catch (e) {
       const n = rows.reduce((s, [, exp]) => s + exp.length, 0);
