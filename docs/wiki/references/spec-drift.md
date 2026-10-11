@@ -67,7 +67,8 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 
 - `scripts/backfill-ingredient-macros.ts`: a one-off OFF backfill for ingredients without macros.
 - `scripts/bench-llm.ts` (`pnpm bench:llm`): a browser vs. server extraction benchmark.
-- `src/lib/import/{auto-match,match-ingredient,parse-ingredient,yield,ollama}.ts`.
+- `scripts/eval-ingredients.ts` (`pnpm eval:ingredients`): scores the model's ingredient structuring against a corpus.
+- `src/lib/import/{auto-match,match-ingredient,unit,yield,ollama}.ts`.
 - Recipe delete (`RecipeActions`, `DELETE /api/recipes/[id]`) and a read-only edit preview.
 
 ## Leftover scaffold

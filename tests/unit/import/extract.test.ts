@@ -7,7 +7,7 @@ describe('extractRecipe', () => {
     const llm: LlmFn = async () =>
       JSON.stringify({
         name: 'Zupa',
-        recipeIngredient: ['x'],
+        recipeIngredient: [{ name: 'x', amount: null, unit: null, optional: false }],
         recipeInstructions: ['y'],
       });
     const r = await extractRecipe('md', llm, SYSTEM_PROMPT);
@@ -19,7 +19,11 @@ describe('extractRecipe', () => {
     const llm: LlmFn = async () => {
       n++;
       if (n === 1) return 'not json';
-      return JSON.stringify({ name: 'OK', recipeIngredient: ['a'], recipeInstructions: ['b'] });
+      return JSON.stringify({
+        name: 'OK',
+        recipeIngredient: [{ name: 'a', amount: null, unit: null, optional: false }],
+        recipeInstructions: ['b'],
+      });
     };
     const r = await extractRecipe('md', llm, SYSTEM_PROMPT);
     expect(r.name).toBe('OK');

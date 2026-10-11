@@ -33,7 +33,7 @@ sources:
 # LLM Extraction
 
 > [!tldr]
-> A gemma-2-2b model gets the Polish `SYSTEM_PROMPT` and the Markdown, and decodes under a **JSON-Schema grammar** (`LLM_OUTPUT_SCHEMA`) at temperature 0.1. `parseLlmJson` strips code fences, treats `null` as absent and validates with `RecipeJsonLdSchema`. On the server, `extractRecipe` retries up to 2 times and feeds the validation error back into the prompt.
+> A gemma-2-2b model gets the Polish `SYSTEM_PROMPT` and the Markdown, and decodes under a **JSON-Schema grammar** (`LLM_OUTPUT_SCHEMA`) at temperature 0.1. `parseLlmJson` strips code fences, treats `null` as absent and validates with `ExtractedRecipeSchema` (ingredients as `{name, amount, unit, optional}` objects, unit run through `normalizeUnit`). On the server, `extractRecipe` retries up to 2 times and feeds the validation error back into the prompt.
 
 ## Context
 
@@ -43,11 +43,11 @@ Small models produce broken JSON often enough that both the grammar and validati
 
 | Piece | Where | What |
 |---|---|---|
-| `SYSTEM_PROMPT` | `schema.ts` | Polish instructions: return **only** JSON with `name`, `recipeIngredient[]`, `recipeInstructions[]`, optional `recipeYield` and `prepTime`, and don't hallucinate |
+| `SYSTEM_PROMPT` | `schema.ts` | Polish instructions: return **only** JSON with `name`, `recipeIngredient[]`, `recipeInstructions[]`, optional `recipeYield` and `prepTime`, and don't hallucinate. `recipeIngredient[]` holds `{name, amount, unit, optional}` objects, with rules and four examples ([[0012-llm-structures-ingredients]]) |
 | `LLM_OUTPUT_SCHEMA` | `schema.ts` | JSON Schema: `name` (minLength 1), the two arrays required, `additionalProperties: false` |
 | Grammar | `engine.ts` / `ollama.ts` | WebLLM: `response_format: { type: 'json_object', schema }`. Ollama: `format: LLM_OUTPUT_SCHEMA`. |
 | Limits | both | `temperature 0.1`, max 1536 output tokens. Ollama `num_ctx 8192`. |
-| `parseLlmJson(raw)` | `schema.ts` | Strips the code fence, runs `JSON.parse` with a reviver that drops `null`, then `RecipeJsonLdSchema.parse` |
+| `parseLlmJson(raw)` | `schema.ts` | Strips the code fence, runs `JSON.parse` with a reviver that drops `null`, then `ExtractedRecipeSchema.parse`, then `normalizeUnit` on each `unit` |
 | `extractRecipe(md, llm, prompt, maxRetries=2)` | `extract.ts` | Up to 3 attempts. Each retry appends „UWAGA: poprzednia odpowiedź nie pasowała do schematu (…)". The final failure throws `LLM failed to produce valid recipe: …`. |
 
 `LlmFn = (system, user) => Promise<string>` is the seam. `extractRecipe` doesn't know which runtime it's driving, so tests pass fake functions.
@@ -56,18 +56,19 @@ Small models produce broken JSON often enough that both the grammar and validati
 
 - **The browser path doesn't retry.** `extractWithWebLlm` makes one call and parses it. Only the server route goes through `extractRecipe`.
 - In the browser, `finish_reason === 'length'` throws a Polish error suggesting `LLM_MODE=server`. The server path doesn't check truncation; it relies on the retries.
-- `LLM_OUTPUT_SCHEMA` is narrower than `RecipeJsonLdSchema`, which also accepts `{text}` steps, `image`, `cookTime` and `totalTime` from page JSON-LD. Change both together.
+- `LLM_OUTPUT_SCHEMA` is narrower than `ExtractedRecipeSchema` (which extends `RecipeJsonLdSchema`), which also accepts `{text}` steps, `image`, `cookTime` and `totalTime` from page JSON-LD. Change both together.
 - Without the grammar, gemma2 sometimes looped on whitespace inside a string until it ran out of tokens. That's the reason for constrained decoding; see [[html-cleaning#Invariants and gotchas]] for the related quote fix.
 
 ## Known gaps
 
-- No evaluation set beyond `pnpm bench:llm` (10 live pages, which checks timing and success, not field accuracy).
+- Ingredient accuracy is measured by `pnpm eval:ingredients` (see [[ingredient-auto-match#Measuring the model]]), not in CI. `pnpm bench:llm` checks timing and success only.
+- Structured ingredients make the output longer; a long recipe can hit the 1536-token limit (browser: „ucięta" error).
 
 ## Examples
 
 ```ts
-const fake: LlmFn = async () => '{"name":"Zupa","recipeIngredient":["1 cebula"],"recipeInstructions":["Gotuj."]}';
-await extractRecipe('# Zupa …', fake, SYSTEM_PROMPT); // → RecipeJsonLd
+const fake: LlmFn = async () => '{"name":"Zupa","recipeIngredient":[{"name":"cebula","amount":1,"unit":"sztuki","optional":false}],"recipeInstructions":["Gotuj."]}';
+await extractRecipe('# Zupa …', fake, SYSTEM_PROMPT); // → ExtractedRecipe
 ```
 
 ## Related

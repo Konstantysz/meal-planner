@@ -11,7 +11,11 @@ vi.mock('@/lib/import/engine', () => engine);
 
 import { ImportDialog } from '@/components/import/ImportDialog';
 
-const RECIPE = { name: 'Zupa', recipeIngredient: ['a'], recipeInstructions: ['b'] };
+const RECIPE = {
+  name: 'Zupa',
+  recipeIngredient: [{ name: 'a', amount: 1, unit: 'g', optional: false }],
+  recipeInstructions: ['b'],
+};
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** Routes fetch by "METHOD path"; mode is what GET /api/import/extract reports. */

@@ -1,5 +1,4 @@
-import { parseLlmJson } from './schema';
-import type { RecipeJsonLd } from '@/lib/schemas';
+import { parseLlmJson, type ExtractedRecipe } from './schema';
 
 export type LlmFn = (system: string, user: string) => Promise<string>;
 
@@ -8,7 +7,7 @@ export async function extractRecipe(
   llm: LlmFn,
   systemPrompt: string,
   maxRetries = 2,
-): Promise<RecipeJsonLd> {
+): Promise<ExtractedRecipe> {
   let lastError = '';
   for (let i = 0; i <= maxRetries; i++) {
     const user =

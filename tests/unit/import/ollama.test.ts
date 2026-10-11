@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { callOllama } from '@/lib/import/ollama';
+import { callOllama, OLLAMA_MODEL } from '@/lib/import/ollama';
 import { LLM_OUTPUT_SCHEMA } from '@/lib/import/schema';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -17,7 +17,7 @@ describe('callOllama', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal); // hung Ollama must not hang the request forever
     const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({
-      model: 'gemma2:2b',
+      model: OLLAMA_MODEL,
       stream: false,
       format: LLM_OUTPUT_SCHEMA,
       messages: [
@@ -25,6 +25,10 @@ describe('callOllama', () => {
         { role: 'user', content: 'usr' },
       ],
     });
+  });
+
+  it('defaults to gemma4:e2b (OLLAMA_MODEL unset)', () => {
+    expect(OLLAMA_MODEL).toBe('gemma4:e2b');
   });
 
   it('throws with status on non-2xx', async () => {

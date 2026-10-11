@@ -39,7 +39,7 @@ sources:
 
 ## Context
 
-Both runtimes use the gemma-2-2b family and the same grammar (see [[llm-extraction]]). The choice is about where the GPU is. See [[concepts]], [[import-pipeline]] and the [[glossary]].
+The browser runtime uses gemma-2-2b and the server runtime the Ollama default model (see [[env-vars]]); both decode under the same grammar (see [[llm-extraction]]). The choice is about where the GPU is. See [[concepts]], [[import-pipeline]] and the [[glossary]].
 
 ## How it works
 
@@ -48,7 +48,7 @@ Both runtimes use the gemma-2-2b family and the same grammar (see [[llm-extracti
 | | Browser mode (default) | Server mode |
 |---|---|---|
 | Runtime | `@mlc-ai/web-llm` `CreateWebWorkerMLCEngine` in `worker.ts` | Ollama `POST /api/chat` |
-| Model | `gemma-2-2b-it-q4f16_1-MLC` (about 1.5 GB download, cached by the browser) | `OLLAMA_MODEL`, default `gemma2:2b` |
+| Model | `gemma-2-2b-it-q4f16_1-MLC` (about 1.5 GB download, cached by the browser) | `OLLAMA_MODEL`, default `gemma4:e2b` |
 | Requirements | WebGPU (`hasWebGpu()` asks for an adapter) and a secure context | Ollama reachable at `OLLAMA_URL` (default `localhost:11434`) |
 | Timeouts | Model init: 10 minutes | 120 s per call (`AbortSignal.timeout`) |
 | Retries | none (single call) | `extractRecipe`, 2 retries |

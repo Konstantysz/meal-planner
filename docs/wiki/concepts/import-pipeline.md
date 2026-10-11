@@ -5,14 +5,14 @@ tags: [import, llm, recipes]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
-last_reviewed: 2026-10-09
+updated: 2026-10-10
+last_reviewed: 2026-10-10
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: a7f8f52
+verified_commit: acf949e
 sources:
   - title: "Import dialog"
     path: src/components/import/ImportDialog.tsx
@@ -51,11 +51,12 @@ sequenceDiagram
   D->>X: GET (mode?)
   alt mode = server
     D->>X: POST {markdown}
-    X-->>D: RecipeJsonLd (Ollama, retries)
+    X-->>D: ExtractedRecipe (Ollama, retries)
   else mode = browser
     D->>W: ensureEngineReady + extractWithWebLlm
     W-->>D: RecipeJsonLd
   end
+  D->>D: page ingredients replace the model's recipeIngredient
   D->>R: onExtracted(recipe, url)
   R->>R: Auto-mapuj składniki (optional)
   R->>R: POST /api/recipes
@@ -73,6 +74,7 @@ The `ImportDialog` stage machine is `idle → fetch → (model) → extract → 
 
 ## Invariants and gotchas
 
+- **The model structures the ingredients.** It returns `{name, amount, unit, optional}` per ingredient and the dialog passes the result straight to the review form ([[0012-llm-structures-ingredients]]). There is no per-site code; quality depends on the model ([[ingredient-auto-match#Measuring the model]]).
 - **Review is mandatory.** `ImportReviewForm.save` refuses to save until at least one ingredient is mapped („Zmapuj co najmniej jeden składnik przed zapisem.").
 - Imported recipes get `prep_time_min: null`, `diet_tags: []`, `allergens: []` and `visibility: 'household'`. The extracted `prepTime` is dropped. Each recipe ingredient is saved with `optional: false`.
 - `recipeInstructions` can be a string, an array of strings, or an array of `{text}`. The review form normalises all three into step strings.
@@ -107,6 +109,8 @@ LLM_MODE=server pnpm dev
 
 ## Changelog
 
+- 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.
+- 2026-10-11: Dropped the ingredients bypass; the fetch route returns only `markdown`.
 - 2026-10-09: Linked the Markdown-before-extraction decision, [[0011-html-to-markdown-import]].
 - 2026-10-04: Created from legacy `import.md`. Fixed the stale "review form doesn't auto-match" claim.

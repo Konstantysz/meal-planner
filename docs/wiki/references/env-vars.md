@@ -52,7 +52,7 @@ This page lists every variable the code, scripts and workflows read. See [[refer
 | `SUPABASE_SERVICE_ROLE_KEY` | `scripts/backfill-ingredient-macros.ts` only | for that script | Bypasses RLS. The app itself never reads it. |
 | `LLM_MODE` | `src/app/api/import/extract/route.ts` | no | `server` makes import use Ollama on the server. Any other value, or unset, means in-browser WebLLM. Read on every request. |
 | `OLLAMA_URL` | `src/lib/import/ollama.ts` | no | Default `http://localhost:11434`. Read once, at module load. |
-| `OLLAMA_MODEL` | `src/lib/import/ollama.ts` | no | Default `gemma2:2b`. Read once, at module load. |
+| `OLLAMA_MODEL` | `src/lib/import/ollama.ts` | no | Default `gemma4:e2b`. Read once, at module load. |
 | `GEMINI_API_KEY` | `src/lib/import/gemini.ts` | no | Used by `callGemini`, which no route calls at the moment (Gemini fallback paused). |
 | `HEADED` | `scripts/bench-llm.ts` | no | `1` shows the benchmark's Chrome window. |
 
@@ -75,7 +75,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 SUPABASE_SERVICE_ROLE_KEY=<service role key>   # only for scripts/backfill-ingredient-macros.ts
 # LLM_MODE=server
 # OLLAMA_URL=http://localhost:11434
-# OLLAMA_MODEL=gemma2:2b
+# OLLAMA_MODEL=gemma4:e2b
 ```
 
 ## Related

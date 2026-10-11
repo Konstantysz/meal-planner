@@ -3,7 +3,7 @@
  * Both paths get the same cleaned markdown and the same retry logic (extractRecipe in Node);
  * only the LlmFn differs. Reports single-page cold time and amortized time over all pages.
  *
- * Needs: running Ollama with `gemma2:2b`, installed Google Chrome with WebGPU.
+ * Needs: running Ollama with `OLLAMA_MODEL` (default gemma4:e2b), installed Google Chrome with WebGPU.
  * First browser run downloads the model (~1.5 GB) into .bench-chrome/ — reported separately.
  *
  * Usage: pnpm bench:llm [server|browser|both=both]

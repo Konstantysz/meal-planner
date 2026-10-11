@@ -23,7 +23,7 @@ sources:
 # Run Import with Ollama
 
 > [!tldr]
-> `ollama pull gemma2:2b`, then start the app with `LLM_MODE=server`. `GET /api/import/extract` should return `{"mode":"server"}`, and imports then run on the server's GPU.
+> `ollama pull gemma4:e2b`, then start the app with `LLM_MODE=server`. `GET /api/import/extract` should return `{"mode":"server"}`, and imports then run on the server's GPU.
 
 ## Context
 
@@ -32,14 +32,14 @@ Browser mode needs WebGPU and downloads about 1.5 GB per browser. Server mode mo
 ## Prerequisites
 
 - [Ollama](https://ollama.com) installed and running (default `http://localhost:11434`).
-- A GPU helps. A cold start plus generation took up to about 20 s in the benchmark.
+- A GPU helps. A cold start plus generation took up to about 35 s per page in the benchmark (`gemma4:e2b`, 7.2 GB on disk).
 
 ## Steps
 
 1. Pull the model:
 
    ```bash
-   ollama pull gemma2:2b
+   ollama pull gemma4:e2b
    ```
 
 2. Start the app in server mode:
@@ -74,7 +74,7 @@ In the app: `/recipes/new` → „Import z URL" → paste an aniagotuje.pl or ja
 ## Examples
 
 ```bash
-OLLAMA_URL=http://gpu-box:11434 OLLAMA_MODEL=gemma2:2b LLM_MODE=server pnpm dev
+OLLAMA_URL=http://gpu-box:11434 OLLAMA_MODEL=gemma4:e2b LLM_MODE=server pnpm dev
 ```
 
 ## Related
@@ -86,7 +86,7 @@ OLLAMA_URL=http://gpu-box:11434 OLLAMA_MODEL=gemma2:2b LLM_MODE=server pnpm dev
 
 ## Sources
 
-- `src/lib/import/ollama.ts`, `src/app/api/import/extract/route.ts`; `ollama list` shows `gemma2:2b` on the verifying machine
+- `src/lib/import/ollama.ts`, `src/app/api/import/extract/route.ts`; `ollama list` shows `gemma4:e2b` on the verifying machine
 
 ## Changelog
 

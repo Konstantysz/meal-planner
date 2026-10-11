@@ -14,17 +14,6 @@ describe('cleanHtml', () => {
     expect(md).not.toContain('footer');
   });
 
-  it('puts quantity before name and keeps group headers (aniagotuje split spans)', () => {
-    const li = (name: string, qty: string) =>
-      `<li><span itemprop="recipeIngredient"><span class="ingredient-name">${name}</span><span class="ingredient-qty"> ${qty}</span></span></li>`;
-    const md = cleanHtml(
-      `<article>${'<p>padding text </p>'.repeat(20)}<button class="ing-header"><strong>Składniki do podania</strong></button><ul>${li('świeży tymianek', 'garść łodyg')}${li('sól i pieprz', 'po pół łyżeczki')}</ul></article>`,
-    );
-    expect(md).toContain('Składniki do podania');
-    expect(md).toContain('garść łodyg świeży tymianek');
-    expect(md).toContain('po pół łyżeczki sól i pieprz');
-  });
-
   it('extracts article content from jadlonomia fixture', () => {
     const html = readFileSync('tests/fixtures/jadlonomia/sample.html', 'utf8');
     const md = cleanHtml(html);

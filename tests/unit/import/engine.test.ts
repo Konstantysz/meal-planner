@@ -32,7 +32,11 @@ beforeEach(() => {
 describe('extractWithWebLlm', () => {
   it('decodes with the output-schema grammar and passes markdown as-is', async () => {
     const { extractWithWebLlm } = await loadEngine();
-    create.mockResolvedValue(reply('{"name":"Zupa","recipeIngredient":["a"],"recipeInstructions":["b"]}'));
+    create.mockResolvedValue(
+      reply(
+        '{"name":"Zupa","recipeIngredient":[{"name":"a","amount":null,"unit":null,"optional":false}],"recipeInstructions":["b"]}',
+      ),
+    );
 
     const r = await extractWithWebLlm('# Zupa');
 

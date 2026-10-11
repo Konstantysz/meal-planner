@@ -29,13 +29,6 @@ const NOISE = [
 export function cleanHtml(html: string): string {
   const $ = cheerio.load(html);
   $(NOISE).remove();
-  // aniagotuje renders name and quantity as separate spans; flattened they read "tymianek garść
-  // łodyg" and the model drops the trailing quantity. Quantity-first matches the output format.
-  $('[itemprop="recipeIngredient"]').each((_, el) => {
-    const qty = $(el).find('.ingredient-qty').text().trim();
-    const name = $(el).find('.ingredient-name').text().trim();
-    if (qty && name) $(el).text(`${qty} ${name}`);
-  });
 
   let content = '';
   for (const sel of CONTENT_SELECTORS) {
