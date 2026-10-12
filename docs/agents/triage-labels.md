@@ -1,6 +1,6 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage **state** roles and two **category** roles. This file maps those roles to the label strings used in this repo's GitHub Issues. Every triaged issue carries exactly one state and one category label.
+The skills speak in terms of five canonical triage **state** roles and three **category** roles. This file maps those roles to the label strings used in this repo's GitHub Issues. Every triaged issue carries exactly one state and one category label.
 
 ## State
 
@@ -18,5 +18,6 @@ The skills speak in terms of five canonical triage **state** roles and two **cat
 | -------------------------- | -------------------- | ------------------------------ |
 | `bug`                      | `bug`                | Something is broken            |
 | `enhancement`              | `enhancement`        | New feature or improvement     |
+| `question`                 | `question`           | A decision to make, not code   |
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from these tables.
