@@ -33,6 +33,7 @@ Start with [[architecture-overview]].
 | Foundations | [[architecture-overview]] · [[auth-session]] · [[household-model]] · [[rls-authorization]] |
 | Recipes | [[recipe-management]] · [[ingredient-database]] · [[macro-calculation]] · [[amount-scaling]] |
 | Plan and shopping | [[week-plan]] · [[shopping-list-aggregation]] · [[offline-shopping-store]] · [[share-links]] |
+| Design | [[design-brief]] |
 | Import | [[import-pipeline]] · [[html-cleaning]] · [[llm-extraction]] · [[llm-modes]] · [[ingredient-auto-match]] · [[recipe-yield-parsing]] |
 
 ## Related
