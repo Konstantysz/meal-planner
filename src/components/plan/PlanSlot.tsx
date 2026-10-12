@@ -1,22 +1,27 @@
 'use client';
+import { slotClass } from './slot-colors';
 
 export function PlanSlot({
   label,
+  position,
   recipeName,
   onRemove,
 }: {
   label: string;
+  position: number;
   recipeName: string | null;
   onRemove?: () => void;
 }) {
   return (
-    <div className="border rounded p-2 bg-white text-sm min-h-[48px] flex justify-between items-start">
+    <div
+      className={`rounded-block p-2 text-sm min-h-12 flex justify-between items-start ${slotClass(position, !!recipeName)}`}
+    >
       <div>
-        <div className="text-xs text-gray-500">{label}</div>
-        <div>{recipeName ?? <span className="text-gray-400 italic">puste</span>}</div>
+        <div className={`text-xs ${recipeName ? 'text-on-slot' : 'text-muted'}`}>{label}</div>
+        <div>{recipeName ?? <span className="text-faint italic">puste</span>}</div>
       </div>
       {onRemove && recipeName && (
-        <button onClick={onRemove} className="text-red-600 text-xs">
+        <button onClick={onRemove} aria-label="Usuń z planu" className="text-xs text-on-slot min-w-6 min-h-6">
           ×
         </button>
       )}

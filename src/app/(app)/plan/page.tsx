@@ -1,7 +1,9 @@
-import { startOfWeek, format } from 'date-fns';
+import { connection } from 'next/server';
 import { WeekPlan } from '@/components/plan/WeekPlan';
+import { weekStartOf } from '@/lib/week';
 
-export default function PlanPage() {
-  const week = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  return <WeekPlan weekStart={week} />;
+export default async function PlanPage() {
+  // Opt out of static pre-render: "this week" must be computed per request.
+  await connection();
+  return <WeekPlan weekStart={weekStartOf(new Date())} />;
 }

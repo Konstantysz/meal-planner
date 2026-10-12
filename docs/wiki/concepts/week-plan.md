@@ -43,10 +43,10 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ## How it works
 
-- `/plan` computes `startOfWeek(new Date(), { weekStartsOn: 1 })` as `yyyy-MM-dd` and renders `<WeekPlan weekStart>`.
+- `/plan` (rendered per request via `connection()`, not pre-rendered) computes `weekStartOf(new Date())` and renders `<WeekPlan weekStart>`.
 - `usePlan(weekStart)` calls `GET /api/plans?week=`, which runs `getOrCreatePlan` and then `getWeekPlan`. That returns the plan with `slots: plan_slots(*, recipe:recipes(id, name, servings_base))`.
 - `assign(date, position, recipeId, servings)` sends `POST /api/plans/[id]/slots` (`upsertSlot`, `onConflict: 'plan_id,date,position'`) and then reloads. `remove(slotId)` sends `DELETE` and reloads.
-- `WeekPlan` picks the view with `matchMedia('(min-width: 768px)')`:
+- `WeekPlan` renders both views and CSS shows one: the desktop table from the `lg` breakpoint (1024 px), the mobile list below it. There is no JavaScript viewport check, so nothing re-lays out after hydration. Slots are tinted by position with the `slot-0`…`slot-4` tokens; empty slots and positions above 4 stay neutral.
 
 | View | Layout | Positions | Slot label |
 |---|---|---|---|
@@ -96,6 +96,8 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 - `src/lib/db/plans.ts`, `src/hooks/usePlan.ts`, `src/components/plan/*`, `src/app/(app)/plan/page.tsx`, `src/lib/schemas.ts`
 
 ## Changelog
+
+- 2026-10-13: Layout switch moved from `matchMedia` to CSS (#37).
 
 - 2026-10-09: Unavailable-recipe label changed from „przepis usunięty" to „przepis niedostępny" (issue #16); both views updated.
 - 2026-10-09: Re-verified against a7f8f52 (no behaviour change in the plan code). Rebuilt the build-week gap from a fresh `pnpm build` (now `2026-10-05`, `/shopping` also static). Corrected the slot-name readability note (the label is grey, not the name) and the error-handling note (`assign`/`remove` don't check the status).

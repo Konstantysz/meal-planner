@@ -23,8 +23,6 @@ sources:
     path: src/components/plan/WeekPlan.tsx
   - title: "App name and theme colour"
     path: public/manifest.json
-  - title: "Structure prototype, treatment 3 (kept copy in the repo)"
-    path: prototypes/design-37-structure-PROTOTYPE-throwaway/index.html
   - title: "Structure prototype, treatment 3 (private claude.ai artifact)"
     url: "https://claude.ai/artifact/4ymb96mmWzYvW5STSTkYtF"
     accessed: 2026-10-13
@@ -41,8 +39,8 @@ Issue #37 (foundations, epic #47) builds the tokens, primitives and app shell. T
 
 Every decision below comes from the style interview of 2026-10-13 (answers cited as "interview"). The structure and colours were settled on the prototype listed in Sources. The `src/app/globals.css` of today still holds the create-next-app defaults (white and near-black, Arial body).
 
-> [!warning] Uncertain
-> Only the surface, `muted` and `faint` pairs have been measured. Text on the five slot colours has not: in dark, `muted` on the slot colours is about 3.4–4.2:1, which is too low for 12–13 px text. Measure every text-on-slot pair when the tokens land (4.5:1 for body, 3:1 for large text and icons) and adjust the values here in the same PR.
+> [!note] Text on slot colours
+> Measured when the tokens landed: `ink` on the five slot colours is 10.4–11.8:1 in light and 7.5–9.2:1 in dark. `muted` is 4.0–4.6:1 in light and 3.4–4.2:1 in dark, which fails for small text. Text on a slot colour therefore uses `ink` (token `on-slot`), never `muted`.
 
 ## Direction and tone
 
@@ -155,11 +153,12 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 ## Sources
 
 - Style interview of 2026-10-13 (questions Q1–Q7 and the earlier rounds), between the maintainer and the agent.
-- The structure prototype in the frontmatter, which holds the values above as CSS variables (the #37 PR removes the kept copy and this path source together; the page then keeps only the claude.ai link): the kept copy at `prototypes/design-37-structure-PROTOTYPE-throwaway/index.html` and the claude.ai artifact it came from.
+- The structure prototype (private claude.ai artifact in the frontmatter), which held the values above as CSS variables. Its kept copy in the repo was removed when #37 shipped.
 - `src/app/globals.css` and `src/app/layout.tsx` for the current defaults.
 
 ## Changelog
 
+- 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.
 - 2026-10-13: Maintainer accepted the brief; implementation tracked in #49. Status stays `draft` until a human review.
 - 2026-10-13: Created from the style interview.

@@ -1,39 +1,114 @@
 @import 'tailwindcss';
 
+/* Design tokens: docs/wiki/concepts/design-brief.md. Components use these, never raw colours. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #fcfaf6;
+  --side: #f4efe6;
+  --ink: #2b2420;
+  --muted: #6e6259;
+  --faint: #8a7e73;
+  --line: #e8e0d4;
+  --hover: #ede6da;
+  --brand: #a32e55;
+  --on-brand: #ffffff;
+  --slot-0: #f4e1a8;
+  --slot-1: #c8dfe4;
+  --slot-2: #d3e0be;
+  --slot-3: #f2cdbe;
+  --slot-4: #e3cfe0;
+  --on-slot: #2b2420;
+  --scrim: rgb(43 36 32 / 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1b1715;
+    --side: #231e1b;
+    --ink: #ede6dd;
+    --muted: #a59b91;
+    --faint: #8d8379;
+    --line: #332d28;
+    --hover: #2d2723;
+    --brand: #e88aa8;
+    --on-brand: #3a0e1d;
+    --slot-0: #54451f;
+    --slot-1: #264349;
+    --slot-2: #384722;
+    --slot-3: #55332a;
+    --slot-4: #46344a;
+    --on-slot: #ede6dd;
+    --scrim: rgb(0 0 0 / 0.6);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-side: var(--side);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-hover: var(--hover);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-slot-0: var(--slot-0);
+  --color-slot-1: var(--slot-1);
+  --color-slot-2: var(--slot-2);
+  --color-slot-3: var(--slot-3);
+  --color-slot-4: var(--slot-4);
+  --color-on-slot: var(--on-slot);
+  --color-scrim: var(--scrim);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
+  --radius-block: 4px;
+  --radius-control: 6px;
+  --radius-sheet: 10px;
+}
+
+html {
+  font-size: 16px;
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 14px;
   }
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
 input,
 textarea,
 select {
   background: var(--background);
-  color: var(--foreground);
-  border-color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  color: var(--faint);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim-sheet {
+    animation: sheet-in 120ms ease-out;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }

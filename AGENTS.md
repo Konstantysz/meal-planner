@@ -53,6 +53,7 @@ Before adding or changing an env var: `docs/wiki/references/env-vars.md`. Setup 
 ## Where to look next
 - Before changing `supabase/migrations/`, RLS or an RPC: `docs/wiki/references/migration-history.md`.
 - Before proposing or changing a design: its page in `docs/wiki/` (entry `docs/wiki/README.md`, concepts in `concepts/concepts.md`; update it in the same PR) and the ADRs in `docs/wiki/decisions/`. Rules: `docs/wiki/RULES.md`. Open bugs and risks: `docs/wiki/references/known-gaps.md`.
+- Before building or restyling UI: `docs/wiki/concepts/design-brief.md` (tokens, primitives in `src/components/ui`, shell) and the `frontend-design` skill.
 - Before changing `SYSTEM_PROMPT`, `LLM_OUTPUT_SCHEMA`, `normalizeUnit` or the default Ollama model: "Measuring the model" in `docs/wiki/concepts/ingredient-auto-match.md` (`pnpm eval:ingredients`, `pnpm bench:llm`).
 - Before naming a domain concept: `GLOSSARY.md`.
 - Review standards: `CODING_STANDARDS.md`.

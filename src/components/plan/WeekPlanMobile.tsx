@@ -26,20 +26,21 @@ export function WeekPlanMobile({
         const slots = plan.slots.filter((s) => s.date === dateStr).sort((a, b) => a.position - b.position);
         const maxPos = slots.length > 0 ? Math.max(...slots.map((s) => s.position)) + 1 : 0;
         return (
-          <section key={dateStr} className="border rounded p-3">
+          <section key={dateStr} className="border border-line rounded-block p-3">
             <h3 className="font-semibold mb-2">{format(d, 'EEEE d MMMM', { locale: pl })}</h3>
             <div className="space-y-2">
               {slots.map((s) => (
                 <PlanSlot
                   key={s.id}
                   label={s.label ?? `posiłek ${s.position + 1}`}
+                  position={s.position}
                   recipeName={s.recipe?.name ?? (s.recipe_id ? 'przepis niedostępny' : null)}
                   onRemove={() => onRemove(s.id)}
                 />
               ))}
               <button
                 onClick={() => onAdd(dateStr, maxPos)}
-                className="w-full text-sm text-green-700 border border-dashed rounded py-1"
+                className="w-full text-sm text-ink border border-line rounded-control min-h-11"
               >
                 + dodaj posiłek
               </button>
