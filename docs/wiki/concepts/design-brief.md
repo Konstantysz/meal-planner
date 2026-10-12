@@ -42,7 +42,7 @@ Issue #37 (foundations, epic #47) builds the tokens, primitives and app shell. T
 Every decision below comes from the style interview of 2026-10-13 (answers cited as "interview"). The structure and colours were settled on the prototype listed in Sources. The `src/app/globals.css` of today still holds the create-next-app defaults (white and near-black, Arial body).
 
 > [!warning] Uncertain
-> Contrast ratios of the values below have not been measured, and the dark meal colours were tuned by eye. Check text contrast (4.5:1 for body, 3:1 for large text and icons) when the tokens land, and adjust the values here in the same PR.
+> Only the surface, `muted` and `faint` pairs have been measured. Text on the five slot colours has not: in dark, `muted` on the slot colours is about 3.4–4.2:1, which is too low for 12–13 px text. Measure every text-on-slot pair when the tokens land (4.5:1 for body, 3:1 for large text and icons) and adjust the values here in the same PR.
 
 ## Direction and tone
 
@@ -59,7 +59,7 @@ Every decision below comes from the style interview of 2026-10-13 (answers cited
 | Section title, day number | Bricolage Grotesque | 600 | 18–24 px |
 | Body | Geist | 400 | 14 px desktop, 16 px mobile |
 | Secondary text | Geist | 400–500 | 13 px |
-| Minimum | Geist | 400 | 12 px |
+| Minimum | Geist | 400 | 12 px (the prototype's 11 px cover time and tab labels are 12 px in the build) |
 
 - Body is 16 px on mobile so iOS does not zoom into inputs (interview Q4).
 - Numbers that align (dates, amounts, macros) use `font-variant-numeric: tabular-nums`.
@@ -68,15 +68,17 @@ Every decision below comes from the style interview of 2026-10-13 (answers cited
 
 ## Colour
 
-Light and dark are both fully designed and follow `prefers-color-scheme` (interview). The brand colour marks today, the one filled button per screen, and the active navigation icon. Nothing else is brand-coloured.
+Light and dark are both fully designed and follow `prefers-color-scheme` (interview). The brand colour marks today, the one filled button per screen, and the active navigation icon. Focus rings and the "today" day label use it too. Nothing else is brand-coloured.
+
+`faint` is for icons and other non-text marks (3:1 against every surface). Text uses `muted` or `ink`. Measured contrast: `muted` and `ink` pass 4.5:1 on `background`, `side` and `hover` in light, and `muted` passes on them in dark. `faint` passes 3:1 on all three surfaces in both themes.
 
 | Token | Light | Dark |
 |---|---|---|
 | `background` | `#FCFAF6` | `#1B1715` |
 | `side` (sidebar, panels) | `#F4EFE6` | `#231E1B` |
 | `ink` | `#2B2420` | `#EDE6DD` |
-| `muted` | `#75695F` | `#A59B91` |
-| `faint` | `#A89C90` | `#6F665E` |
+| `muted` | `#6E6259` | `#A59B91` |
+| `faint` | `#8A7E73` | `#8D8379` |
 | `line` (hairlines) | `#E8E0D4` | `#332D28` |
 | `hover` | `#EDE6DA` | `#2D2723` |
 | `brand` | `#A32E55` | `#E88AA8` |
@@ -84,7 +86,7 @@ Light and dark are both fully designed and follow `prefers-color-scheme` (interv
 
 ### Slot colours
 
-Colour carries a category (interview Q2). For this iteration the category is the slot position, fixed for every household. A recipe cover takes the colour of the position it is most often planned in; a recipe never planned uses `hover`. Colour by cuisine type is a possible later change and out of scope for #37.
+Colour carries a category (interview Q2). For this iteration the category is the slot position, fixed for every household. A recipe cover takes the colour of the position it is most often planned in; on a tie the most recently planned position wins, and a recipe never planned uses `hover`. The count covers the household's plans. Colour by cuisine type is a possible later change and out of scope for #37.
 
 | Position | Name | Light | Dark |
 |---|---|---|---|
@@ -153,9 +155,11 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 ## Sources
 
 - Style interview of 2026-10-13 (questions Q1–Q7 and the earlier rounds), between the maintainer and the agent.
-- The structure prototype in the frontmatter, which holds the values above as CSS variables: the kept copy at `prototypes/design-37-structure-PROTOTYPE-throwaway/index.html` and the claude.ai artifact it came from.
+- The structure prototype in the frontmatter, which holds the values above as CSS variables (the #37 PR removes the kept copy and this path source together; the page then keeps only the claude.ai link): the kept copy at `prototypes/design-37-structure-PROTOTYPE-throwaway/index.html` and the claude.ai artifact it came from.
 - `src/app/globals.css` and `src/app/layout.tsx` for the current defaults.
 
 ## Changelog
 
-- 2026-10-13: Created from the style interview. Awaiting approval before any code.
+- 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.
+- 2026-10-13: Maintainer accepted the brief; implementation tracked in #49. Status stays `draft` until a human review.
+- 2026-10-13: Created from the style interview.
