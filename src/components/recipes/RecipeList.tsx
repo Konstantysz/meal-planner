@@ -29,6 +29,9 @@ export function RecipeList() {
       <RecipeFilters diet={diet} exclude={exclude} onDiet={setDiet} onExclude={setExclude} />
       <div className="p-4 space-y-2">
         {loading && <p className="text-muted">Ładuję…</p>}
+        {!loading && recipes.length > 0 && q && !recipes.some((r) => r.name.toLowerCase().includes(q)) && (
+          <p className="text-muted">Brak przepisów pasujących do „{q}”.</p>
+        )}
         {!loading && recipes.length === 0 && <p className="text-muted">Brak przepisów. Dodaj pierwszy.</p>}
         {recipes
           .filter((r) => r.name.toLowerCase().includes(q))
