@@ -1,0 +1,1043 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <style>
+      :root {
+        color-scheme: light;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      html {
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font:
+          14px -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #fff;
+        color: #000;
+      }
+      img {
+        max-width: 100%;
+      }
+      [hidden]:not([hidden='until-found' i]) {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <title>Planer Posiłków structure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Geist:wght@400;500;600&display=swap"
+    />
+    <style>
+      /* Layout: Steam/Notion-style sidebar shell, Calendar week grid for Plan, Steam shelves of recipe covers, Notion page for a recipe. Treatment 3: warm neutrals with a beetroot brand hue; meal types still carry the colour. */
+      :root {
+        --bg: #fcfaf6;
+        --side: #f4efe6;
+        --ink: #2b2420;
+        --muted: #75695f;
+        --faint: #a89c90;
+        --line: #e8e0d4;
+        --hover: #ede6da;
+        --brand: #a32e55;
+        --on-brand: #ffffff;
+        --m0: #f4e1a8;
+        --m1: #c8dfe4;
+        --m2: #d3e0be;
+        --m3: #f2cdbe;
+        --m4: #e3cfe0;
+        --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+        --body: 'Geist', 'Segoe UI', system-ui, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #1b1715;
+          --side: #231e1b;
+          --ink: #ede6dd;
+          --muted: #a59b91;
+          --faint: #6f665e;
+          --line: #332d28;
+          --hover: #2d2723;
+          --brand: #e88aa8;
+          --on-brand: #3a0e1d;
+          --m0: #54451f;
+          --m1: #264349;
+          --m2: #384722;
+          --m3: #55332a;
+          --m4: #46344a;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #1b1715;
+        --side: #231e1b;
+        --ink: #ede6dd;
+        --muted: #a59b91;
+        --faint: #6f665e;
+        --line: #332d28;
+        --hover: #2d2723;
+        --brand: #e88aa8;
+        --on-brand: #3a0e1d;
+        --m0: #54451f;
+        --m1: #264349;
+        --m2: #384722;
+        --m3: #55332a;
+        --m4: #46344a;
+        color-scheme: dark;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--body);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .page {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding-inline: 16px;
+        padding-block: 28px 64px;
+        display: grid;
+        gap: 18px;
+      }
+      .intro {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        align-items: end;
+        justify-content: space-between;
+      }
+      .intro h1 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 28px;
+        margin: 0;
+      }
+      .intro p {
+        color: var(--muted);
+        margin: 4px 0 0;
+        max-width: 70ch;
+      }
+      .switch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .switch button {
+        font: 500 13px var(--body);
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      .switch button[aria-pressed='true'] {
+        background: var(--ink);
+        color: var(--bg);
+        border-color: var(--ink);
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+
+      /* ---------- desktop frame ---------- */
+      .frame {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      .desk {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 640px;
+      }
+      .side {
+        background: var(--side);
+        border-right: 1px solid var(--line);
+        padding: 16px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .logo {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 18px;
+        padding: 2px 8px 14px;
+        letter-spacing: -0.01em;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--faint);
+        border-radius: 6px;
+        padding: 6px 8px;
+        margin-bottom: 8px;
+        background: var(--hover);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .nav:hover {
+        background: var(--hover);
+      }
+      .nav.on {
+        background: var(--hover);
+        color: var(--ink);
+      }
+      .nav.on svg {
+        color: var(--brand);
+      }
+      .group {
+        margin-top: 18px;
+        padding: 0 8px 4px;
+        color: var(--faint);
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .rec {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: var(--ink);
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .rec:hover {
+        background: var(--hover);
+      }
+      .rec i {
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        flex: none;
+      }
+      svg.ic {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex: none;
+      }
+      .main {
+        min-width: 0;
+        padding: 22px 28px 32px;
+        display: grid;
+        align-content: start;
+        gap: 18px;
+      }
+
+      /* page header */
+      .ph {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+      .ph h2 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 26px;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .ph .arrows {
+        display: flex;
+        gap: 2px;
+      }
+      .iconbtn {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .iconbtn:hover {
+        background: var(--hover);
+        color: var(--ink);
+      }
+      .btn {
+        font: 600 13px var(--body);
+        border-radius: 6px;
+        padding: 7px 12px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      .btn.p {
+        background: var(--brand);
+        color: var(--on-brand);
+        border-color: var(--brand);
+      }
+      .spacer {
+        flex: 1;
+      }
+
+      /* week grid, Calendar style */
+      .week {
+        display: grid;
+        grid-template-columns: 76px repeat(7, minmax(0, 1fr));
+      }
+      .week .dh {
+        padding: 0 6px 10px;
+        display: grid;
+        justify-items: start;
+        gap: 2px;
+        border-bottom: 1px solid var(--line);
+      }
+      .week .dh small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .week .dh b {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 24px;
+        line-height: 1;
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        margin-left: -6px;
+        border-radius: 50%;
+        font-variant-numeric: tabular-nums;
+      }
+      .week .dh.today small {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .week .dh.today b {
+        background: var(--brand);
+        color: var(--on-brand);
+      }
+      .week .rl {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 8px 8px 0 0;
+        text-align: right;
+        border-bottom: 1px solid var(--line);
+      }
+      .week .cell {
+        border-left: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding: 4px;
+        min-height: 64px;
+        display: grid;
+      }
+      .ev {
+        height: 100%;
+        border-radius: 4px;
+        padding: 6px 8px;
+        display: grid;
+        align-content: start;
+        gap: 1px;
+        cursor: grab;
+      }
+      .ev b {
+        font-weight: 600;
+        font-size: 13px;
+        line-height: 1.25;
+      }
+      .ev small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .add {
+        width: 100%;
+        height: 100%;
+        min-height: 56px;
+        border: 0;
+        background: transparent;
+        border-radius: 4px;
+        color: var(--faint);
+        font: 500 18px var(--body);
+        cursor: pointer;
+      }
+      .add:hover,
+      .add:focus-visible {
+        background: var(--hover);
+        color: var(--muted);
+      }
+      .k0 {
+        background: var(--m0);
+      }
+      .k1 {
+        background: var(--m1);
+      }
+      .k2 {
+        background: var(--m2);
+      }
+      .k3 {
+        background: var(--m3);
+      }
+      .k4 {
+        background: var(--m4);
+      }
+
+      /* shelves, Steam style */
+      .shelf {
+        display: grid;
+        gap: 10px;
+      }
+      .sh {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .sh h3 {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 18px;
+        margin: 0;
+        white-space: nowrap;
+      }
+      .sh hr {
+        flex: 1;
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 0;
+      }
+      .row {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 150px;
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+      .cover {
+        display: grid;
+        gap: 6px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .art {
+        aspect-ratio: 3 / 4;
+        max-width: 100%;
+        border-radius: 4px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      .art span {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 21px;
+        line-height: 1.02;
+        letter-spacing: -0.015em;
+        text-wrap: balance;
+        hyphens: auto;
+      }
+      .art em {
+        font-style: normal;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: auto;
+      }
+      .cover:hover .art {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+      .cover small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .f {
+        font: 500 13px var(--body);
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .f.on {
+        color: var(--ink);
+        background: var(--hover);
+        border-color: var(--hover);
+      }
+
+      /* recipe page, Notion style */
+      .doc {
+        padding: 0;
+      }
+      .band {
+        height: 150px;
+        position: relative;
+      }
+      .band .tile {
+        position: absolute;
+        left: 56px;
+        bottom: -34px;
+        width: 72px;
+        height: 72px;
+        border-radius: 6px;
+        background: var(--bg);
+        display: grid;
+        place-items: center;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 34px;
+        box-shadow: 0 0 0 4px var(--bg);
+      }
+      .docin {
+        padding: 50px 56px 36px;
+        display: grid;
+        gap: 18px;
+        max-width: 900px;
+      }
+      .docin h2 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 38px;
+        line-height: 1.05;
+        margin: 0;
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+      }
+      .props {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 6px 12px;
+        font-size: 14px;
+      }
+      .props dt {
+        color: var(--muted);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .props dd {
+        margin: 0;
+      }
+      .props a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-decoration-color: var(--faint);
+        text-underline-offset: 3px;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+        gap: 36px;
+      }
+      .cols h3 {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      .ing {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+      }
+      .ing li {
+        display: grid;
+        grid-template-columns: 70px 1fr;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .ing li span:first-child {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .steps {
+        margin: 0;
+        padding-left: 22px;
+        display: grid;
+        gap: 10px;
+        max-width: 62ch;
+        line-height: 1.6;
+      }
+      .steps li::marker {
+        font-family: var(--display);
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .macros {
+        color: var(--muted);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- phones ---------- */
+      .phones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        justify-content: center;
+        padding: 20px 0;
+      }
+      .phone {
+        width: 360px;
+        max-width: 100%;
+        height: 720px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
+      .pt {
+        padding: 16px 16px 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pt h2 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 24px;
+        margin: 0;
+      }
+      .pscroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 12px 12px;
+      }
+      .agenda {
+        display: grid;
+        grid-template-columns: 48px 1fr;
+        column-gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .agenda .d {
+        display: grid;
+        justify-items: center;
+        align-content: start;
+      }
+      .agenda .d small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .agenda .d b {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 22px;
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+      }
+      .agenda.today .d small {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .agenda.today .d b {
+        background: var(--brand);
+        color: var(--on-brand);
+      }
+      .agenda .list {
+        display: grid;
+        gap: 6px;
+      }
+      .agenda .ev {
+        padding: 8px 10px;
+        height: auto;
+      }
+      .agenda .add {
+        min-height: 36px;
+        color: var(--faint);
+        text-align: left;
+        padding: 0 10px;
+      }
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 1px solid var(--line);
+        padding: 6px 4px 10px;
+        background: var(--bg);
+      }
+      .tabs a {
+        display: grid;
+        justify-items: center;
+        gap: 2px;
+        padding-top: 4px;
+        font-size: 11px;
+        color: var(--muted);
+        text-decoration: none;
+        min-height: 44px;
+      }
+      .tabs a.on {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .tabs a.on svg {
+        color: var(--brand);
+      }
+      .tabs svg {
+        width: 22px;
+        height: 22px;
+      }
+      .phone .band {
+        height: 120px;
+      }
+      .phone .band .tile {
+        left: 16px;
+        bottom: -28px;
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+      }
+      .phone .docin {
+        padding: 40px 16px 20px;
+        gap: 14px;
+      }
+      .phone .docin h2 {
+        font-size: 28px;
+      }
+      .phone .cols {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .phone .props {
+        grid-template-columns: 96px 1fr;
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 13px;
+        max-width: 80ch;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 760px) {
+        .desk {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          display: none;
+        }
+        .main {
+          padding: 16px;
+        }
+        .docin {
+          padding: 44px 16px 24px;
+        }
+        .cols {
+          grid-template-columns: 1fr;
+        }
+        .band .tile {
+          left: 16px;
+        }
+      }
+    </style>
+
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-plan" viewBox="0 0 24 24">
+        <rect x="3.5" y="5" width="17" height="15" rx="2" />
+        <path d="M3.5 10h17M8 3v4M16 3v4" />
+      </symbol>
+      <symbol id="i-book" viewBox="0 0 24 24">
+        <path
+          d="M4 5.5C6.5 4 9.5 4 12 5.5v14c-2.5-1.5-5.5-1.5-8 0zM20 5.5C17.5 4 14.5 4 12 5.5v14c2.5-1.5 5.5-1.5 8 0z"
+        />
+      </symbol>
+      <symbol id="i-bag" viewBox="0 0 24 24">
+        <path d="M4 8h16l-1.3 10.6a2 2 0 0 1-2 1.7H7.3a2 2 0 0 1-2-1.7z" />
+        <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+      </symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" />
+        <path
+          d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"
+        />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="m20 20-4-4" />
+      </symbol>
+      <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6" /></symbol>
+      <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" /></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24">
+        <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 8v4l2.5 2" />
+      </symbol>
+      <symbol id="i-users" viewBox="0 0 24 24">
+        <circle cx="9" cy="9" r="3.2" />
+        <path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 6.2a3 3 0 0 1 0 5.6M17.5 14.5A5 5 0 0 1 20.5 19" />
+      </symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24">
+        <path
+          d="M12 21a6 6 0 0 0 6-6c0-3.5-3-5.5-3.5-9-2 1.5-3 3.5-3 5.5-1-1-1.5-2-1.5-3-2 1.8-4 4-4 6.5a6 6 0 0 0 6 6z"
+        />
+      </symbol>
+    </svg>
+
+    <div class="page">
+      <div class="intro">
+        <div>
+          <h1>Planer Posiłków: structure</h1>
+          <p>
+            Structure first, colour later. Colour treatment 3 (warm neutral, beetroot brand); the meal types carry the
+            colour, like Calendar events. Sample dishes only, no real household data.
+          </p>
+        </div>
+        <div class="switch" role="group" aria-label="Widok">
+          <button data-v="plan" aria-pressed="true">Plan</button>
+          <button data-v="lib" aria-pressed="false">Przepisy</button>
+          <button data-v="doc" aria-pressed="false">Przepis</button>
+          <button data-v="phone" aria-pressed="false">Telefon</button>
+          <button id="theme" aria-pressed="false">Ciemny</button>
+        </div>
+      </div>
+
+      <div id="desk" class="frame">
+        <div class="desk">
+          <aside class="side">
+            <div class="logo">Planer Posiłków</div>
+            <div class="search">
+              <svg class="ic"><use href="#i-search" /></svg>Szukaj przepisu
+            </div>
+            <a class="nav" data-nav="plan" href="#"
+              ><svg class="ic"><use href="#i-plan" /></svg>Plan</a
+            >
+            <a class="nav" data-nav="lib" href="#"
+              ><svg class="ic"><use href="#i-book" /></svg>Przepisy</a
+            >
+            <a class="nav" href="#"
+              ><svg class="ic"><use href="#i-bag" /></svg>Zakupy</a
+            >
+            <a class="nav" href="#"
+              ><svg class="ic"><use href="#i-gear" /></svg>Ustawienia</a
+            >
+            <div class="group"><span>W tym tygodniu</span><span>9</span></div>
+            <div id="sidelist"></div>
+          </aside>
+          <main class="main" id="view"></main>
+        </div>
+      </div>
+
+      <div id="phones" class="phones" hidden></div>
+      <p class="note">
+        What changed from the first round: no floating cards, no shadows, no pills or dots. Separation comes from
+        hairlines and alignment. Corners are 4–6 px. A recipe without a photo gets a typographic cover (its name set
+        large on its meal colour), the way Steam shows a game cover; a photo will replace the colour later without
+        changing the layout.
+      </p>
+    </div>
+
+    <script>
+      const DAYS = ['pon', 'wt', 'śr', 'czw', 'pt', 'sob', 'nd'];
+      const DATES = [12, 13, 14, 15, 16, 17, 18];
+      const POS = ['Śniadanie', 'Lunch', 'Obiad', 'Przekąska', 'Kolacja'];
+      const R = {
+        owsianka: { n: 'Owsianka z jabłkiem', t: '15 min', s: 2, k: 0 },
+        szakszuka: { n: 'Szakszuka', t: '25 min', s: 2, k: 0 },
+        pierogi: { n: 'Pierogi ruskie', t: '60 min', s: 4, k: 2 },
+        bigos: { n: 'Bigos z grzybami', t: '120 min', s: 6, k: 2 },
+        pomidorowa: { n: 'Zupa pomidorowa', t: '40 min', s: 4, k: 1 },
+        placki: { n: 'Placki ziemniaczane', t: '35 min', s: 3, k: 4 },
+        hummus: { n: 'Hummus z burakiem', t: '10 min', s: 4, k: 3 },
+        gulasz: { n: 'Gulasz z soczewicy', t: '45 min', s: 4, k: 2 },
+        kanapki: { n: 'Kanapki z pastą jajeczną', t: '10 min', s: 2, k: 4 },
+        bob: { n: 'Bób z tofu po koreańsku', t: '30 min', s: 2, k: 1 },
+      };
+      const PLAN = {
+        '0-0': 'owsianka',
+        '0-2': 'pierogi',
+        '0-4': 'kanapki',
+        '1-0': 'szakszuka',
+        '1-1': 'pomidorowa',
+        '1-2': 'pierogi',
+        '2-2': 'gulasz',
+        '2-3': 'hummus',
+        '3-0': 'owsianka',
+        '3-2': 'bigos',
+        '3-4': 'placki',
+        '4-1': 'bob',
+        '5-2': 'bigos',
+        '6-0': 'szakszuka',
+      };
+      const kOf = (pos) => pos; // meal colour follows the meal type
+      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const ic = (id) => `<svg class="ic"><use href="#i-${id}"/></svg>`;
+
+      function weekHeader(title) {
+        return `<div class="ph"><h2>${title}</h2><div class="arrows"><button class="iconbtn" aria-label="Poprzedni tydzień">${ic('left')}</button><button class="iconbtn" aria-label="Następny tydzień">${ic('right')}</button></div><button class="btn">Dziś</button><span class="spacer"></span><button class="btn p">Lista zakupów</button></div>`;
+      }
+      function planView() {
+        let h = weekHeader('12–18 października') + '<div class="week"><div class="dh"></div>';
+        DAYS.forEach(
+          (d, i) => (h += `<div class="dh${i === 0 ? ' today' : ''}"><small>${d}</small><b>${DATES[i]}</b></div>`),
+        );
+        POS.forEach((p, pi) => {
+          h += `<div class="rl">${p}</div>`;
+          DAYS.forEach((_, di) => {
+            const r = R[PLAN[di + '-' + pi]];
+            h += `<div class="cell">${r ? `<div class="ev k${kOf(pi)}"><b>${esc(r.n)}</b><small>${r.s} porcje</small></div>` : `<button class="add" aria-label="Dodaj: ${p}, ${DAYS[di]} ${DATES[di]}">+</button>`}</div>`;
+          });
+        });
+        return h + '</div>';
+      }
+      function cover(key) {
+        const r = R[key];
+        return `<a class="cover" href="#"><div class="art k${r.k}"><em>${r.t}</em><span>${esc(r.n)}</span></div><small>${r.s} porcje</small></a>`;
+      }
+      function shelf(title, keys) {
+        return `<section class="shelf"><div class="sh"><h3>${title}</h3><hr><button class="iconbtn" aria-label="Wstecz">${ic('left')}</button><button class="iconbtn" aria-label="Dalej">${ic('right')}</button></div><div class="row">${keys.map(cover).join('')}</div></section>`;
+      }
+      function libView() {
+        return `<div class="ph"><h2>Przepisy</h2><span class="spacer"></span><button class="btn">Nowy przepis</button><button class="btn p">Importuj z linku</button></div>
+  <div class="filters"><button class="f on">Wszystkie</button><button class="f">Śniadanie</button><button class="f">Obiad</button><button class="f">Kolacja</button><button class="f">Do 30 min</button></div>
+  ${shelf('W tym tygodniu', ['owsianka', 'pierogi', 'szakszuka', 'pomidorowa', 'gulasz', 'bigos', 'hummus'])}
+  ${shelf('Ostatnio dodane', ['bob', 'placki', 'kanapki', 'hummus', 'gulasz'])}
+  ${shelf('Wszystkie', Object.keys(R))}`;
+      }
+      function docView(phone) {
+        return `<article class="doc"><div class="band k2"></div><div class="docin">
+    <h2>Pierogi ruskie</h2>
+    <dl class="props">
+      <dt>${ic('users')}Porcje</dt><dd>4</dd>
+      <dt>${ic('clock')}Czas</dt><dd>60 min</dd>
+      <dt>${ic('flame')}Na porcję</dt><dd class="macros">520 kcal, 18 g białka, 14 g tłuszczu, 80 g węglowodanów</dd>
+      <dt>${ic('link')}Źródło</dt><dd><a href="#">jadlonomia.com</a></dd>
+    </dl>
+    <div class="ph"><button class="btn p">Dodaj do planu</button><button class="btn">Edytuj</button><span class="spacer"></span><button class="btn">Usuń</button></div>
+    <div class="cols">
+      <section><h3>Składniki</h3><ul class="ing">
+        <li><span>500 g</span><span>mąka pszenna</span></li><li><span>250 ml</span><span>ciepła woda</span></li>
+        <li><span>600 g</span><span>ziemniaki</span></li><li><span>250 g</span><span>twaróg półtłusty</span></li>
+        <li><span>2 szt.</span><span>cebula</span></li><li><span>do smaku</span><span>sól, pieprz</span></li></ul></section>
+      <section><h3>Kroki</h3><ol class="steps">
+        <li>Ugotuj ziemniaki w osolonej wodzie, odcedź i przeciśnij przez praskę.</li>
+        <li>Zeszklij posiekaną cebulę na złoto. Połowę dodaj do ziemniaków razem z twarogiem, dopraw.</li>
+        <li>Zagnieć ciasto z mąki i ciepłej wody, aż będzie gładkie i elastyczne.</li>
+        <li>Rozwałkuj cienko, wykrawaj krążki, nakładaj farsz i dokładnie zlepiaj brzegi.</li>
+        <li>Gotuj partiami 2–3 minuty od wypłynięcia. Podawaj z resztą cebuli.</li></ol></section>
+    </div></div></article>`;
+      }
+      function phonePlan() {
+        let h = '';
+        DAYS.forEach((d, di) => {
+          let list = '';
+          POS.forEach((p, pi) => {
+            const r = R[PLAN[di + '-' + pi]];
+            if (r) list += `<div class="ev k${pi}"><small>${p}</small><b>${esc(r.n)}</b></div>`;
+          });
+          h += `<div class="agenda${di === 0 ? ' today' : ''}"><div class="d"><small>${d}</small><b>${DATES[di]}</b></div><div class="list">${list}<button class="add">+ dodaj posiłek</button></div></div>`;
+        });
+        return h;
+      }
+      function tabs(on) {
+        const t = [
+          ['plan', 'Plan'],
+          ['book', 'Przepisy'],
+          ['bag', 'Zakupy'],
+          ['gear', 'Ustawienia'],
+        ];
+        return `<nav class="tabs" aria-label="Nawigacja">${t.map(([i, l]) => `<a href="#" class="${i === on ? 'on' : ''}"><svg class="ic"><use href="#i-${i}"/></svg>${l}</a>`).join('')}</nav>`;
+      }
+      function phones() {
+        return `<div class="phone"><div class="pt"><h2>12–18 paź</h2><span class="spacer"></span><button class="iconbtn" aria-label="Poprzedni tydzień">${ic('left')}</button><button class="iconbtn" aria-label="Następny tydzień">${ic('right')}</button></div><div class="pscroll">${phonePlan()}</div>${tabs('plan')}</div>
+  <div class="phone"><div class="pscroll" style="padding:0">${docView(true)}</div>${tabs('book')}</div>`;
+      }
+
+      document.getElementById('sidelist').innerHTML = [
+        'owsianka',
+        'pierogi',
+        'szakszuka',
+        'pomidorowa',
+        'gulasz',
+        'bigos',
+        'hummus',
+        'placki',
+        'kanapki',
+      ]
+        .map((k) => `<a class="rec" href="#"><i class="k${R[k].k}"></i>${esc(R[k].n)}</a>`)
+        .join('');
+
+      const view = document.getElementById('view');
+      function show(v) {
+        document
+          .querySelectorAll('.switch [data-v]')
+          .forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+        document.getElementById('desk').hidden = v === 'phone';
+        document.getElementById('phones').hidden = v !== 'phone';
+        document
+          .querySelectorAll('[data-nav]')
+          .forEach((a) => a.classList.toggle('on', a.dataset.nav === (v === 'doc' ? 'lib' : v)));
+        view.classList.toggle('doc', v === 'doc');
+        view.style.padding = v === 'doc' ? '0' : '';
+        if (v === 'plan') view.innerHTML = planView();
+        if (v === 'lib') view.innerHTML = libView();
+        if (v === 'doc') view.innerHTML = docView(false);
+        if (v === 'phone') document.getElementById('phones').innerHTML = phones();
+      }
+      document
+        .querySelectorAll('.switch [data-v]')
+        .forEach((b) => b.addEventListener('click', () => show(b.dataset.v)));
+      document.querySelectorAll('[data-nav]').forEach((a) =>
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          show(a.dataset.nav);
+        }),
+      );
+      const themeBtn = document.getElementById('theme');
+      themeBtn.addEventListener('click', () => {
+        const dark =
+          document.documentElement.dataset.theme !== 'dark' &&
+          !(document.documentElement.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        themeBtn.textContent = dark ? 'Jasny' : 'Ciemny';
+      });
+      if (matchMedia('(prefers-color-scheme: dark)').matches) themeBtn.textContent = 'Jasny';
+      show('plan');
+    </script>
+  </body>
+</html>

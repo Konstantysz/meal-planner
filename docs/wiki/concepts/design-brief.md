@@ -23,6 +23,8 @@ sources:
     path: src/components/plan/WeekPlan.tsx
   - title: "App name and theme colour"
     path: public/manifest.json
+  - title: "Structure prototype, treatment 3 (kept copy in the repo)"
+    path: prototypes/design-37-structure-PROTOTYPE-throwaway/index.html
   - title: "Structure prototype, treatment 3 (private claude.ai artifact)"
     url: "https://claude.ai/artifact/4ymb96mmWzYvW5STSTkYtF"
     accessed: 2026-10-13
@@ -151,7 +153,7 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 ## Sources
 
 - Style interview of 2026-10-13 (questions Q1–Q7 and the earlier rounds), between the maintainer and the agent.
-- The structure prototype in the frontmatter, which holds the values above as CSS variables.
+- The structure prototype in the frontmatter, which holds the values above as CSS variables: the kept copy at `prototypes/design-37-structure-PROTOTYPE-throwaway/index.html` and the claude.ai artifact it came from.
 - `src/app/globals.css` and `src/app/layout.tsx` for the current defaults.
 
 ## Changelog
