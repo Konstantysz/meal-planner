@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 5ddfe28
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
@@ -79,7 +79,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Invariants and gotchas
 
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
-- **Row rules (migration 0013).** Ingredient and step positions are unique per recipe and `>= 0`, an ingredient `amount` is null or `> 0`, and step text must contain a non-space character. The database enforces them (unique and check constraints) and `RecipeInputSchema` mirrors them, so a bad body is a 400 before the RPC runs. The forms renumber positions from list order and drop blank steps; an amount of 0 (typed, or returned by the import model) is now a validation error instead of being saved.
+- **Row rules (migration 0013).** Ingredient and step positions are unique per recipe and `>= 0`, an ingredient `amount` is null or `> 0`, and step text must contain a non-space character. The database enforces them (unique and check constraints) and `RecipeInputSchema` mirrors them, so a bad body is a 400 before the RPC runs. The forms renumber positions from list order and drop blank steps. An amount of 0 or less is sent as null („no amount", `positiveAmountOrNull` in `src/lib/scaling.ts`): auto-match maps the import model's amount that way, and `RecipeForm` and `ImportReviewForm` map a typed amount on submit. Only a direct API caller sending 0 gets a 400.
 - **`updated_at`** is set to `now()` by a database trigger on every update of the recipe row, whatever the client sends. `update_recipe` always updates that row, so every edit moves it; a direct write to `recipe_ingredients` or `recipe_steps` alone does not.
 - **Deleting the account that saved a recipe** keeps the recipe in its household with `author_id` null (migration 0013). Members still see and edit it (`rec_select`, `rec_update` pass on membership).
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
@@ -125,6 +125,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: Import and the forms now send an amount of 0 or less as null instead of failing the save.
 - 2026-10-13: Documented the row rules, `updated_at` and account-deletion behaviour from migration 0013 (#72), and the matching `RecipeInputSchema` checks; the last-write-wins gap now only lacks the version check; added the author-less recipe delete gap.
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.

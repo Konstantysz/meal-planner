@@ -6,6 +6,7 @@ import { IngredientPicker, type PickedIngredient } from '@/components/recipes/In
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
+import { positiveAmountOrNull } from '@/lib/scaling';
 
 export function ImportReviewForm({
   extracted,
@@ -101,7 +102,7 @@ export function ImportReviewForm({
         allergens: [],
         ingredients: ingredients.map((i) => ({
           ingredient_id: i.ingredient_id,
-          amount: i.amount,
+          amount: positiveAmountOrNull(i.amount),
           unit: i.unit,
           raw_text: i.raw_text,
           position: i.position,

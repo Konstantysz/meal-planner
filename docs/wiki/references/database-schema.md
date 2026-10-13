@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5966c4c
+verified_commit: 5ddfe28
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -81,7 +81,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
 | `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008. |
 | `set_updated_at()` | trigger function, plpgsql | Sets `new.updated_at = now()`. Run by `recipes_set_updated_at` (before update on `recipes`). No client role can execute it. Added in 0013. |
-| `check_slot_date_in_week()`, `check_plan_week_keeps_slots()` | trigger functions, `security definer`, plpgsql, `search_path = public` | Enforce the slot-date-in-week rule from both sides (see `plan_slots`). `security definer` so the rule does not depend on what RLS shows the caller. No client role can execute them. Added in 0013. |
+| `check_slot_date_in_week()`, `check_plan_week_keeps_slots()` | trigger functions, `security invoker`, plpgsql, `search_path = public` | Enforce the slot-date-in-week rule from both sides (see `plan_slots`). Invoker, because BEFORE triggers run before the RLS check: a plan the caller can't see reads as null, the row passes the trigger, and `plan_slots_all` rejects it without revealing that plan's week. No client role can execute them. Added in 0013. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
@@ -163,6 +163,7 @@ from plans p;
 
 ## Changelog
 
+- 2026-10-13: 0013 slot-week trigger functions are `security invoker`.
 - 2026-10-13: Documented migration 0013 (row rules, account deletion, `recipes.updated_at`, slot date in week, signup RPC no longer executable).
 - 2026-10-13: Documented migration 0010 (`app_admins`, `is_app_admin`, ingredient ownership policies).
 - 2026-10-13: Documented migration 0008 (`recipes.source_author`, `recipe_steps.title`).

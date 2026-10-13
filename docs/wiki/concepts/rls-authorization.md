@@ -12,8 +12,10 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5966c4c
+verified_commit: 5ddfe28
 sources:
+  - title: "Schema integrity (migration 0013)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql
   - title: "Share-token policies"
@@ -69,7 +71,7 @@ flowchart TD
 
 | Policy | Looseness | Impact |
 |---|---|---|
-| `rec_update` | Author **or** any member | Any member can edit any household recipe, including `author_id` (as the plan specified). Since 0004 a recipe can't be moved into a foreign household. |
+| `rec_update` | Author **or** any member | Any member can edit any household recipe, including `author_id` (as the plan specified). Since 0013 `author_id` is nullable, so a member can also set it to null, which makes the recipe undeletable through the API (`rec_delete` is author-only). Since 0004 a recipe can't be moved into a foreign household. A parallel fix for #75 tightens `rec_update` to the author or an app admin. |
 | `rec_select` `visibility = 'public_link'` | Readable by any signed-in user without membership | No UI sets `public_link`, so this is latent. Since 0004 `anon` can't read it. |
 
 Fixed in 0010: `ing_update` (any signed-in user could change any ingredient's macros) and `ing_insert` (any `created_by`). Updates now need the creator or an app admin (`is_app_admin()`, backed by `app_admins`, which no client can read or write). See [[0013-ingredient-ownership-and-app-admins]].
@@ -105,6 +107,7 @@ select get_shared_plan('<token>');     -- the plan that token unlocks, or null
 
 ## Changelog
 
+- 2026-10-13: `rec_update` gap: since migration 0013 a member can set `author_id` to null.
 - 2026-10-13: Updated for migration 0010: ingredient updates limited to the creator or an app admin; removed the `ing_update` gap.
 - 2026-10-09: UI string for an RLS-hidden recipe changed from „przepis usunięty" to „przepis niedostępny" (issue #16).
 - 2026-10-09: Re-verified against a7f8f52 against migrations 0001, 0002, 0004, 0005 and the policy text. Corrected the route list (`/api/plans` and `/api/shopping` are GET). 0006 and 0007 add no policies.

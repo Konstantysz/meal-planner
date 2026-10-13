@@ -14,8 +14,9 @@
 --   4. A slot's date must fall inside its plan's week (week_start_date .. +6). A CHECK cannot read
 --      another table, so two BEFORE triggers enforce it: one on plan_slots (insert, or update of date or
 --      plan_id) and one on plans (update of week_start_date while it has slots). Both raise 23514
---      (check_violation), like the CHECK they stand in for. Not a deferred constraint trigger: no app
---      flow moves a plan and its slots in the same transaction.
+--      (check_violation), like the CHECK they stand in for, and run as security invoker so a write into
+--      another household's plan fails on RLS without revealing that plan's week. Not a deferred
+--      constraint trigger: no app flow moves a plan and its slots in the same transaction.
 --   5. create_household_with_owner (0003, replaced by the signup trigger in 0006) is no longer
 --      executable by public, anon or authenticated. Nothing in src/ calls it.
 -- Does not redefine save_recipe or update_recipe (0011 does).
@@ -96,18 +97,21 @@ begin
   end if;
 end $$;
 
--- security definer: the rule must not depend on whether RLS lets the caller see the plan.
+-- security invoker: BEFORE triggers run before the RLS WITH CHECK, so a definer function would
+-- answer a write into another household's plan with that plan's week in the error. As invoker, a
+-- plan the caller cannot see reads as null, the trigger lets the row through, and plan_slots_all
+-- rejects it.
 create or replace function public.check_slot_date_in_week()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 declare
   week_start date;
 begin
   select week_start_date into week_start from plans where id = new.plan_id;
-  -- Unknown plan: the foreign key rejects the row.
+  -- Unknown or invisible plan: the foreign key or RLS rejects the row.
   if week_start is not null and (new.date < week_start or new.date > week_start + 6) then
     raise exception 'slot date % is outside its plan week starting %', new.date, week_start
       using errcode = '23514';
@@ -116,10 +120,11 @@ begin
 end;
 $$;
 
+-- security invoker: plans_all already requires membership, and a member sees all of the plan's slots.
 create or replace function public.check_plan_week_keeps_slots()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 begin

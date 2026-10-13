@@ -4,6 +4,11 @@ export interface StructuredAmount {
   raw_text: string;
 }
 
+/** A stored amount is null or > 0 (DB check, migration 0013): 0, negatives and NaN become null ("no amount"). */
+export function positiveAmountOrNull(amount: number | null | undefined): number | null {
+  return amount != null && amount > 0 ? amount : null;
+}
+
 export function roundForUnit(amount: number, unit: string | null): number {
   const u = unit?.toLowerCase() ?? '';
   if (u === 'g' || u === 'ml') return Math.round(amount);
