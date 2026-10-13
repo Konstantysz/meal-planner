@@ -3,7 +3,13 @@ import { render, screen, within } from '@testing-library/react';
 import type { RecipeWithDetails } from '@/lib/db/recipes';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), notFound: vi.fn() }));
-vi.mock('@/lib/supabase/server', () => ({ createServerSupabase: async () => ({}) }));
+// The page may also ask who is signed in and whether they are an app admin (fork rules, #98): signed out, no admin.
+vi.mock('@/lib/supabase/server', () => ({
+  createServerSupabase: async () => ({
+    auth: { getUser: async () => ({ data: { user: null } }) },
+    rpc: async () => ({ data: false, error: null }),
+  }),
+}));
 
 const ingredient = (n: number, name: string, kcal: number | null) => ({
   id: `i${n}`,
@@ -27,7 +33,7 @@ const row = (n: number, name: string, kcal: number | null, amount: number, unit:
 });
 
 let recipe: RecipeWithDetails;
-vi.mock('@/lib/db/recipes', () => ({ getRecipe: async () => recipe }));
+vi.mock('@/lib/db/recipes', () => ({ getRecipe: async () => recipe, getRecipeName: async () => null }));
 
 const { default: RecipePage } = await import('@/app/(app)/recipes/[id]/page');
 
