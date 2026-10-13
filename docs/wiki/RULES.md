@@ -2,16 +2,16 @@
 title: "LLM-Wiki Ruleset"
 summary: "How pages in this wiki are structured, linked, cited, reviewed and machine-checked."
 tags: [meta]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
-human_reviewed: true
+human_reviewed: false
 sources: []
 ---
 
@@ -172,7 +172,7 @@ sources:
 
 `pnpm wiki:stale` lists pages whose `sources:` changed since their `verified_commit` (whitespace-only changes ignored). It is informational: CI runs it in the `wiki` job (full checkout) and it exits 0; add `--strict` to fail. Use its output as the worklist for re-verification.
 
-The pre-commit hook also runs `vitest related` on staged `.ts`/`.tsx` files, so a commit that breaks a test stops locally.
+The pre-commit hook also runs `vitest related` on staged `.ts`/`.tsx` files, so a commit that breaks a test stops locally (skipped on merge commits; CI runs the full suite).
 
 **(amended)** Deferred: spell check (it would mostly flag Polish terms), a review label for edits to `stable` pages, and enforced changelog entries for `stable` changes.
 
@@ -202,6 +202,7 @@ Duplicate pages. Unsourced claims. Orphan pages. Stale `stable` pages. Giant pag
 
 ## Changelog
 
+- 2026-10-13: Noted that the pre-commit test step is skipped on merge commits. Status set to `review` (`human_reviewed: false`) because LLM text was added.
 - 2026-10-09: Example Polish UI string updated to „przepis niedostępny" (issue #16).
 - 2026-10-09: Added the avoided-term check, `pnpm wiki:stale`, and `vitest related` in the pre-commit hook.
 - 2026-10-04: Adopted with repo amendments (path, wikilinks, callouts, repo sources, `verified_commit`), plus the pre-commit hook and `.gitattributes`.
