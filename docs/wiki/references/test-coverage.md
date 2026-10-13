@@ -58,6 +58,8 @@ sources:
 | `src/app/api/import/extract/route.ts` | `tests/unit/import/extract-route.test.ts` |
 | `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` |
 | `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
+| `src/components/import/ImportReviewForm.tsx` | `tests/unit/import/ImportReviewForm.test.tsx` |
+| `src/lib/import/duration.ts` | `tests/unit/import/duration.test.ts` |
 | `scripts/wiki-check.ts` | `tests/unit/wiki-check.test.ts` |
 
 ## Not covered
