@@ -34,7 +34,7 @@ export function PlanSlot({
       {filled && dragHandle}
       <div className="min-w-0 flex-1">
         <div className={`text-xs ${filled ? 'text-on-slot' : 'text-muted'}`}>{label}</div>
-        <div className="break-words">{recipeName ?? <span className="text-faint italic">puste</span>}</div>
+        <div className="break-words">{recipeName ?? <span className="text-muted italic">puste</span>}</div>
         {filled && servings !== undefined && onServingsChange && (
           <div className="mt-1 flex items-center gap-1 text-xs text-on-slot" role="group" aria-label="Porcje">
             <button

@@ -8,13 +8,8 @@ import Home from '@/app/page';
 beforeEach(() => redirect.mockClear());
 
 describe('/', () => {
-  it('redirects to the plan', async () => {
-    await Home({ searchParams: Promise.resolve({}) });
-    expect(redirect).toHaveBeenCalledWith('/plan');
-  });
-
-  it('keeps ?week=', async () => {
-    await Home({ searchParams: Promise.resolve({ week: '2026-10-12' }) });
-    expect(redirect).toHaveBeenCalledWith('/plan?week=2026-10-12');
+  it('redirects to the recipes list, the start screen', () => {
+    Home();
+    expect(redirect).toHaveBeenCalledWith('/recipes');
   });
 });

@@ -72,11 +72,7 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 
 ## Leftover scaffold
 
-- `src/app/page.tsx` (`/`) is still the create-next-app landing page, and the manifest's `start_url` is `/`.
 - `src/app/layout.tsx` metadata is still "Create Next App", with `lang="en"`.
-
-> [!warning] Uncertain
-> Whether signed-in users reach the `/` landing page depends on the redirects in `updateSession` (`src/lib/supabase/middleware.ts`, used by `src/proxy.ts`). Not traced in full, so the earlier claim that logged-in users see it was removed.
 
 ## Examples
 

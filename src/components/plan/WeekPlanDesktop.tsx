@@ -192,7 +192,7 @@ function EmptyCell({
       type="button"
       aria-label={`Dodaj posiłek: ${LABELS[position]}, ${date}`}
       onClick={() => onAdd(date, position)}
-      className={`w-full h-full text-faint hover:text-brand text-xl min-h-11 rounded-block ${isOver ? 'bg-hover outline outline-2 outline-brand' : ''}`}
+      className={`w-full h-full text-muted hover:text-brand text-xl min-h-11 rounded-block ${isOver ? 'bg-hover outline outline-2 outline-brand' : ''}`}
     >
       +
     </button>

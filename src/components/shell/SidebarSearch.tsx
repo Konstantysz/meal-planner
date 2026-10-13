@@ -13,7 +13,7 @@ export function SidebarSearch() {
         name="q"
         type="search"
         placeholder="Szukaj przepisu"
-        className="min-h-9 w-full rounded-control border border-line bg-background pl-8 pr-2 text-sm placeholder:text-faint"
+        className="min-h-9 w-full rounded-control border border-line bg-background pl-8 pr-2 text-sm placeholder:text-muted"
       />
     </form>
   );
