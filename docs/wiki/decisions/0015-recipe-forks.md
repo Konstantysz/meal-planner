@@ -65,6 +65,7 @@ Since migration 0004, `rec_update` let any member edit any recipe of their house
 - An app admin edits only recipes they can read (`rec_select` is unchanged), in practice those of their own households.
 - Forks do not follow later changes to the original, and nothing merges them back. A fork of a fork points at its direct source.
 - Deleting the original keeps its forks; their `forked_from_id` becomes null.
+- Reusing an existing fork is best-effort under concurrency: `fork_recipe` checks for the caller's fork and then inserts, with no unique constraint behind it, so two simultaneous calls by the same caller can create two forks. The extra fork is an ordinary recipe its author can delete.
 - New recipe columns must be added to `fork_recipe`'s copy. It copies the `recipes` columns as of migration 0010. Open PRs add more: #92 (`recipes.image_url`, 0011) and the 0013 PR (`recipes.updated_at`, nullable `author_id`); whichever of them merges after 0014 must extend `fork_recipe` in a new migration.
 
 ## Related
@@ -85,5 +86,6 @@ Since migration 0004, `rec_update` let any member edit any recipe of their house
 
 ## Changelog
 
+- 2026-10-13: Noted that fork reuse is best-effort under concurrent calls.
 - 2026-10-13: A repeated fork returns the caller's existing fork; new forks are named „… (kopia)"; an empty copy raises `22023`; clarified which columns are copied.
 - 2026-10-13: Created with migration 0014.

@@ -24,14 +24,23 @@ export function ForkEditButton({
   async function fork() {
     setForking(true);
     setError(null);
-    const res = await fetch(`/api/recipes/${recipeId}/fork`, { method: 'POST' });
-    const body: { id?: unknown; error?: unknown } = await res.json().catch(() => ({}));
-    if (!res.ok || typeof body.id !== 'string') {
-      setError(typeof body.error === 'string' ? body.error : 'Nie udało się skopiować przepisu');
-      setForking(false);
-      return;
+    let forkId: string | null = null;
+    try {
+      const res = await fetch(`/api/recipes/${recipeId}/fork`, { method: 'POST' });
+      const body: { id?: unknown; error?: unknown } = await res.json().catch(() => ({}));
+      if (!res.ok || typeof body.id !== 'string') {
+        setError(typeof body.error === 'string' ? body.error : 'Nie udało się skopiować przepisu');
+        return;
+      }
+      forkId = body.id;
+    } catch {
+      // Network failure: fetch rejected before any response.
+      setError('Nie udało się utworzyć kopii. Spróbuj ponownie.');
+    } finally {
+      // Stay disabled only while navigating to the fork.
+      if (forkId === null) setForking(false);
     }
-    router.push(`/recipes/${body.id}/edit`);
+    if (forkId !== null) router.push(`/recipes/${forkId}/edit`);
   }
 
   return (

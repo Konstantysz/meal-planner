@@ -17,6 +17,7 @@
 -- Columns: fork_recipe copies the recipes columns as of 0010. Open PRs add more: #92
 -- (recipes.image_url, 0011) and the 0013 PR (recipes.updated_at, nullable author_id). Whichever of
 -- those merges after this one must extend fork_recipe in a NEW migration (never edit this file).
+-- Merge only after 0011 (#92), 0012 (#97) and 0013 (#96): this PR (0014, #98) merges last.
 -- Rollback: supabase/rollbacks/0014_recipe_fork.down.sql
 
 -- ---------------------------------------------------------------------------
@@ -119,6 +120,8 @@ create policy rs_delete on public.recipe_steps for delete to authenticated
 -- case: another member's recipe), otherwise the caller's own household (owner role first).
 -- Idempotent per caller: when the caller already has a fork of this source in that household, the
 -- most recent one is returned instead of creating another (repeated "Edytuj" makes no duplicates).
+-- This de-duplication is best-effort under concurrency: it is a check-then-insert with no unique
+-- constraint, so two simultaneous calls by the same caller can both miss and create two forks.
 -- A new fork copies the recipes columns as of 0010 except id, household_id, author_id and
 -- created_at; its name gets the suffix " (kopia)" (once, kept within the app's 200-character
 -- limit). forked_from_id points at the source (a fork of a fork points at its direct source).

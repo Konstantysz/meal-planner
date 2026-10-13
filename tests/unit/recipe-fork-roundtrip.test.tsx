@@ -181,4 +181,19 @@ describe('editing another member’s recipe', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('przepis nie istnieje');
     expect(router.push).not.toHaveBeenCalled();
   });
+
+  it('shows an error and re-enables the button when the network fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    render(<RecipeActions recipeId="r1" canEdit={false} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się utworzyć kopii. Spróbuj ponownie.');
+    expect(screen.getByRole('button', { name: 'Edytuj' })).toBeEnabled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(db.size).toBe(1);
+  });
 });

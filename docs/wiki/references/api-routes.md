@@ -52,7 +52,7 @@ This is the lookup table for `src/app/api/**/route.ts` and `src/app/auth/callbac
 | POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Validation or RPC error → 400. | `createRecipe` | 201 `Recipe` |
 | GET | `/api/recipes/[id]` | none | Any error, including a recipe the caller cannot read, is returned as 404 | `getRecipe` | 200 with ingredients and steps |
 | PUT | `/api/recipes/[id]` | `RecipeInput` body, validated by `RecipeInputSchema` in `updateRecipe` | 401 without a session. Replaces the recipe through the `update_recipe` RPC. Not the author or an app admin, or no such recipe (`42501`) → 403; invalid body or known client database error → 400; anything else → 500 with a generic message. | `updateRecipe` | 200 `Recipe` |
-| DELETE | `/api/recipes/[id]` | none | 401 without a session. `rec_delete` lets only the author or an app admin delete (0014); `deleteRecipe` asks for the deleted rows back, so 0 rows (refused or unknown id) → **403**. Malformed id → 400; other error → 500 with a generic message. | `deleteRecipe` | 204 |
+| DELETE | `/api/recipes/[id]` | none | 401 without a session. `rec_delete` lets only the author or an app admin delete (0014); `deleteRecipe` asks for the deleted rows back, so 0 rows → **403**. A 403 means nothing was deleted: the recipe is not yours, the id is unknown, or the recipe is not visible to you; RLS hides all three the same way and the route cannot tell them apart without an extra read. Malformed id → 400; other error → 500 with a generic message. | `deleteRecipe` | 204 |
 | POST | `/api/recipes/[id]/fork` | none | 401 without a session. Copies the recipe, its ingredients and steps as the caller's recipe through the `fork_recipe` RPC (0014), or returns the caller's existing fork of it. Unreadable or unknown recipe (`P0002`) → 404; malformed id, or no readable ingredients or steps (`22023`) → 400; refused (`42501`) → 403; other error → 500 with a generic message. | `forkRecipe` | 201 `{ id }` |
 | GET | `/api/ingredients` | none | Error → 500 | `listIngredients` | 200 `Ingredient[]` |
 | POST | `/api/ingredients` | `IngredientInput` body, validated by `IngredientInputSchema` in `createIngredient` | Any error, validation or RLS, is a generic 400 | `createIngredient` | 201 `Ingredient` |
@@ -108,6 +108,7 @@ await fetch(`/api/plans/${plan.id}/slots`, {
 
 ## Changelog
 
+- 2026-10-13: `DELETE /api/recipes/[id]`: a 403 also covers an unknown or invisible id.
 - 2026-10-13: Added `PUT /api/recipes/[id]` and `POST /api/recipes/[id]/fork`; `DELETE /api/recipes/[id]` now answers 403 instead of a silent 204 (issue #75). Handler count 19 in 14 files.
 - 2026-10-09: Re-verified against a7f8f52. Corrected the handler count (17 in 13 route files, plus `/auth/callback`), the `/api/share/[token]` call and output, the claim that every handler uses the Supabase client, and the public path list. Added error codes, Zod validation points, the `/auth/callback` route and the unnormalized `/api/shopping` week.
 - 2026-10-04: Created from a full read of the route handlers and the proxy.
