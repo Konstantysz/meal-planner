@@ -26,11 +26,13 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
       .catch(() => {});
   }, []);
 
+  const findRecipe = (id: string) => recipes.find((r) => r.id === id);
+
   async function handlePick(recipeId: string) {
     if (!pickerFor) return;
     const { date, position } = pickerFor;
     setPickerFor(null);
-    await assign(date, position, recipeId, 1);
+    await assign(date, position, recipeId, 1, findRecipe(recipeId));
   }
 
   const handlers = {
@@ -39,7 +41,8 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
     onMove: (slotId: string, date: string, position: number) => update(slotId, { date, position }),
     onServingsChange: (slotId: string, servings: number) => update(slotId, { servings }),
     onOpenMove: setMovingId,
-    onDropRecipe: (recipeId: string, date: string, position: number) => assign(date, position, recipeId, 1),
+    onDropRecipe: (recipeId: string, date: string, position: number) =>
+      assign(date, position, recipeId, 1, findRecipe(recipeId)),
   };
 
   const moving = plan?.slots.find((s) => s.id === movingId);

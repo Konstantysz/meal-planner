@@ -84,10 +84,10 @@ export function WeekPlanDesktop({
       <div>
         <RecipePanel recipes={recipes} />
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-[55rem] table-fixed border-collapse">
             <thead>
               <tr>
-                <th scope="col" className="w-20 border-b border-line">
+                <th scope="col" className="w-24 border-b border-line">
                   <span className="sr-only">Posiłek</span>
                 </th>
                 {days.map((d) => {
@@ -121,7 +121,7 @@ export function WeekPlanDesktop({
                 <tr key={pos}>
                   <th
                     scope="row"
-                    className="w-20 border-b border-line pr-2 pt-2 text-right align-top text-xs font-normal text-muted"
+                    className="w-24 border-b border-line pr-2 pt-2 text-right align-top text-xs font-normal text-muted"
                   >
                     {LABELS[pos]}
                   </th>
@@ -129,7 +129,7 @@ export function WeekPlanDesktop({
                     const dateStr = format(d, 'yyyy-MM-dd');
                     const slot = plan.slots.find((s) => s.date === dateStr && s.position === pos);
                     return (
-                      <td key={dateStr + pos} className="h-16 min-w-28 border-b border-l border-line p-1 align-top">
+                      <td key={dateStr + pos} className="h-16 border-b border-l border-line p-1 align-top">
                         {slot ? (
                           <DraggableSlot
                             slotId={slot.id}
