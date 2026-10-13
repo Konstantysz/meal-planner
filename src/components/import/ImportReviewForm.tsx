@@ -26,7 +26,7 @@ export function ImportReviewForm({
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
   const [steps, setSteps] = useState<RecipeFormStep[]>(
-    extracted.recipeInstructions.map((s) => ({ title: s.title ?? '', text: s.text })),
+    extracted.recipeInstructions.map((s) => ({ title: (s.title ?? '').slice(0, 200), text: s.text })),
   );
   const [sourceAuthor, setSourceAuthor] = useState('');
   const [error, setError] = useState<string | null>(null);

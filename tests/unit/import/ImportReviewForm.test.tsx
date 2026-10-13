@@ -96,6 +96,13 @@ describe('ImportReviewForm step titles', () => {
       { position: 1, title: null, text: 'Gotuj.' },
     ]);
   });
+
+  it('truncates a model-supplied title to 200 characters on prefill', async () => {
+    const body = await saveWith({
+      recipeInstructions: [{ title: 'x'.repeat(250), text: 'Gotuj.' }],
+    });
+    expect(body.steps[0].title).toBe('x'.repeat(200));
+  });
 });
 
 describe('ImportReviewForm step editing', () => {
