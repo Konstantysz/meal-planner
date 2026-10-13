@@ -23,11 +23,7 @@ export function ImportReviewForm({
   const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
-  const [steps, setSteps] = useState<string[]>(
-    Array.isArray(extracted.recipeInstructions)
-      ? extracted.recipeInstructions.map((s) => (typeof s === 'string' ? s : s.text))
-      : [extracted.recipeInstructions as string],
-  );
+  const [steps, setSteps] = useState<{ title: string | null; text: string }[]>(extracted.recipeInstructions);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [matching, setMatching] = useState(false);
@@ -111,7 +107,9 @@ export function ImportReviewForm({
           position: i.position,
           optional: i.optional,
         })),
-        steps: steps.filter((s) => s.trim()).map((text, i) => ({ position: i, text })),
+        steps: steps
+          .filter((s) => s.text.trim())
+          .map((s, i) => ({ position: i, title: s.title?.trim() || null, text: s.text })),
       }),
     });
     if (!res.ok) {
@@ -177,10 +175,10 @@ export function ImportReviewForm({
         {steps.map((s, i) => (
           <textarea
             key={i}
-            value={s}
+            value={s.text}
             onChange={(e) => {
               const n = [...steps];
-              n[i] = e.target.value;
+              n[i] = { ...s, text: e.target.value };
               setSteps(n);
             }}
             className="w-full border rounded px-2 py-1 my-1"
