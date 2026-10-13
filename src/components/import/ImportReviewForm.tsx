@@ -6,6 +6,7 @@ import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
 import { StepsEditor, type EditableStep } from '@/components/recipes/StepsEditor';
 import { ExtractedIngredientsEditor } from './ExtractedIngredientsEditor';
+import { isSessionRedirect, saveStatusMessage } from '@/lib/import/errors';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
 import {
@@ -14,6 +15,7 @@ import {
   type MatchOutcomeRow,
   type MatchStatus,
 } from '@/lib/import/match-outcome';
+import { normalizeUnit } from '@/lib/import/unit';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 
 export function ImportReviewForm({
@@ -49,7 +51,9 @@ export function ImportReviewForm({
     setOutcome(null);
     try {
       const localIngredients: Ingredient[] = await fetch('/api/ingredients').then((r) => r.json());
-      const toMatch = rows.filter((r) => r.name.trim());
+      const toMatch = rows
+        .filter((r) => r.name.trim())
+        .map((r) => ({ ...r, unit: r.unit ? (normalizeUnit(r.unit.trim()) ?? r.unit.trim()) : null }));
       const results = await autoMatchIngredients(toMatch, localIngredients, {
         searchOff: (q) => fetch(`/api/ingredients/lookup?q=${encodeURIComponent(q)}`).then((r) => r.json()),
       });
@@ -100,10 +104,15 @@ export function ImportReviewForm({
       setError('Zmapuj co najmniej jeden składnik przed zapisem.');
       return;
     }
+    const cleanSteps = steps.filter((s) => s.text.trim());
+    if (cleanSteps.length === 0) {
+      setError('Dodaj co najmniej jeden krok.');
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
-      await post();
+      await post(cleanSteps);
     } catch {
       setError('Nie udało się zapisać przepisu. Sprawdź połączenie i spróbuj ponownie.');
     } finally {
@@ -111,7 +120,7 @@ export function ImportReviewForm({
     }
   }
 
-  async function post() {
+  async function post(cleanSteps: EditableStep[]) {
     const res = await fetch('/api/recipes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -132,15 +141,16 @@ export function ImportReviewForm({
           position: i.position,
           optional: i.optional,
         })),
-        steps: steps
-          .filter((s) => s.text.trim())
-          .map((s, i) => ({ position: i, title: s.title.trim() || null, text: s.text })),
+        steps: cleanSteps.map((s, i) => ({ position: i, title: s.title.trim() || null, text: s.text })),
       }),
     });
     if (!res.ok) {
-      const body: unknown = await res.json().catch(() => null);
-      const msg = (body as { error?: unknown } | null)?.error;
-      setError(typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.');
+      setError(saveStatusMessage(res.status));
+      return;
+    }
+    // An expired session redirects to /login, which fetch follows into an HTML 200.
+    if (isSessionRedirect(res)) {
+      setError(saveStatusMessage(401));
       return;
     }
     const r = await res.json();
@@ -218,15 +228,19 @@ export function ImportReviewForm({
         <Button onClick={autoMatch} disabled={matching} className="w-full lg:w-auto">
           {matching ? 'Dopasowuję…' : 'Auto-mapuj składniki'}
         </Button>
-        {outcome && counts && (
-          <div role="status" className="space-y-2">
-            <p className="text-sm">
+        <p role="status" className="text-sm">
+          {outcome && counts && (
+            <>
               Dopasowane: <span className="tabular-nums">{counts.matched}</span>, nowe:{' '}
               <span className="tabular-nums">{counts.created}</span>, bez dopasowania:{' '}
               <span className="tabular-nums">{counts.unmatched}</span>.
               {counts.created > 0 && ' Sprawdź makra nowych składników.'}
               {counts.unmatched > 0 && ' Uzupełnij je ręcznie poniżej.'}
-            </p>
+            </>
+          )}
+        </p>
+        {outcome && (
+          <div className="space-y-2">
             <ul aria-label="Wynik dopasowania" className="divide-y divide-line border-y border-line text-sm">
               {outcome.map((o, i) => (
                 <li key={i} className="flex items-baseline justify-between gap-3 py-2">

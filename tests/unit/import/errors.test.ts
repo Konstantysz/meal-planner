@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ImportError, importErrorMessage, importStatusMessage } from '@/lib/import/errors';
+import {
+  ImportError,
+  importErrorMessage,
+  importStatusMessage,
+  isSessionRedirect,
+  saveStatusMessage,
+} from '@/lib/import/errors';
 import { summarizeOutcome } from '@/lib/import/match-outcome';
 
 describe('importStatusMessage', () => {
@@ -28,8 +34,28 @@ describe('importErrorMessage', () => {
   it('TypeError is a connection problem', () => {
     expect(importErrorMessage(new TypeError('Failed to fetch'), 'fetch')).toMatch(/Brak połączenia/);
   });
+  it('TypeError from WebLLM (model, local) is not a connection problem', () => {
+    expect(importErrorMessage(new TypeError('x'), 'model')).toMatch(/załadować modelu/);
+    expect(importErrorMessage(new TypeError('x'), 'local')).toMatch(/Model w przeglądarce/);
+  });
   it('names the model stage', () => {
     expect(importErrorMessage(new Error('x'), 'model')).toMatch(/załadować modelu/);
+  });
+});
+
+describe('isSessionRedirect', () => {
+  it('is true only for a redirect that landed on /login', () => {
+    expect(isSessionRedirect({ redirected: true, url: 'http://x.pl/login?next=/api/a' })).toBe(true);
+    expect(isSessionRedirect({ redirected: true, url: 'http://x.pl/other' })).toBe(false);
+    expect(isSessionRedirect({ redirected: false, url: 'http://x.pl/login' })).toBe(false);
+  });
+});
+
+describe('saveStatusMessage', () => {
+  it('maps statuses to Polish text', () => {
+    expect(saveStatusMessage(401)).toMatch(/Sesja wygasła/);
+    expect(saveStatusMessage(400)).toMatch(/Sprawdź dane/);
+    expect(saveStatusMessage(500)).toMatch(/Nie udało się zapisać/);
   });
 });
 

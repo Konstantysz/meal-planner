@@ -181,4 +181,47 @@ describe('ImportDialog', () => {
     release(json({ markdown: '#' }, 500));
     await screen.findByRole('alert');
   });
+
+  it('expired session (redirect to /login): session message, focus returns to the URL field', async () => {
+    const res = new Response('<html>login</html>', { status: 200 });
+    Object.defineProperty(res, 'redirected', { value: true });
+    Object.defineProperty(res, 'url', { value: 'http://localhost/login?next=/api/import/fetch' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => res),
+    );
+    await runImport();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sesja wygasła');
+    await waitFor(() => expect(screen.getByPlaceholderText(/jadlonomia/)).toHaveFocus());
+  });
+
+  it('the hint is a description of the URL field, not part of its name', () => {
+    render(<ImportDialog onClose={() => {}} onExtracted={vi.fn()} />);
+    const input = screen.getByRole('textbox', { name: 'Adres strony z przepisem' });
+    expect(input).toHaveAccessibleDescription(/jadlonomia\.com/);
+  });
+
+  it('closing during a run does not open the review screen', async () => {
+    let release: (r: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((res) => (release = res))),
+    );
+    const onExtracted = vi.fn();
+    const { unmount } = render(<ImportDialog onClose={() => {}} onExtracted={onExtracted} />);
+    await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), 'https://a.pl/x');
+    await userEvent.click(screen.getByRole('button', { name: /importuj/i }));
+    unmount();
+    release(json({ markdown: '#' }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onExtracted).not.toHaveBeenCalled();
+  });
+
+  it('WebLLM TypeError is not reported as a lost connection', async () => {
+    stubFetch(json({ mode: 'browser' }));
+    engine.hasWebGpu.mockResolvedValue(true);
+    engine.extractWithWebLlm.mockRejectedValue(new TypeError('x is not a function'));
+    await runImport();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Model w przeglądarce nie zdołał');
+  });
 });

@@ -90,7 +90,9 @@ The `ImportDialog` is a `Sheet` (bottom sheet on a phone, centred dialog from `l
 
 ## Error messages
 
-The routes answer with raw `String(e)` text, which the dialog never shows. `importStatusMessage(stage, status)` in `src/lib/import/errors.ts` maps a non-2xx answer to a Polish sentence by stage (`fetch`, `mode`, `extract`) and status: 400 bad address, 401 expired session, 503 Ollama not running, anything else a generic fetch or read failure. `importErrorMessage(e, stage)` handles what is thrown: an `ImportError` keeps its message (the WebGPU check uses one), a `TypeError` (the browser's `fetch` never reached the server) becomes „Brak połączenia z serwerem…", and a WebLLM failure at the `model` or `extract` stage gets a fixed sentence.
+The routes answer with raw `String(e)` text, which the dialog never shows. `importStatusMessage(stage, status)` in `src/lib/import/errors.ts` maps a non-2xx answer to a Polish sentence by stage (`fetch`, `mode`, `extract`) and status: 400 bad address, 503 Ollama not running, anything else a generic fetch or read failure. `importErrorMessage(e, stage)` handles what is thrown: an `ImportError` keeps its message (the WebGPU check uses one), a `TypeError` (the browser's `fetch` never reached the server) at the `fetch`, `mode` or `extract` stage becomes „Brak połączenia z serwerem…", and a WebLLM failure at the `model` or `local` stage gets a fixed sentence.
+
+No route returns 401: an expired session is answered by the proxy middleware with a 307 to `/login`, which `fetch` follows into an HTML 200. `isSessionRedirect(res)` detects that (`res.redirected` and a `/login` path) and the dialog and the review form show the session message; `saveStatusMessage(status)` does the same for the save call (400 check the data, anything else generic), so the server's `error` text is never shown. Closing the dialog aborts the run (`AbortController`), so a cancelled import never opens the review screen; on failure focus returns to the URL field.
 
 ## Review form structure
 

@@ -1,8 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Input, Sheet } from '@/components/ui';
 import { ensureEngineReady, extractWithWebLlm, hasWebGpu } from '@/lib/import/engine';
-import { ImportError, importErrorMessage, importStatusMessage, type ImportStage } from '@/lib/import/errors';
+import {
+  ImportError,
+  importErrorMessage,
+  importStatusMessage,
+  isSessionRedirect,
+  type ImportStage,
+} from '@/lib/import/errors';
 import type { ExtractedRecipe } from '@/lib/import/schema';
 
 type Stage = 'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error';
@@ -33,7 +39,28 @@ export function ImportDialog({
   const [error, setError] = useState<string | null>(null);
   const [modelProgress, setModelProgress] = useState<{ text: string; progress: number } | null>(null);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Closing the dialog (Anuluj, Escape) must not let a running import open the review screen later.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // The input is disabled during a run, which drops focus to <body>; bring it back with the error.
+  useEffect(() => {
+    if (stage === 'error') formRef.current?.querySelector('input')?.focus();
+  }, [stage]);
+
   async function run() {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const { signal } = ctrl;
+    // fetch that turns an expired-session redirect into the session message
+    const call = async (input: string, init: RequestInit | undefined, stage: ImportStage) => {
+      const res = await fetch(input, { ...init, signal });
+      if (isSessionRedirect(res)) throw new ImportError(importStatusMessage(stage, 401));
+      return res;
+    };
     setError(null);
     setModelProgress(null);
     setMode(null);
@@ -41,17 +68,17 @@ export function ImportDialog({
     let at: ImportStage = 'fetch';
     try {
       setStage('fetch');
-      const fr = await fetch('/api/import/fetch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
+      const fr = await call(
+        '/api/import/fetch',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) },
+        'fetch',
+      );
       if (!fr.ok) throw new ImportError(importStatusMessage('fetch', fr.status));
       const { markdown } = (await fr.json()) as { markdown: string };
 
       // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
       at = 'mode';
-      const mr = await fetch('/api/import/extract');
+      const mr = await call('/api/import/extract', undefined, 'mode');
       if (!mr.ok) throw new ImportError(importStatusMessage('mode', mr.status));
       const { mode: llmMode } = (await mr.json()) as { mode: Mode };
       setMode(llmMode === 'server' ? 'server' : 'browser');
@@ -59,11 +86,11 @@ export function ImportDialog({
       if (llmMode === 'server') {
         at = 'extract';
         setStage('extract');
-        const er = await fetch('/api/import/extract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ markdown }),
-        });
+        const er = await call(
+          '/api/import/extract',
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown }) },
+          'extract',
+        );
         if (!er.ok) throw new ImportError(importStatusMessage('extract', er.status));
         recipe = await er.json();
       } else {
@@ -75,15 +102,17 @@ export function ImportDialog({
         at = 'model';
         setStage('model');
         await ensureEngineReady((p) => {
-          setModelProgress({ text: p.text, progress: p.progress });
+          if (!signal.aborted) setModelProgress({ text: p.text, progress: p.progress });
         });
-        at = 'extract';
+        at = 'local';
         setStage('extract');
         recipe = await extractWithWebLlm(markdown);
       }
+      if (signal.aborted) return;
       setStage('done');
       onExtracted(recipe, url);
     } catch (e) {
+      if (signal.aborted) return;
       setError(importErrorMessage(e, at));
       setStage('error');
     }
@@ -97,15 +126,20 @@ export function ImportDialog({
   return (
     <Sheet open onClose={onClose} title="Import przepisu z URL">
       <form
+        ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
           if (canSubmit) void run();
         }}
         className="space-y-4"
       >
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Adres strony z przepisem</span>
+        <div className="space-y-1">
+          <label htmlFor="import-url" className="block text-sm font-medium">
+            Adres strony z przepisem
+          </label>
           <Input
+            id="import-url"
+            aria-describedby="import-url-hint"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://www.jadlonomia.com/..."
@@ -114,8 +148,10 @@ export function ImportDialog({
             autoComplete="off"
             disabled={running}
           />
-          <span className="block text-sm text-muted">Działa z jadlonomia.com i aniagotuje.pl.</span>
-        </label>
+          <p id="import-url-hint" className="text-sm text-muted">
+            Działa z jadlonomia.com i aniagotuje.pl.
+          </p>
+        </div>
 
         {running && (
           <div className="space-y-3">
@@ -133,7 +169,7 @@ export function ImportDialog({
             </ol>
             <p role="status" className="text-sm text-muted">
               {stage === 'fetch' && 'Pobieram stronę…'}
-              {stage === 'model' && (modelProgress?.text ?? 'Ładuję model (pierwszy raz może potrwać kilka minut)…')}
+              {stage === 'model' && 'Ładuję model (pierwszy raz może potrwać kilka minut)…'}
               {stage === 'extract' && 'Wyciągam przepis…'}
             </p>
             {stage === 'model' && modelProgress && (

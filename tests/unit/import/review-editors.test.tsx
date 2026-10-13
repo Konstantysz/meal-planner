@@ -92,6 +92,11 @@ describe('ExtractedIngredientsEditor', () => {
     expect(latest[0].amount).toBe(3);
     expect(latest[0].range).toBeUndefined();
 
+    // editing the unit drops the range too, and a negative amount is clamped to 0
+    await userEvent.type(screen.getByLabelText('Jednostka składnika z importu 2'), 'x');
+    await userEvent.type(screen.getByLabelText('Ilość składnika z importu 2'), '-5');
+    expect(latest[1].amount ?? 0).toBeGreaterThanOrEqual(0);
+
     await userEvent.click(screen.getByRole('button', { name: 'Przesuń składnik z importu 2 w górę' }));
     expect(latest.map((r) => r.name)).toEqual(['mąka', 'sól']);
 
@@ -140,6 +145,29 @@ describe('ImportReviewForm editing', () => {
       { position: 1, title: null, text: 'drugi' },
     ]);
     expect(body.source_author).toBe('Ania Gotuje');
+  });
+
+  it('failed save: Polish message by status, never the server error text', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ error: 'ZodError: [{"code":"too_small"}]' }), { status: 400 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<ImportReviewForm extracted={BASE as never} sourceUrl="" onCancel={() => {}} onSaved={() => {}} />);
+    await userEvent.click(screen.getByText('mock-pick'));
+    await userEvent.click(screen.getByRole('button', { name: /zapisz przepis/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Sprawdź dane przepisu');
+    expect(alert).not.toHaveTextContent('ZodError');
+  });
+
+  it('blocks save with a Polish message when no steps remain', async () => {
+    const fetchMock = renderForm();
+    await userEvent.click(screen.getByRole('button', { name: 'Usuń krok 1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Usuń krok 1' }));
+    await userEvent.click(screen.getByText('mock-pick'));
+    await userEvent.click(screen.getByRole('button', { name: /zapisz przepis/i }));
+    expect(screen.getByText('Dodaj co najmniej jeden krok.')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('auto-match uses the edited rows: removed row gone, added row present', async () => {
