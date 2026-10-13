@@ -131,8 +131,11 @@ export function ImportReviewForm({
     });
     if (!res.ok) {
       const body: unknown = await res.json().catch(() => null);
-      const msg = (body as { error?: unknown } | null)?.error;
-      setError(typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.');
+      const { error: msg, fields } = (body ?? {}) as { error?: unknown; fields?: Record<string, unknown> };
+      const detail = Object.values(fields ?? {}).filter((m): m is string => typeof m === 'string');
+      setError(
+        detail.length > 0 ? detail.join('. ') : typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.',
+      );
       return;
     }
     const r = await res.json();
