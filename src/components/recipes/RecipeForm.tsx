@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import type { RecipeFieldErrors } from '@/lib/recipe-errors';
 import { IngredientPicker, type PickedIngredient } from './IngredientPicker';
+import { StepsEditor, type EditableStep } from './StepsEditor';
 
 const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'] as const;
 const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'] as const;
@@ -21,10 +22,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export interface RecipeFormStep {
-  title: string;
-  text: string;
-}
+export type RecipeFormStep = EditableStep;
 
 export interface RecipeFormInitialValues {
   name: string;
@@ -32,6 +30,7 @@ export interface RecipeFormInitialValues {
   prep_time_min: number | null;
   source_url?: string | null;
   source_author?: string | null;
+  image_url?: string | null;
   visibility?: 'private' | 'household' | 'public_link';
   diet_tags: string[];
   allergens: string[];
@@ -52,6 +51,7 @@ export function RecipeForm({
   const [servings, setServings] = useState(initialValues?.servings_base ?? 4);
   const [prepTime, setPrepTime] = useState<number | null>(initialValues?.prep_time_min ?? null);
   const [sourceAuthor, setSourceAuthor] = useState(initialValues?.source_author ?? '');
+  const [imageUrl, setImageUrl] = useState(initialValues?.image_url ?? '');
   const [dietTags, setDietTags] = useState<string[]>(initialValues?.diet_tags ?? []);
   const [allergens, setAllergens] = useState<string[]>(initialValues?.allergens ?? []);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>(initialValues?.ingredients ?? []);
@@ -59,18 +59,6 @@ export function RecipeForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RecipeFieldErrors>({});
   const [saving, setSaving] = useState(false);
-
-  function updateStep(idx: number, patch: Partial<RecipeFormStep>) {
-    setSteps(steps.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  }
-
-  function moveStep(idx: number, dir: -1 | 1) {
-    const target = idx + dir;
-    if (target < 0 || target >= steps.length) return;
-    const next = [...steps];
-    [next[idx], next[target]] = [next[target], next[idx]];
-    setSteps(next);
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,6 +74,7 @@ export function RecipeForm({
         prep_time_min: prepTime,
         source_url: initialValues?.source_url ?? null,
         source_author: sourceAuthor.trim() || null,
+        image_url: imageUrl.trim() || null,
         visibility: initialValues?.visibility ?? 'household',
         diet_tags: dietTags,
         allergens,
@@ -170,6 +159,17 @@ export function RecipeForm({
         />
         <FieldError id="err-author" message={fieldErrors.source_author} />
       </label>
+      <label className="block">
+        <span className="font-semibold">Zdjęcie (adres URL)</span>
+        <Input
+          type="url"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://cdn.aniagotuje.com/…"
+          maxLength={2048}
+        />
+        <span className="text-sm text-muted">Obsługiwane strony: jadlonomia.com i aniagotuje.pl.</span>
+      </label>
       <fieldset>
         <legend className="font-semibold">Diety</legend>
         {DIETS.map((d) => (
@@ -203,46 +203,7 @@ export function RecipeForm({
       </div>
       <div>
         <h3 className="mb-2 font-semibold">Kroki</h3>
-        <ol className="space-y-3">
-          {steps.map((s, i) => (
-            <li key={i} className="space-y-2 border-b border-line pb-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="w-6 text-muted tabular-nums">{i + 1}.</span>
-                <Input
-                  aria-label={`Tytuł kroku ${i + 1}`}
-                  value={s.title}
-                  onChange={(e) => updateStep(i, { title: e.target.value })}
-                  placeholder="Tytuł kroku (opcjonalnie)"
-                  maxLength={200}
-                  className="min-w-40 flex-1"
-                />
-                <Button aria-label={`Przesuń krok ${i + 1} w górę`} disabled={i === 0} onClick={() => moveStep(i, -1)}>
-                  ↑
-                </Button>
-                <Button
-                  aria-label={`Przesuń krok ${i + 1} w dół`}
-                  disabled={i === steps.length - 1}
-                  onClick={() => moveStep(i, 1)}
-                >
-                  ↓
-                </Button>
-                <Button aria-label={`Usuń krok ${i + 1}`} onClick={() => setSteps(steps.filter((_, x) => x !== i))}>
-                  ×
-                </Button>
-              </div>
-              <textarea
-                aria-label={`Treść kroku ${i + 1}`}
-                value={s.text}
-                onChange={(e) => updateStep(i, { text: e.target.value })}
-                rows={3}
-                className="w-full rounded-control border border-line bg-background px-3 py-2 text-base text-ink lg:text-sm"
-              />
-            </li>
-          ))}
-        </ol>
-        <Button className="mt-2" onClick={() => setSteps([...steps, { title: '', text: '' }])}>
-          + krok
-        </Button>
+        <StepsEditor steps={steps} onChange={setSteps} />
         <FieldError id="err-steps" message={fieldErrors.steps} />
       </div>
       {error && (

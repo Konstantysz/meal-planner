@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 export const COMMIT = /\bgit\b[^;&|\n]*?\scommit(?![\w-])/;
 
 export const REMINDER =
-  'Review gate: the user rules require the code-reviewer agent on the staged diff after code changes, before a commit. The agent has no shell: paste the output of `git diff --cached` into its prompt. A commit that only touches docs or fixtures needs no review.';
+  'Review gate: the user rules require the code-reviewer agent on the staged diff after code changes, before a commit. The agent has no shell: paste the output of `git diff --cached` into its prompt. A commit that only touches docs or fixtures needs no review. A subagent without the Agent tool commits without pushing; its orchestrator reviews the branch diff before pushing.';
 
 export function hookOutput(payload) {
   const command = payload?.tool_input?.command;

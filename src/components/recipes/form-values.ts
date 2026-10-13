@@ -9,6 +9,7 @@ export function recipeToFormValues(recipe: RecipeWithDetails): RecipeFormInitial
     prep_time_min: recipe.prep_time_min,
     source_url: recipe.source_url,
     source_author: recipe.source_author,
+    image_url: recipe.image_url,
     visibility: recipe.visibility,
     diet_tags: recipe.diet_tags,
     allergens: recipe.allergens,

@@ -68,7 +68,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 
 | Gap | Details |
 |---|---|
-| `/` is the create-next-app page; metadata says "Create Next App" | [[spec-drift#Leftover scaffold]] |
+| Root layout metadata says "Create Next App" with lang="en" | [[spec-drift#Leftover scaffold]] |
 | The water filter only drops a part whose every „ lub " alternative starts with „woda"; „pomidory + woda" is kept as one ingredient | [[ingredient-auto-match#Invariants and gotchas]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
 | `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |

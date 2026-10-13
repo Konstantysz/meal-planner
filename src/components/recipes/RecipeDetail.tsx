@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui';
 import { MacroSummary } from './MacroSummary';
 import { RecipeActions } from './RecipeActions';
 import { RecipeCover } from './RecipeCover';
+import { RecipePhotoBand } from './RecipePhoto';
 import { RecipeIngredients } from './RecipeIngredients';
 import { RecipeSteps } from './RecipeSteps';
 import { RecipeTag } from './RecipeTag';
@@ -17,7 +18,11 @@ export function RecipeDetail({ recipe }: { recipe: RecipeWithDetails }) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4">
-      <RecipeCover variant="band" prepTimeMin={null} />
+      {recipe.image_url ? (
+        <RecipePhotoBand src={recipe.image_url} sizes="(min-width: 1024px) 1024px, 100vw" />
+      ) : (
+        <RecipeCover variant="band" prepTimeMin={null} />
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="font-display text-3xl font-extrabold leading-tight [hyphens:auto] [text-wrap:balance] lg:text-4xl">
           {recipe.name}
@@ -66,6 +71,12 @@ export function RecipeDetail({ recipe }: { recipe: RecipeWithDetails }) {
                 </a>
               )}
             </dd>
+          </div>
+        )}
+        {recipe.image_url && (
+          <div className="flex gap-2">
+            <dt className="w-24 shrink-0 text-muted">Zdjęcie</dt>
+            <dd>{new URL(recipe.image_url).hostname.replace(/^www\./, '')}</dd>
           </div>
         )}
       </dl>
