@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeWeekStart } from '@/lib/week';
 
 export const RecipeJsonLdSchema = z.object({
   name: z.string().min(1),
@@ -67,7 +68,7 @@ export const PlanSlotInputSchema = z.object({
 // Body of PATCH /api/plans/[id]/slots/[slotId]: move a slot and/or change its servings.
 export const PlanSlotPatchSchema = z
   .object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    date: z.string().refine((v) => normalizeWeekStart(v) !== null, { message: 'invalid calendar date' }),
     position: z.number().int().nonnegative(),
     servings: z.number().positive().max(99),
   })
