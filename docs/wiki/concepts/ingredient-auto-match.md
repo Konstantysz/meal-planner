@@ -54,7 +54,7 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 3. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match. A failed `searchOff` call counts as no OFF result.
 4. If there's neither, a `fallbackCandidate`: the name, category `inne`, null macros, `source: 'manual'`.
 
-`ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and shows a summary notice. The review form lists each import line as `amount unit name`.
+`ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and records one outcome per import line: matched, created, or unmatched (the `POST` failed). The review form lists each import line as `amount unit name` with a text tag for its outcome and a count line below; the button is hidden after one run.
 
 ## Invariants and gotchas
 
@@ -108,6 +108,7 @@ Names are solid on both; amount and unit are where the 2B model falls short, whi
 
 ## Changelog
 
+- 2026-10-13: Outcome is shown per row instead of one summary sentence (#40).
 - 2026-10-11: The model now structures ingredients; the staged regex parser, its corpus test and `cleanIngredientName` are removed ([[0012-llm-structures-ingredients]]).
 - 2026-10-09: Re-verified against `a7f8f52`. Updated the failed-`searchOff` behaviour.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.

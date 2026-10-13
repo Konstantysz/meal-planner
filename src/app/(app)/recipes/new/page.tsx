@@ -1,14 +1,15 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { RecipeForm } from '@/components/recipes/RecipeForm';
 import { ImportDialog } from '@/components/import/ImportDialog';
 import { ImportReviewForm } from '@/components/import/ImportReviewForm';
+import { Button } from '@/components/ui';
 import type { ExtractedRecipe } from '@/lib/import/schema';
 
-export default function NewRecipePage() {
+function NewRecipe() {
   const router = useRouter();
-  const [showImport, setShowImport] = useState(false);
+  const [showImport, setShowImport] = useState(useSearchParams().get('import') === '1');
   const [extracted, setExtracted] = useState<{ data: ExtractedRecipe; url: string } | null>(null);
 
   if (extracted) {
@@ -24,14 +25,9 @@ export default function NewRecipePage() {
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4 max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold">Nowy przepis</h1>
-        <button
-          onClick={() => setShowImport(true)}
-          className="text-green-700 border border-green-700 rounded px-3 py-1"
-        >
-          Import z URL
-        </button>
+      <div className="mx-auto mb-4 flex max-w-2xl items-center justify-between gap-3">
+        <h1 className="font-display text-[26px] font-extrabold tracking-tight lg:text-4xl">Nowy przepis</h1>
+        <Button onClick={() => setShowImport(true)}>Import z URL</Button>
       </div>
       <RecipeForm />
       {showImport && (
@@ -44,5 +40,13 @@ export default function NewRecipePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function NewRecipePage() {
+  return (
+    <Suspense>
+      <NewRecipe />
+    </Suspense>
   );
 }

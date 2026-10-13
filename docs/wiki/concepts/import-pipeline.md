@@ -28,6 +28,8 @@ sources:
     path: src/components/recipes/StepsEditor.tsx
   - title: "Prep-time parser"
     path: src/lib/import/duration.ts
+  - title: "Import error messages"
+    path: src/lib/import/errors.ts
   - title: "Page fetcher"
     path: src/lib/import/fetch.ts
 ---
@@ -35,7 +37,7 @@ sources:
 # Import Pipeline
 
 > [!tldr]
-> „Import z URL" on `/recipes/new` runs three stages. **Fetch and clean** happens on the server (HTML → Markdown). **Extract** runs an LLM, either WebLLM in the browser or Ollama on the server depending on `LLM_MODE`, and produces a validated `RecipeJsonLd`. **Review**: the user edits the result, auto-matches ingredients and saves through the normal `POST /api/recipes`. Nothing is saved without that review.
+> „Import z URL" (an outline button in the `/recipes` header beside the filled „Nowy przepis", and on `/recipes/new`) runs three stages. **Fetch and clean** happens on the server (HTML → Markdown). **Extract** runs an LLM, either WebLLM in the browser or Ollama on the server depending on `LLM_MODE`, and produces a validated `RecipeJsonLd`. **Review**: the user edits the result, auto-matches ingredients and saves through the normal `POST /api/recipes`. Nothing is saved without that review.
 
 ## Context
 
@@ -74,7 +76,11 @@ sequenceDiagram
 | Mapping ingredient lines to DB rows | [[ingredient-auto-match]] |
 | `recipeYield` → servings | [[recipe-yield-parsing]] |
 
-The `ImportDialog` is a native `<form>`: Enter in the URL field submits like "Importuj" (same disabled rules). Its stage machine is `idle → fetch → (model) → extract → done`, and any exception moves it to `error`, with the message shown inline. `/recipes/new` swaps `RecipeForm` for `ImportReviewForm` once a recipe has been extracted, and passes the source URL through as `source_url` (commit `b1bd2db`).
+The `ImportDialog` is a native `<form>` inside the shared `Sheet` (bottom sheet on mobile, centred dialog from `lg`): Enter in the URL field submits like "Importuj" (same disabled rules). Its stage machine is `idle → fetch → (model) → extract → done`, and any exception moves it to `error`. While busy the dialog lists the steps („Pobieram stronę", „Ładuję model" with a percentage bar in browser mode, „Odczytuję przepis") and marks the current one. The recipe list header links to `/recipes/new?import=1`, which opens the dialog immediately. `/recipes/new` swaps `RecipeForm` for `ImportReviewForm` once a recipe has been extracted, and passes the source URL through as `source_url` (commit `b1bd2db`).
+
+**Error messages.** The dialog never shows `String(e)`. `src/lib/import/errors.ts` maps failures to Polish: `fetchFailureMessage` (400 bad address, upstream 404/403/5xx read from the route's "Fetch failed: N" text, 401 expired session), `extractFailureMessage` (503 passes the route's Polish „Ollama nie działa" text through, anything else is a generic „Model nie odczytał przepisu"), a rejected `fetch` (`TypeError`) becomes „Brak połączenia z serwerem", a WebLLM failure becomes a generic browser-model message, and unknown errors stay „Coś poszło nie tak". The API routes still return raw error strings; only the client maps them.
+
+**Review screen.** `ImportReviewForm` is laid out in hairline-separated sections (details, ingredients, steps) with one filled button („Zapisz przepis"). The auto-match outcome is shown per import line as a text tag: „Dopasowano", „Utworzono — sprawdź makra" (a new ingredient was created) or „Nie dopasowano — dodaj ręcznie" (creating it failed), plus a count line. The auto-match button disappears after one run, because a second run would create the OFF/placeholder ingredients again.
 
 ## Invariants and gotchas
 
@@ -114,6 +120,7 @@ LLM_MODE=server pnpm dev
 
 ## Changelog
 
+- 2026-10-13: Import redesign (#40): header entry point, `Sheet` dialog with step progress, Polish error mapping (`errors.ts`), restyled review screen with per-row auto-match outcome.
 - 2026-10-13: Review screen edits steps (add, remove, move, title) and ingredient rows, and `source_author`; shares `StepsEditor` and `IngredientPicker` with `RecipeForm`.
 - 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.
