@@ -30,6 +30,12 @@ sources:
     path: src/components/recipes/ForkEditButton.tsx
   - title: "Edit access"
     path: src/lib/recipe-access.ts
+  - title: "Recipe photo URL"
+    path: supabase/migrations/0011_recipe_image_url.sql
+  - title: "Photo layer"
+    path: src/components/recipes/RecipePhoto.tsx
+  - title: "Allowed image hosts"
+    path: src/lib/image-hosts.ts
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -48,6 +54,14 @@ sources:
     path: src/app/(app)/recipes/[id]/page.tsx
   - title: "Edit page"
     path: src/app/(app)/recipes/[id]/edit/page.tsx
+  - title: "Recipe cards, cover and tags"
+    path: src/components/recipes/RecipeCard.tsx
+  - title: "Collapsible steps"
+    path: src/components/recipes/RecipeSteps.tsx
+  - title: "Scaled ingredients"
+    path: src/components/recipes/RecipeIngredients.tsx
+  - title: "Field-level validation messages"
+    path: src/lib/recipe-errors.ts
   - title: "Recipe actions"
     path: src/components/recipes/RecipeActions.tsx
 ---
@@ -66,8 +80,8 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 | Operation | UI | API → lib |
 |---|---|---|
 | Create | `/recipes/new` → `RecipeForm` (or [[import-pipeline]]) | `POST /api/recipes` → `createRecipe` |
-| List | `/recipes` → `RecipeList` + `RecipeFilters` | `GET /api/recipes?diet=&exclude=` → `listRecipes` |
-| Detail | `/recipes/[id]` (server component) | `getRecipe` directly |
+| List | `/recipes` → `RecipeList` + `RecipeFilters`, one `RecipeCard` per recipe | `GET /api/recipes?diet=&exclude=` → `listRecipes` |
+| Detail | `/recipes/[id]` (server component: `getRecipe`, `canEditRecipe`, `getRecipeName` for a fork) → `RecipeDetail` | `getRecipe` directly |
 | Edit | `/recipes/[id]/edit` → `RecipeForm` with `recipeId` | `PUT /api/recipes/[id]` → `updateRecipe` |
 | Fork | `RecipeActions` „Edytuj" (or „Utwórz kopię i edytuj" on the edit page) → `ForkEditButton` | `POST /api/recipes/[id]/fork` → `forkRecipe` |
 | Delete | `RecipeActions` „Usuń" (author or app admin only) | `DELETE /api/recipes/[id]` → `deleteRecipe` |
@@ -80,16 +94,18 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 
 `canEditRecipe(recipe, userId, isAdmin)` (`src/lib/recipe-access.ts`) mirrors the 0014 policies: the author or an app admin (`isAppAdmin`, the `is_app_admin` RPC). The detail and edit pages compute it server-side; it only picks the UI, RLS enforces the rule.
 
-- Author or app admin: `RecipeActions` shows the „Edytuj" link to `/recipes/[id]/edit` and „Usuń".
+- Author or app admin: `RecipeActions` shows „Edytuj" (a `ButtonLink` to `/recipes/[id]/edit`) and „Usuń".
 - Anyone else: `RecipeActions` shows „Edytuj" as `ForkEditButton` and no „Usuń". The click calls `POST /api/recipes/[id]/fork`, then opens `/recipes/<fork>/edit`. Opening `/recipes/[id]/edit` directly shows „Utwórz kopię i edytuj" instead of the form: forking is a write, so it waits for a click rather than running on page load.
 
-`forkRecipe(supabase, id)` calls `rpc('fork_recipe', { p_recipe_id })` (migration 0014) and returns the new id. In one transaction the function copies the recipe's columns (name, servings, prep time, source URL, source author, visibility, diets, allergens), its recipe ingredients (with `optional`) and its steps (with titles) into a new recipe authored by the caller, named „… (kopia)" (the suffix is added once and fits the 200-character limit), with `forked_from_id` pointing at the source. It copies the `recipes` columns as of migration 0010. Open PRs add more: #92 (`recipes.image_url`, 0011) and the 0013 PR (`recipes.updated_at`, nullable `author_id`); whichever of them merges after 0014 must extend `fork_recipe` in a new migration. When the caller already has a fork of the source in that household, the function returns the most recent one instead, so a repeated „Edytuj" opens the same fork. The fork goes into the source's household when the caller is a member (the normal case), otherwise into the caller's own household. It is `security invoker`: the reads and inserts are ones RLS already allows. A recipe the caller cannot read raises `P0002` (404). One that is readable while its ingredients or steps are not (`public_link` from outside the household) raises `22023` (400) rather than producing an empty fork. 401 when signed out, 403 for `42501`, 500 with a generic message otherwise. The original is never changed, and plan slots keep pointing at the recipe they were planned with. The detail page of a fork shows „Kopia przepisu „<name>"" linking to the original, only when `getRecipeName` can read it (deleting the original sets `forked_from_id` to null; an unreadable one shows nothing).
+`forkRecipe(supabase, id)` calls `rpc('fork_recipe', { p_recipe_id })` (migration 0014) and returns the new id. In one transaction the function copies the recipe's columns (name, servings, prep time, source URL, source author, visibility, diets, allergens), its recipe ingredients (with `optional`) and its steps (with titles) into a new recipe authored by the caller, named „… (kopia)" (the suffix is added once and fits the 200-character limit), with `forked_from_id` pointing at the source. It copies the `recipes` columns as of migration 0010. Open PRs add more: #92 (`recipes.image_url`, 0011) and the 0013 PR (`recipes.updated_at`, nullable `author_id`); whichever of them merges after 0014 must extend `fork_recipe` in a new migration. When the caller already has a fork of the source in that household, the function returns the most recent one instead, so a repeated „Edytuj" opens the same fork. The fork goes into the source's household when the caller is a member (the normal case), otherwise into the caller's own household. It is `security invoker`: the reads and inserts are ones RLS already allows. A recipe the caller cannot read raises `P0002` (404). One that is readable while its ingredients or steps are not (`public_link` from outside the household) raises `22023` (400) rather than producing an empty fork. 401 when signed out, 403 for `42501`, 500 with a generic message otherwise. The original is never changed, and plan slots keep pointing at the recipe they were planned with. The detail page of a fork (`RecipeDetail`, under the title) shows „Kopia przepisu „<name>"" linking to the original, only when `getRecipeName` can read it (deleting the original sets `forked_from_id` to null; an unreadable one shows nothing).
 
 `deleteRecipe(supabase, id)` deletes with `.select('id')` and reports whether a row went. `rec_delete` hides recipes the caller may not delete, so 0 rows means refused (or unknown id) and the route answers **403** instead of 204.
 
 ### Edit form
 
-The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title; the step list is the `StepsEditor` component, shared with the import review form, see [[import-pipeline]]). Positions are renumbered from list order on submit; steps with blank text are dropped. `source_url` and `visibility` are carried through unchanged (no field edits them).
+The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title). Positions are renumbered from list order on submit; steps with blank text are dropped. It also edits the photo URL („Zdjęcie (adres URL)"); a blank value clears it. `source_url` and `visibility` are carried through unchanged (no field edits them).
+
+Photo: `recipes.image_url` (0011) is a hotlinked https URL on a host from `IMAGE_HOSTS` in `src/lib/image-hosts.ts`; `RecipeInputSchema` rejects other hosts and `next.config.ts` allows the same hosts for `next/image`. The detail page shows it in a 16:9 band above the title with a „Zdjęcie: <host>" credit (host of the photo URL), and the band (`RecipePhotoBand`) renders nothing when the URL fails to load. `update_recipe` sets `image_url` to null when the payload omits it, so editing clients send the stored value. Reasoning: [[0014-recipe-photos-hotlinked]]. The list cards do not show the photo yet; `RecipePhoto` is the layer for the redesigned cover ([[design-brief]]).
 
 Filtering:
 
@@ -103,8 +119,12 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
-- The detail page shows servings and prep time (when set) as two bordered chips under the title (plain `<li>` with the `rounded-control border-line` tokens, not the interactive `Chip` primitive). Visual treatment is left to the redesign.
-- The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name.
+- **List cards** (`RecipeCard`): a 3:4 `RecipeCover` (name set large, prep time on top), then source author (when set), servings, per-serving macros, and diet and allergen tags. The cover has a `photo` slot, so a future image fills it without a layout change; its tint is `hover` until covers take the colour of the most-planned slot position (see [[design-brief]]). The grid is 2 columns on mobile and up to 5 on wide screens (the brief's horizontal shelves are not built). The filters are `Chip` toggles. States: skeleton covers while loading, „Brak przepisów. Dodaj pierwszy." with one action, a message for no filter match, for no search match and for a failed fetch.
+- `listRecipes` also selects each recipe's ingredient macro columns and returns `RecipeListItem` (`Recipe` plus `macros_per_serving`, from `toListItem` and `recipePerServing`). `WeekPlan` reads the same endpoint and ignores the extra field.
+- **Per-serving macros** use the rule of the day totals ([[week-plan]]): when any counted ingredient lacks data (a non-gram unit, no macros, or none counted) the value is null and the UI shows „brak danych makro". The detail page used to show a partial sum.
+- **Detail page**: `page.tsx` loads the recipe and computes `canEdit` and the original's name for a fork, then renders `RecipeDetail`: cover band, title with `RecipeActions`, the fork's „Kopia przepisu" link when set, servings and prep time as large tags (plain `RecipeTag`, not the interactive `Chip`), diet and allergen tags, a property list („Na porcję"; „Autor" with the „Źródło" link next to it), then ingredients beside steps on wide screens (one column on mobile).
+- `RecipeIngredients` shows `formatAmount(amount, unit)` followed by `raw_text`, with a servings stepper that scales amounts from `servings_base` through `scaleAmount`. Macros per serving do not change with it. Manual entries set `raw_text` to the ingredient name.
+- `RecipeSteps` renders each step as a `<details>` card. A step with a title shows it in the summary and its text when open; a step without one is a numbered card whose text is the summary (two lines closed). The first step starts open; „Rozwiń wszystkie" / „Zwiń wszystkie" toggles all (hidden for a single step).
 - Each ingredient row has an `optional` flag (the „opcjonalny" checkbox in `IngredientPicker`, migration 0007). Optional rows are left out of the recipe macros and labelled „(opcjonalnie)" on the detail page. The shopping list does **not** treat them differently. Import does not tick the box: the extractor drops the „ewentualne dodatki" label, so the user ticks it by hand.
 
 ## Known gaps
@@ -114,7 +134,10 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - A fork does not follow later changes to its original, and nothing merges a fork back. Forks of forks point at their direct source.
 - An app admin edits only recipes they can read (a household they belong to): `rec_select` is unchanged.
 - No pagination. `listRecipes` returns every visible recipe.
-- A failed save shows the raw Zod error JSON (e.g. `too_small` on `steps`) instead of a Polish message.
+
+## Validation messages
+
+`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. `ImportReviewForm` reads only `error`, so it shows the short Polish sentence instead of JSON.
 
 ## Examples
 
@@ -134,7 +157,10 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - [[macro-calculation]]
 - [[ingredient-database]]
 - [[import-pipeline]]
+- [[0014-recipe-photos-hotlinked]]
 - [[api-routes]]
+- [[design-brief]]
+- [[week-plan]]
 - [[0015-recipe-forks]]
 - [[rls-authorization]]
 
@@ -147,6 +173,8 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
+- 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
 - 2026-10-13: A repeated fork reuses the caller's fork; forks are named „… (kopia)"; `22023` for an empty copy; the original link shows only when readable.
 - 2026-10-13: Recipe forks (migration 0014, issue #75): only the author or an app admin edits or deletes in place; others fork via `POST /api/recipes/[id]/fork`. A refused delete now answers 403; removed the silent-delete gap. Live results pending.
 - 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).

@@ -41,12 +41,22 @@ describe('createRecipe', () => {
         diet_tags: [],
         allergens: [],
         source_author: null,
+        image_url: null,
         ingredients: input.ingredients.map((i) => ({ ...i, optional: false })),
         steps: input.steps.map((s) => ({ ...s, title: null })),
       },
     });
     // No direct table writes: atomicity lives in the database.
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it('passes image_url through to the RPC and rejects a host outside the allow-list', async () => {
+    const { client, rpc } = mockRpc({ data: { id: 'r1' }, error: null });
+    await createRecipe(client, { ...input, image_url: 'https://cdn.aniagotuje.com/a.jpg' }, 'h1');
+    expect(rpc.mock.calls[0][1].p_recipe.image_url).toBe('https://cdn.aniagotuje.com/a.jpg');
+
+    await expect(createRecipe(client, { ...input, image_url: 'https://evil.example/a.jpg' }, 'h1')).rejects.toThrow();
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it('passes source_author and step titles through to the RPC', async () => {
@@ -102,6 +112,7 @@ describe('updateRecipe', () => {
         diet_tags: [],
         allergens: [],
         source_author: null,
+        image_url: null,
         ingredients: input.ingredients.map((i) => ({ ...i, optional: false })),
         steps: input.steps.map((s) => ({ ...s, title: null })),
       },

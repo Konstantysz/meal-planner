@@ -1,7 +1,6 @@
 'use client';
-
-const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'];
-const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'];
+import { Chip } from '@/components/ui';
+import { ALLERGEN_LABELS, DIET_LABELS } from './labels';
 
 export function RecipeFilters({
   diet,
@@ -18,23 +17,29 @@ export function RecipeFilters({
     setter(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   }
   return (
-    <div className="space-y-2 p-4 border-b">
-      <div>
-        <span className="text-sm font-semibold mr-2">Diety:</span>
-        {DIETS.map((d) => (
-          <label key={d} className="mr-3 text-sm">
-            <input type="checkbox" checked={diet.includes(d)} onChange={() => toggle(diet, d, onDiet)} /> {d}
-          </label>
+    <div className="space-y-3 border-b border-line p-4">
+      <fieldset className="flex flex-wrap items-center gap-2">
+        <legend className="sr-only">Diety</legend>
+        <span aria-hidden="true" className="mr-1 text-sm font-semibold">
+          Diety
+        </span>
+        {Object.entries(DIET_LABELS).map(([slug, label]) => (
+          <Chip key={slug} selected={diet.includes(slug)} onClick={() => toggle(diet, slug, onDiet)}>
+            {label}
+          </Chip>
         ))}
-      </div>
-      <div>
-        <span className="text-sm font-semibold mr-2">Wyklucz:</span>
-        {ALLERGENS.map((a) => (
-          <label key={a} className="mr-3 text-sm">
-            <input type="checkbox" checked={exclude.includes(a)} onChange={() => toggle(exclude, a, onExclude)} /> {a}
-          </label>
+      </fieldset>
+      <fieldset className="flex flex-wrap items-center gap-2">
+        <legend className="sr-only">Wyklucz alergeny</legend>
+        <span aria-hidden="true" className="mr-1 text-sm font-semibold">
+          Wyklucz
+        </span>
+        {Object.entries(ALLERGEN_LABELS).map(([slug, label]) => (
+          <Chip key={slug} selected={exclude.includes(slug)} onClick={() => toggle(exclude, slug, onExclude)}>
+            {label}
+          </Chip>
         ))}
-      </div>
+      </fieldset>
     </div>
   );
 }

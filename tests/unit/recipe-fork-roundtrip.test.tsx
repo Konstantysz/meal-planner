@@ -57,6 +57,7 @@ vi.mock('@/lib/supabase/server', () => ({
 const { PUT } = await import('@/app/api/recipes/[id]/route');
 const { POST: FORK_POST } = await import('@/app/api/recipes/[id]/fork/route');
 const { RecipeActions } = await import('@/components/recipes/RecipeActions');
+const { RecipeDetail } = await import('@/components/recipes/RecipeDetail');
 const { RecipeForm } = await import('@/components/recipes/RecipeForm');
 const { recipeToFormValues } = await import('@/components/recipes/form-values');
 const { canEditRecipe } = await import('@/lib/recipe-access');
@@ -195,5 +196,23 @@ describe('editing another member’s recipe', () => {
     expect(screen.getByRole('button', { name: 'Edytuj' })).toBeEnabled();
     expect(router.push).not.toHaveBeenCalled();
     expect(db.size).toBe(1);
+  });
+});
+
+describe('RecipeDetail for a fork', () => {
+  const fork = { ...original, id: FORK, author_id: ME, name: 'Zupa (kopia)', forked_from_id: 'r1', image_url: null };
+
+  it('links to the readable original and edits in place for the author', () => {
+    render(<RecipeDetail recipe={fork} canEdit originalName="Zupa" />);
+    expect(screen.getByRole('link', { name: '„Zupa”' })).toHaveAttribute('href', '/recipes/r1');
+    expect(screen.getByRole('link', { name: 'Edytuj' })).toHaveAttribute('href', `/recipes/${FORK}/edit`);
+    expect(screen.getByRole('button', { name: 'Usuń' })).toBeTruthy();
+  });
+
+  it('hides the link when the original is not readable and forks for a non-author', () => {
+    render(<RecipeDetail recipe={fork} canEdit={false} originalName={null} />);
+    expect(screen.queryByText(/Kopia przepisu/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edytuj' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Usuń' })).toBeNull();
   });
 });

@@ -48,6 +48,10 @@ _Avoid_: instruction, direction, krok (UI label only)
 A member's own copy of a recipe another member saved, made when they edit it, with its recipe ingredients and steps. Only the member who saved a recipe, or an app admin, changes or deletes it in place; anyone else edits a fork. The fork remembers the recipe it came from; the original and the slots planned with it stay unchanged. A member has at most one fork of a recipe; editing it again reopens it. UI: the name ends in „(kopia)".
 _Avoid_: clone, duplicate, variant, version
 
+**Recipe photo**:
+The optional picture of a recipe: a hotlinked URL from a supported source site, not a stored file. Without one, a recipe cover shows its slot colour.
+_Avoid_: image upload (photos are not uploaded), thumbnail
+
 **Source author**:
 The person or site credited with a recipe's original authorship: the name from an imported page, or a household member who wrote the recipe themselves. Not the same as who saved it.
 _Avoid_: author (alone, it is ambiguous with the member who saved the recipe), creator, owner

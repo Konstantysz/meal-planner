@@ -14,7 +14,7 @@ export function ForkEditButton({
 }: {
   recipeId: string;
   label?: string;
-  /** The screen's primary action (edit page) instead of a text link (recipe actions). */
+  /** The screen's primary action (edit page) instead of an outline button (recipe actions). */
   primary?: boolean;
 }) {
   const router = useRouter();
@@ -45,24 +45,17 @@ export function ForkEditButton({
 
   return (
     <>
-      {primary ? (
-        <Button variant="primary" onClick={fork} disabled={forking}>
-          {forking ? 'Kopiuję…' : label}
-        </Button>
-      ) : (
-        // Same look as the "Edytuj" link authors get in RecipeActions.
-        <button
-          type="button"
-          onClick={fork}
-          disabled={forking}
-          title="Przepis innego domownika: edytujesz własną kopię, oryginał zostaje bez zmian"
-          className="text-sm underline opacity-80 hover:opacity-100 disabled:opacity-50"
-        >
-          {forking ? 'Kopiuję…' : label}
-        </button>
-      )}
+      <Button
+        variant={primary ? 'primary' : 'outline'}
+        onClick={fork}
+        disabled={forking}
+        // Same look as the "Edytuj" link authors get in RecipeActions (outline) unless primary.
+        title={primary ? undefined : 'Przepis innego domownika: edytujesz własną kopię, oryginał zostaje bez zmian'}
+      >
+        {forking ? 'Kopiuję…' : label}
+      </Button>
       {error && (
-        <span role="alert" className="text-sm text-red-600">
+        <span role="alert" className="text-sm text-brand">
           {error}
         </span>
       )}

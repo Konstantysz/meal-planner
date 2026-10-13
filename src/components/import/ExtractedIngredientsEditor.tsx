@@ -22,54 +22,69 @@ export function ExtractedIngredientsEditor({
     <div>
       <ul className="space-y-3">
         {rows.map((r, i) => (
-          <li key={i} className="flex flex-wrap items-center gap-2 border-b border-line pb-3">
+          <li key={i} className="space-y-2 border-b border-line pb-3">
             <Input
               aria-label={`Nazwa składnika z importu ${i + 1}`}
               value={r.name}
               onChange={(e) => update(i, { name: e.target.value })}
-              className="min-w-40 flex-1"
             />
-            <Input
-              aria-label={`Ilość składnika z importu ${i + 1}`}
-              type="number"
-              min={0}
-              step="any"
-              value={r.amount ?? ''}
-              onChange={(e) =>
-                update(i, {
-                  amount: e.target.value === '' ? null : Math.max(0, Number(e.target.value)),
-                  range: undefined,
-                })
-              }
-              className="w-20"
-            />
-            <Input
-              aria-label={`Jednostka składnika z importu ${i + 1}`}
-              value={r.unit ?? ''}
-              onChange={(e) => update(i, { unit: e.target.value || null, range: undefined })}
-              className="w-20"
-            />
-            <label className="flex items-center gap-1 text-sm whitespace-nowrap">
-              <input type="checkbox" checked={r.optional} onChange={(e) => update(i, { optional: e.target.checked })} />
-              opcjonalny
-            </label>
-            <Button
-              aria-label={`Przesuń składnik z importu ${i + 1} w górę`}
-              disabled={i === 0}
-              onClick={() => onChange(moveItem(rows, i, -1))}
-            >
-              ↑
-            </Button>
-            <Button
-              aria-label={`Przesuń składnik z importu ${i + 1} w dół`}
-              disabled={i === rows.length - 1}
-              onClick={() => onChange(moveItem(rows, i, 1))}
-            >
-              ↓
-            </Button>
-            <Button aria-label={`Usuń składnik z importu ${i + 1}`} onClick={() => onChange(removeItem(rows, i))}>
-              ×
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                aria-label={`Ilość składnika z importu ${i + 1}`}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={r.amount ?? ''}
+                onChange={(e) =>
+                  update(i, {
+                    amount: e.target.value === '' ? null : Math.max(0, Number(e.target.value)),
+                    range: undefined,
+                  })
+                }
+                className="w-24"
+              />
+              <Input
+                aria-label={`Jednostka składnika z importu ${i + 1}`}
+                value={r.unit ?? ''}
+                onChange={(e) => update(i, { unit: e.target.value || null, range: undefined })}
+                className="w-24"
+              />
+              <label className="flex min-h-11 items-center gap-2 text-sm whitespace-nowrap lg:min-h-9">
+                <input
+                  type="checkbox"
+                  className="size-5 accent-brand"
+                  checked={r.optional}
+                  onChange={(e) => update(i, { optional: e.target.checked })}
+                />
+                opcjonalny
+              </label>
+              <div className="ml-auto flex gap-1">
+                <Button
+                  aria-label={`Przesuń składnik z importu ${i + 1} w górę`}
+                  disabled={i === 0}
+                  onClick={() => onChange(moveItem(rows, i, -1))}
+                  className="w-11 px-0 lg:w-9"
+                >
+                  ↑
+                </Button>
+                <Button
+                  aria-label={`Przesuń składnik z importu ${i + 1} w dół`}
+                  disabled={i === rows.length - 1}
+                  onClick={() => onChange(moveItem(rows, i, 1))}
+                  className="w-11 px-0 lg:w-9"
+                >
+                  ↓
+                </Button>
+                <Button
+                  aria-label={`Usuń składnik z importu ${i + 1}`}
+                  onClick={() => onChange(removeItem(rows, i))}
+                  className="w-11 px-0 lg:w-9"
+                >
+                  ×
+                </Button>
+              </div>
+            </div>
           </li>
         ))}
       </ul>

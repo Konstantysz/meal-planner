@@ -35,7 +35,7 @@ sources:
 # API Routes
 
 > [!tldr]
-> There are 19 handlers in 14 route files under `src/app/api`, plus the `/auth/callback` route. Every handler that touches the database uses the cookie-bound Supabase server client, so **RLS decides what it can read or write**. Logged-out requests never reach a handler: the proxy redirects them to `/login` first.
+> There are 20 handlers in 14 route files under `src/app/api`, plus the `/auth/callback` route. Every handler that touches the database uses the cookie-bound Supabase server client, so **RLS decides what it can read or write**. Logged-out requests never reach a handler: the proxy redirects them to `/login` first.
 
 ## Context
 
@@ -48,10 +48,10 @@ This is the lookup table for `src/app/api/**/route.ts` and `src/app/auth/callbac
 
 | Method | Path | Input | Notes | Calls | Success |
 |---|---|---|---|---|---|
-| GET | `/api/recipes` | `?diet=…&exclude=…` (repeatable) | `diet` filters in SQL (`contains`); `exclude` drops recipes whose `allergens` match, in JS. Error → 500. | `listRecipes` | 200 `Recipe[]` |
-| POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Validation or RPC error → 400. | `createRecipe` | 201 `Recipe` |
+| GET | `/api/recipes` | `?diet=…&exclude=…` (repeatable) | `diet` filters in SQL (`contains`); `exclude` drops recipes whose `allergens` match, in JS. Error → 500. | `listRecipes` | 200 `RecipeListItem[]` (`Recipe` plus `macros_per_serving`) |
+| POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Invalid body → 400 `{ error, fields }` (one Polish message per form field, `recipeFieldErrors`); other RPC error → 400. | `createRecipe` | 201 `Recipe` |
 | GET | `/api/recipes/[id]` | none | Any error, including a recipe the caller cannot read, is returned as 404 | `getRecipe` | 200 with ingredients and steps |
-| PUT | `/api/recipes/[id]` | `RecipeInput` body, validated by `RecipeInputSchema` in `updateRecipe` | 401 without a session. Replaces the recipe through the `update_recipe` RPC. Not the author or an app admin, or no such recipe (`42501`) → 403; invalid body or known client database error → 400; anything else → 500 with a generic message. | `updateRecipe` | 200 `Recipe` |
+| PUT | `/api/recipes/[id]` | `RecipeInput` body, validated by `RecipeInputSchema` in `updateRecipe` | 401 without a session. Replaces the recipe through the `update_recipe` RPC. Not the author or an app admin, or no such recipe (`42501`) → 403; invalid body → 400 `{ error, fields }` (`recipeFieldErrors`, as for POST); known client database error → 400; anything else → 500 with a generic message. | `updateRecipe` | 200 `Recipe` |
 | DELETE | `/api/recipes/[id]` | none | 401 without a session. `rec_delete` lets only the author or an app admin delete (0014); `deleteRecipe` asks for the deleted rows back, so 0 rows → **403**. A 403 means nothing was deleted: the recipe is not yours, the id is unknown, or the recipe is not visible to you; RLS hides all three the same way and the route cannot tell them apart without an extra read. Malformed id → 400; other error → 500 with a generic message. | `deleteRecipe` | 204 |
 | POST | `/api/recipes/[id]/fork` | none | 401 without a session. Copies the recipe, its ingredients and steps as the caller's recipe through the `fork_recipe` RPC (0014), or returns the caller's existing fork of it. Unreadable or unknown recipe (`P0002`) → 404; malformed id, or no readable ingredients or steps (`22023`) → 400; refused (`42501`) → 403; other error → 500 with a generic message. | `forkRecipe` | 201 `{ id }` |
 | GET | `/api/ingredients` | none | Error → 500 | `listIngredients` | 200 `Ingredient[]` |
@@ -65,7 +65,7 @@ This is the lookup table for `src/app/api/**/route.ts` and `src/app/auth/callbac
 | POST | `/api/share` | `{ plan_id }` (not validated in the route) | 401 without a session. Inserts a `share_tokens` row; `st_insert` allows it only for a plan of the caller's household. Token insert is retried up to 5 times, then fails → 400. | `createShareToken` | 200 `{ token }` |
 | GET | `/api/share/[token]` | none | Unknown token → 404 `invalid token`. Unreachable when logged out (see the warning above). The UI doesn't call it: the share page (`src/app/share/[token]/page.tsx`) calls `getSharedPlan` directly. | `getSharedPlan` (`get_shared_plan` RPC) | 200 `SharedPlan` (`week_start_date`, `slots`) |
 | POST | `/api/household/invite` | `{ household_id, user_id }`; `user_id` is a known uuid, there is no email lookup | 401 without a session. Missing fields → 400. `inviteMember` does an explicit caller-membership check, the only explicit check in the handlers. Not a member, or insert error → 400. | `inviteMember` | 200 `{ ok: true }` |
-| POST | `/api/import/fetch` | `{ url }` | Missing or non-string `url` → 400. Server-side fetch, which avoids CORS. A non-OK upstream response or any error → 500. | `fetchPage`, `cleanHtml` | 200 `{ markdown }` |
+| POST | `/api/import/fetch` | `{ url }` | Missing or non-string `url` → 400. Server-side fetch, which avoids CORS. A non-OK upstream response or any error → 500. | `fetchPage`, `cleanHtml`, `extractImageUrl` | 200 `{ markdown, image_url }` (`image_url` is an https URL on an allowed image host, or `null`) |
 | GET | `/api/import/extract` | none | Reports `LLM_MODE` | none | 200 `{ mode: 'server' \| 'browser' }` |
 | POST | `/api/import/extract` | `{ markdown }` | Missing or non-string `markdown` → 400. Extraction always goes to Ollama (`callOllama`). Any failure → 502. | `extractRecipe(…, callOllama)` | 200 `RecipeJsonLd` |
 | GET | `/auth/callback` (outside `/api`) | `?code=` | Exchanges the one-time recovery `code` for a session cookie. Success → redirect to `/reset-password`. No code or a failed exchange → redirect to `/login?error=link`. The destination is fixed, so the route is not an open redirect. | `exchangeCodeForSession` | redirect, no JSON |
@@ -108,7 +108,9 @@ await fetch(`/api/plans/${plan.id}/slots`, {
 
 ## Changelog
 
+- 2026-10-13: `POST /api/import/fetch` also returns `image_url`; recipe POST/PUT accept `image_url`.
 - 2026-10-13: `DELETE /api/recipes/[id]`: a 403 also covers an unknown or invisible id.
 - 2026-10-13: Added `PUT /api/recipes/[id]` and `POST /api/recipes/[id]/fork`; `DELETE /api/recipes/[id]` now answers 403 instead of a silent 204 (issue #75). Handler count 19 in 14 files.
+- 2026-10-13: Merged main: `PUT /api/recipes/[id]` answers an invalid body with `{ error, fields }`; handler count corrected to 20 in 14 files.
 - 2026-10-09: Re-verified against a7f8f52. Corrected the handler count (17 in 13 route files, plus `/auth/callback`), the `/api/share/[token]` call and output, the claim that every handler uses the Supabase client, and the public path list. Added error codes, Zod validation points, the `/auth/callback` route and the unnormalized `/api/shopping` week.
 - 2026-10-04: Created from a full read of the route handlers and the proxy.

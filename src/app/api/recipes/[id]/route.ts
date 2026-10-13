@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ZodError } from 'zod';
 import { deleteRecipe, getRecipe, updateRecipe } from '@/lib/db/recipes';
+import { recipeFieldErrors } from '@/lib/recipe-errors';
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,7 +30,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     return NextResponse.json(await updateRecipe(supabase, id, body));
   } catch (e) {
-    if (e instanceof ZodError) return NextResponse.json({ error: String(e) }, { status: 400 });
+    if (e instanceof ZodError)
+      return NextResponse.json({ error: 'nieprawidłowe dane przepisu', fields: recipeFieldErrors(e) }, { status: 400 });
     // update_recipe raises 42501 when RLS blocks the update (or the recipe does not exist).
     const code = (e as { code?: string } | null)?.code;
     if (code === '42501') return NextResponse.json({ error: 'brak dostępu do przepisu' }, { status: 403 });
