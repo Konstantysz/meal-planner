@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -42,6 +42,15 @@ async function runImport() {
 const calledExtractPost = (f: ReturnType<typeof stubFetch>) =>
   f.mock.calls.some(([url, init]) => url === '/api/import/extract' && init?.method === 'POST');
 
+beforeAll(() => {
+  // jsdom has no <dialog> behaviour; emulate open/close.
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false;
+  };
+});
 beforeEach(() => Object.values(engine).forEach((m) => m.mockReset()));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -110,13 +119,66 @@ describe('ImportDialog', () => {
     engine.extractWithWebLlm.mockRejectedValue(new Error('Device was lost'));
     await runImport();
 
-    expect(await screen.findByText(/Device was lost/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Model w przeglądarce nie zdołał odczytać przepisu');
+    expect(screen.queryByText(/Device was lost/)).not.toBeInTheDocument();
     expect(calledExtractPost(f)).toBe(false);
   });
 
   it('shows an error when the mode cannot be read (e.g. expired session)', async () => {
     stubFetch(new Response('<html>login</html>', { status: 500 }));
     await runImport();
-    expect(await screen.findByText(/odczytać trybu LLM \(500\)/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się sprawdzić trybu importu');
+  });
+
+  it('fetch failure: Polish message, not the server error text', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ error: 'Error: Fetch failed: 404' }, 500)),
+    );
+    await runImport();
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Nie udało się pobrać strony');
+    expect(alert).not.toHaveTextContent('Fetch failed');
+    expect(screen.getByRole('button', { name: /spróbuj ponownie/i })).toBeEnabled();
+  });
+
+  it('extract failure on the server: Polish message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const key = `${init?.method ?? 'GET'} ${url}`;
+        if (key === 'POST /api/import/fetch') return json({ markdown: '# Zupa' });
+        if (key === 'GET /api/import/extract') return json({ mode: 'server' });
+        return json({ error: 'Error: LLM failed to produce valid recipe: {...}' }, 502);
+      }),
+    );
+    await runImport();
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Nie udało się odczytać przepisu z tej strony');
+    expect(alert).not.toHaveTextContent('LLM failed');
+  });
+
+  it('network failure: connection message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    await runImport();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Brak połączenia z serwerem');
+  });
+
+  it('shows the steps while running', async () => {
+    let release: (r: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((res) => (release = res))),
+    );
+    await runImport();
+    expect(screen.getByText(/1\. Pobieranie strony/)).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('status')).toHaveTextContent('Pobieram stronę');
+    release(json({ markdown: '#' }, 500));
+    await screen.findByRole('alert');
   });
 });

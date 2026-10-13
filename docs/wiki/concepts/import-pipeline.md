@@ -26,6 +26,12 @@ sources:
     path: src/lib/list-edit.ts
   - title: "New recipe page"
     path: src/app/(app)/recipes/new/page.tsx
+  - title: "New recipe screen (manual form, dialog, review)"
+    path: src/components/import/NewRecipeScreen.tsx
+  - title: "Polish import error messages"
+    path: src/lib/import/errors.ts
+  - title: "Auto-match outcome rows and summary"
+    path: src/lib/import/match-outcome.ts
   - title: "Fetch route"
     path: src/app/api/import/fetch/route.ts
   - title: "Extract route"
@@ -78,7 +84,13 @@ sequenceDiagram
 | Mapping ingredient lines to DB rows | [[ingredient-auto-match]] |
 | `recipeYield` → servings | [[recipe-yield-parsing]] |
 
-The `ImportDialog` is a native `<form>`: Enter in the URL field submits like "Importuj" (same disabled rules). Its stage machine is `idle → fetch → (model) → extract → done`, and any exception moves it to `error`, with the message shown inline. `/recipes/new` swaps `RecipeForm` for `ImportReviewForm` once a recipe has been extracted, and passes the source URL through as `source_url` (commit `b1bd2db`).
+The entry point is „Importuj z URL" in the header of the recipe list, a link to `/recipes/new?import=1`. The new-recipe page (`NewRecipeScreen`) opens the dialog at once for that parameter, and keeps its own „Import z URL" button.
+
+The `ImportDialog` is a `Sheet` (bottom sheet on a phone, centred dialog from `lg`) around a native `<form>`: Enter in the URL field submits like "Importuj" (same disabled rules). Its stage machine is `idle → fetch → (model) → extract → done`; the model step exists only in browser mode. While it runs, the dialog lists the steps with the current one marked, shows a status line and, for the model download, a progress bar. Any exception moves it to `error`: a Polish message in a `role="alert"` box, and the submit button reads „Spróbuj ponownie". `/recipes/new` swaps `RecipeForm` for `ImportReviewForm` once a recipe has been extracted, and passes the source URL through as `source_url` (commit `b1bd2db`).
+
+## Error messages
+
+The routes answer with raw `String(e)` text, which the dialog never shows. `importStatusMessage(stage, status)` in `src/lib/import/errors.ts` maps a non-2xx answer to a Polish sentence by stage (`fetch`, `mode`, `extract`) and status: 400 bad address, 401 expired session, 503 Ollama not running, anything else a generic fetch or read failure. `importErrorMessage(e, stage)` handles what is thrown: an `ImportError` keeps its message (the WebGPU check uses one), a `TypeError` (the browser's `fetch` never reached the server) becomes „Brak połączenia z serwerem…", and a WebLLM failure at the `model` or `extract` stage gets a fixed sentence.
 
 ## Review form structure
 
@@ -86,13 +98,13 @@ The `ImportDialog` is a native `<form>`: Enter in the URL field submits like "Im
 
 | Piece | File | Job |
 |---|---|---|
-| `ImportReviewForm` | `src/components/import/ImportReviewForm.tsx` | Name, servings, time, „Autor przepisu" (`source_author`), auto-match, save |
+| `ImportReviewForm` | `src/components/import/ImportReviewForm.tsx` | Title, source host, servings, time, „Autor przepisu" (`source_author`), auto-match with its outcome list, save. „Anuluj" and „Zapisz przepis" sit in a sticky bar above the bottom tabs |
 | `ExtractedIngredientsEditor` | `src/components/import/ExtractedIngredientsEditor.tsx` | The imported rows: add („+ składnik"), remove, move, edit name, amount, unit, optional. Editing an amount drops the row's `range` text |
 | `IngredientPicker` | `src/components/recipes/IngredientPicker.tsx` | The matched rows that are saved (shared with `RecipeForm`) |
 | `StepsEditor` | `src/components/recipes/StepsEditor.tsx` | Add („+ krok"), remove, move, edit title and text (shared with `RecipeForm`) |
 | `moveItem`, `removeItem` | `src/lib/list-edit.ts` | Pure list edits used by both editors |
 
-„Auto-mapuj składniki" matches the edited rows (blank names skipped), not the original model output. Steps with blank text are dropped on save and positions follow list order.
+„Auto-mapuj składniki" matches the edited rows (blank names skipped), not the original model output. Its result is a per-row list, not one sentence: each imported row is „dopasowany" (an existing ingredient), „nowy" (a new ingredient was created from an Open Food Facts hit or by name) or „bez dopasowania" (creation failed, so the row is not saved), under a count line. The status is a word, never colour alone (`MatchOutcomeRow` in `src/lib/import/match-outcome.ts`). Only mapped rows are saved. If the matching itself fails, the form shows „Nie udało się dopasować składników…". Steps with blank text are dropped on save and positions follow list order.
 
 ## Invariants and gotchas
 
@@ -131,6 +143,7 @@ LLM_MODE=server pnpm dev
 
 ## Changelog
 
+- 2026-10-13: Redesigned on the design system: sheet dialog with steps and Polish errors, per-row auto-match outcome, entry point on the recipe list (#40).
 - 2026-10-13: Review form edits imported ingredient rows and steps (add, remove, reorder) and `source_author` (#35).
 - 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.

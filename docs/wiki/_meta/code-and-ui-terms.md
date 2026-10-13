@@ -60,7 +60,9 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 | śniadanie, lunch, obiad, przekąska, kolacja | Desktop plan rows | Fixed labels for positions 0–4. |
 | „Brak połączenia — …" | Shopping list | Shown while the shopping list's `offline` flag is set. The flag starts from `navigator.onLine` and follows the `online` and `offline` events. |
 | „Import z URL" | `/recipes/new` | Opens the import dialog. |
+| „Importuj z URL" | Recipe list header | Link to `/recipes/new?import=1`, which opens the import dialog at once. |
 | „Auto-mapuj składniki" | Import review | Runs auto-match. |
+| dopasowany / nowy / bez dopasowania | Import review, after auto-match | Per-row outcome: mapped to an existing ingredient / a new ingredient was created / nothing was mapped. |
 | Składniki / Kroki | Recipe views | Ingredients / Steps. |
 
 ## Related

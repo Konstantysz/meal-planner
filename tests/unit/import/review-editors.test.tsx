@@ -163,7 +163,8 @@ describe('ImportReviewForm editing', () => {
     await userEvent.type(screen.getByLabelText('Nazwa składnika z importu 2'), 'mąka');
     await userEvent.click(screen.getByRole('button', { name: 'Auto-mapuj składniki' }));
 
-    await waitFor(() => expect(screen.getByText(/Dopasowano/)).toBeInTheDocument());
-    expect(screen.getByText('Dopasowano wszystkie 2 składników.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Dopasowane: 2, nowe: 0, bez dopasowania: 0.'),
+    );
   });
 });
