@@ -48,8 +48,8 @@ This is the lookup table for `src/app/api/**/route.ts` and `src/app/auth/callbac
 
 | Method | Path | Input | Notes | Calls | Success |
 |---|---|---|---|---|---|
-| GET | `/api/recipes` | `?diet=…&exclude=…` (repeatable) | `diet` filters in SQL (`contains`); `exclude` drops recipes whose `allergens` match, in JS. Error → 500. | `listRecipes` | 200 `Recipe[]` |
-| POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Validation or RPC error → 400. | `createRecipe` | 201 `Recipe` |
+| GET | `/api/recipes` | `?diet=…&exclude=…` (repeatable) | `diet` filters in SQL (`contains`); `exclude` drops recipes whose `allergens` match, in JS. Error → 500. | `listRecipes` | 200 `RecipeListItem[]` (`Recipe` plus `macros_per_serving`) |
+| POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Invalid body → 400 `{ error, fields }` (one Polish message per form field, `recipeFieldErrors`); other RPC error → 400. | `createRecipe` | 201 `Recipe` |
 | GET | `/api/recipes/[id]` | none | Any error, including a recipe the caller cannot read, is returned as 404 | `getRecipe` | 200 with ingredients and steps |
 | DELETE | `/api/recipes/[id]` | none | Direct `supabase.from('recipes').delete()`. `rec_delete` lets only the author delete, so a non-author gets **204 with nothing deleted**. Error → 400. | none | 204 |
 | GET | `/api/ingredients` | none | Error → 500 | `listIngredients` | 200 `Ingredient[]` |

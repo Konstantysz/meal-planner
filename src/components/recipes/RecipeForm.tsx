@@ -2,11 +2,25 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
+import type { RecipeFieldErrors } from '@/lib/recipe-errors';
 import { IngredientPicker, type PickedIngredient } from './IngredientPicker';
 import { StepsEditor, type EditableStep } from './StepsEditor';
 
 const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'] as const;
 const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'] as const;
+
+/** Error keys that have a `FieldError` in this form; any other key goes in the form-level alert. */
+const VISIBLE_FIELDS = ['name', 'servings_base', 'prep_time_min', 'source_author', 'ingredients', 'steps'];
+
+/** Polish message under a field; `aria-describedby` points the field at it. */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} role="alert" className="mt-1 text-sm text-brand">
+      {message}
+    </p>
+  );
+}
 
 export type RecipeFormStep = EditableStep;
 
@@ -43,12 +57,14 @@ export function RecipeForm({
   const [ingredients, setIngredients] = useState<PickedIngredient[]>(initialValues?.ingredients ?? []);
   const [steps, setSteps] = useState<RecipeFormStep[]>(initialValues?.steps ?? [{ title: '', text: '' }]);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<RecipeFieldErrors>({});
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setFieldErrors({});
     const res = await fetch(recipeId ? `/api/recipes/${recipeId}` : '/api/recipes', {
       method: recipeId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -78,7 +94,15 @@ export function RecipeForm({
     setSaving(false);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setError(j.error ?? 'Błąd zapisu');
+      const fields = (j as { fields?: RecipeFieldErrors }).fields;
+      if (fields) {
+        setFieldErrors(fields);
+        // Keys without a field on this form (source_url, visibility, tags, _form) would otherwise be invisible.
+        const hidden = Object.entries(fields)
+          .filter(([k]) => !VISIBLE_FIELDS.includes(k))
+          .map(([, m]) => m);
+        setError(hidden.length > 0 ? hidden.join('. ') : 'Popraw zaznaczone pola');
+      } else setError(typeof j.error === 'string' ? j.error : 'Błąd zapisu');
       return;
     }
     const recipe = await res.json();
@@ -94,7 +118,10 @@ export function RecipeForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nazwa przepisu"
+        aria-invalid={!!fieldErrors.name}
+        aria-describedby={fieldErrors.name ? 'err-name' : undefined}
       />
+      <FieldError id="err-name" message={fieldErrors.name} />
       <div className="flex flex-wrap items-center gap-2">
         <Input
           aria-label="Liczba porcji"
@@ -102,6 +129,8 @@ export function RecipeForm({
           min={1}
           value={servings}
           onChange={(e) => setServings(Number(e.target.value))}
+          aria-invalid={!!fieldErrors.servings_base}
+          aria-describedby={fieldErrors.servings_base ? 'err-servings' : undefined}
           className="w-24"
         />
         <span>porcji, czas (min):</span>
@@ -111,10 +140,13 @@ export function RecipeForm({
           min={0}
           value={prepTime ?? ''}
           step={1}
+          aria-invalid={!!fieldErrors.prep_time_min}
+          aria-describedby={fieldErrors.prep_time_min ? 'err-servings' : undefined}
           onChange={(e) => setPrepTime(e.target.value === '' ? null : Math.max(0, Math.round(Number(e.target.value))))}
           className="w-24"
         />
       </div>
+      <FieldError id="err-servings" message={fieldErrors.servings_base ?? fieldErrors.prep_time_min} />
       <label className="block">
         <span className="font-semibold">Autor przepisu</span>
         <Input
@@ -122,7 +154,10 @@ export function RecipeForm({
           onChange={(e) => setSourceAuthor(e.target.value)}
           placeholder="np. Ania Gotuje"
           maxLength={200}
+          aria-invalid={!!fieldErrors.source_author}
+          aria-describedby={fieldErrors.source_author ? 'err-author' : undefined}
         />
+        <FieldError id="err-author" message={fieldErrors.source_author} />
       </label>
       <label className="block">
         <span className="font-semibold">Zdjęcie (adres URL)</span>
@@ -164,10 +199,12 @@ export function RecipeForm({
       <div>
         <h3 className="mb-2 font-semibold">Składniki</h3>
         <IngredientPicker value={ingredients} onChange={setIngredients} />
+        <FieldError id="err-ingredients" message={fieldErrors.ingredients} />
       </div>
       <div>
         <h3 className="mb-2 font-semibold">Kroki</h3>
         <StepsEditor steps={steps} onChange={setSteps} />
+        <FieldError id="err-steps" message={fieldErrors.steps} />
       </div>
       {error && (
         <p role="alert" className="rounded-control border border-brand px-3 py-2">

@@ -147,6 +147,19 @@ describe('ImportReviewForm editing', () => {
     expect(body.source_author).toBe('Ania Gotuje');
   });
 
+  it('failed save: Polish message by status, never the server error text', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ error: 'ZodError: [{"code":"too_small"}]' }), { status: 400 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<ImportReviewForm extracted={BASE as never} sourceUrl="" onCancel={() => {}} onSaved={() => {}} />);
+    await userEvent.click(screen.getByText('mock-pick'));
+    await userEvent.click(screen.getByRole('button', { name: /zapisz przepis/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Sprawdź dane przepisu');
+    expect(alert).not.toHaveTextContent('ZodError');
+  });
+
   it('blocks save with a Polish message when no steps remain', async () => {
     const fetchMock = renderForm();
     await userEvent.click(screen.getByRole('button', { name: 'Usuń krok 1' }));
@@ -178,7 +191,8 @@ describe('ImportReviewForm editing', () => {
     await userEvent.type(screen.getByLabelText('Nazwa składnika z importu 2'), 'mąka');
     await userEvent.click(screen.getByRole('button', { name: 'Auto-mapuj składniki' }));
 
-    await waitFor(() => expect(screen.getByText(/Dopasowano/)).toBeInTheDocument());
-    expect(screen.getByText('Dopasowano wszystkie 2 składników.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Dopasowane: 2, nowe: 0, bez dopasowania: 0.'),
+    );
   });
 });

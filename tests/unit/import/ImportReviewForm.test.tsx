@@ -114,3 +114,59 @@ describe('ImportReviewForm step titles', () => {
     ]);
   });
 });
+
+describe('ImportReviewForm auto-match outcome', () => {
+  it('lists each row as dopasowany, nowy or bez dopasowania', async () => {
+    const ing = (id: string, name: string) => ({
+      id,
+      name,
+      category: 'inne',
+      kcal_per_100g: 100,
+      protein_per_100g: 1,
+      fat_per_100g: 1,
+      carbs_per_100g: 1,
+      default_unit: 'g',
+    });
+    const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/ingredients' && !init) return json([ing('i1', 'cebula')]);
+      if (url.startsWith('/api/ingredients/lookup')) return json([]);
+      if (url === '/api/ingredients' && init?.method === 'POST') {
+        const body = JSON.parse(init.body as string);
+        // Creating "pieprz" fails; "sól" succeeds.
+        return body.name === 'pieprz' ? json({ error: 'x' }, 500) : json(ing('i2', body.name), 201);
+      }
+      throw new Error(`unexpected ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const row = (name: string) => ({ name, amount: 1, unit: null, optional: false });
+    render(
+      <ImportReviewForm
+        extracted={{ ...BASE, recipeIngredient: [row('cebula'), row('sól'), row('pieprz')] } as never}
+        sourceUrl="https://www.a.pl/x"
+        onCancel={() => {}}
+        onSaved={() => {}}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /auto-mapuj/i }));
+    const list = await screen.findByRole('list', { name: 'Wynik dopasowania' });
+    const items = list.querySelectorAll('li');
+    expect(items[0]).toHaveTextContent('dopasowany');
+    expect(items[1]).toHaveTextContent('nowy');
+    expect(items[2]).toHaveTextContent('bez dopasowania');
+    expect(screen.getByRole('status')).toHaveTextContent('Dopasowane: 1, nowe: 1, bez dopasowania: 1.');
+    expect(screen.getByText('a.pl')).toBeInTheDocument();
+  });
+
+  it('shows a Polish error when matching fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    render(<ImportReviewForm extracted={BASE as never} sourceUrl="" onCancel={() => {}} onSaved={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: /auto-mapuj/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się dopasować składników');
+  });
+});

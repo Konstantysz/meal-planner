@@ -38,7 +38,7 @@ sources:
 | Module | Test file |
 |---|---|
 | `src/lib/macros.ts` | `tests/unit/macros.test.ts` |
-| `src/lib/day-macros.ts` | `tests/unit/day-macros.test.tsx` (also `DayTotals`) |
+| `src/lib/day-macros.ts` | `tests/unit/day-macros.test.tsx` (also `DayTotals`), `tests/unit/recipe-cards-lib.test.ts` (`recipePerServing`) |
 | `src/lib/scaling.ts` | `tests/unit/scaling.test.ts` |
 | `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` |
 | `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` |
@@ -51,7 +51,8 @@ sources:
 | `src/lib/db/plans.ts` | `tests/unit/db/plans.test.ts` (`updateSlot` only) |
 | `src/app/api/plans/[id]/slots/[slotId]/route.ts` | `tests/unit/plan-slot-route.test.ts` (`PATCH`) |
 | `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
-| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`; `getRecipe` and `listRecipes` not covered) |
+| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`), `tests/unit/recipe-cards-lib.test.ts` (`toListItem`); `getRecipe` and the query in `listRecipes` not covered |
+| `src/lib/recipe-errors.ts` | `tests/unit/recipe-cards-lib.test.ts` |
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
 | `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
 | `src/lib/import/image.ts`, `src/lib/image-hosts.ts` | `tests/unit/import/image.test.ts` (`extractImageUrl`, `isAllowedImageUrl`) |
@@ -66,6 +67,7 @@ sources:
 | `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` |
 | `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
 | `src/components/import/ImportReviewForm.tsx` | `tests/unit/import/ImportReviewForm.test.tsx` |
+| `src/lib/import/errors.ts`, `match-outcome.ts` | `tests/unit/import/errors.test.ts` (also `ImportDialog` and `ImportReviewForm` tests) |
 | `src/lib/import/duration.ts` | `tests/unit/import/duration.test.ts` |
 | `src/lib/list-edit.ts` | `tests/unit/list-edit.test.ts` |
 | `src/components/import/ExtractedIngredientsEditor.tsx`, `src/components/recipes/StepsEditor.tsx` | `tests/unit/import/review-editors.test.tsx` (also `ImportReviewForm` editing) |
@@ -124,6 +126,8 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Added `errors.ts` and `match-outcome.ts` (#40).
+- 2026-10-13: Recipe list/detail redesign (#39): `toListItem`, `recipePerServing` and `recipeFieldErrors` tested; `listRecipes` query still not covered.
 - 2026-10-13: Added `extractImageUrl` and `isAllowedImageUrl` (recipe photos).
 - 2026-10-13: Added `list-edit.ts` and the review editors (#35).
 - 2026-10-13: Added `src/lib/macro-validation.ts` and `OffDisclaimer`; `schemas.ts` now also has `IngredientInputSchema` tests (#71).

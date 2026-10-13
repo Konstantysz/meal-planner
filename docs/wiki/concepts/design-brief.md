@@ -155,6 +155,10 @@ The photo is `recipes.image_url`, a hotlinked URL ([[0014-recipe-photos-hotlinke
 }
 ```
 
+## Status of the recipe screens
+
+The recipe list and detail (#39) use the cover as above with two deviations: the tint is `hover` (no slot colour yet), and the list is a responsive grid instead of shelves with horizontal scroll on mobile.
+
 ## Related
 
 - [[concepts]]: concept index
@@ -168,6 +172,7 @@ The photo is `recipes.image_url`, a hotlinked URL ([[0014-recipe-photos-hotlinke
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail built (#39); deviations noted under "Status of the recipe screens".
 - 2026-10-13: Described the photo layer (`RecipePhoto`) and `image_url`.
 - 2026-10-13: Foundations wrap-up (#56): contrast table for all token pairs and slot colours; `faint` no longer used for text or placeholders; `--text-xs` fixed at 12 px; prototype source removed.
 - 2026-10-13: Review follow-up (#56): `--text-sm` fixed at 13 px (the secondary size); the add-slot "+" uses `muted`; the contrast test parses the dark block on its own.
