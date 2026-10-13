@@ -247,7 +247,7 @@ export function ImportReviewForm({
       </section>
 
       {error && (
-        <p role="alert" className="rounded-control border border-brand px-3 py-2 text-sm">
+        <p role="alert" className="rounded-control border border-ink px-3 py-2 text-sm">
           {error}
         </p>
       )}

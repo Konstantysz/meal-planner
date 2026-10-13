@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   ImportError,
   extractFailureMessage,
   fetchFailureMessage,
   importErrorMessage,
+  importFetch,
   readApiError,
 } from '@/lib/import/errors';
 
@@ -39,8 +40,8 @@ describe('importErrorMessage', () => {
   it('keeps ImportError messages', () => {
     expect(importErrorMessage(new ImportError('Gotowe po polsku'))).toBe('Gotowe po polsku');
   });
-  it('maps a network failure', () => {
-    expect(importErrorMessage(new TypeError('Failed to fetch'))).toMatch(/Brak połączenia/);
+  it('does not treat a stray TypeError as a network failure', () => {
+    expect(importErrorMessage(new TypeError('x is undefined'))).toBe('Coś poszło nie tak. Spróbuj ponownie.');
   });
   it('keeps unknown errors generic', () => {
     expect(importErrorMessage(new Error('Device was lost'))).toBe('Coś poszło nie tak. Spróbuj ponownie.');
@@ -54,5 +55,20 @@ describe('readApiError', () => {
   it('returns null for non-JSON bodies and non-string errors', async () => {
     expect(await readApiError(new Response('<html>', { status: 500 }))).toBeNull();
     expect(await readApiError(new Response(JSON.stringify({ error: { a: 1 } })))).toBeNull();
+  });
+});
+
+describe('importFetch', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('maps a rejected fetch to a connection message', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    const err = await importFetch('/x').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ImportError);
+    expect(importErrorMessage(err)).toMatch(/Brak połączenia/);
+  });
+  it('lets aborts pass through', async () => {
+    const abort = new DOMException('aborted', 'AbortError');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort));
+    await expect(importFetch('/x')).rejects.toBe(abort);
   });
 });

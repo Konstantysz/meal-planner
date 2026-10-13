@@ -167,6 +167,29 @@ describe('ImportDialog', () => {
     expect(screen.getByRole('button', { name: 'Spróbuj ponownie' })).toBeEnabled();
   });
 
+  it('ignores the result when the user cancels mid-import', async () => {
+    let release: (r: Response) => void = () => {};
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      const key = `${init?.method ?? 'GET'} ${url}`;
+      if (key === 'POST /api/import/fetch') return new Promise<Response>((resolve) => (release = resolve));
+      if (key === 'GET /api/import/extract') return Promise.resolve(json({ mode: 'server' }));
+      return Promise.resolve(json(RECIPE));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const onClose = vi.fn();
+    const onExtracted = vi.fn();
+    render(<ImportDialog onClose={onClose} onExtracted={onExtracted} />);
+    await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), 'https://a.pl/x');
+    await userEvent.click(screen.getByRole('button', { name: /importuj/i }));
+    await screen.findByText('Pobieram stronę');
+    await userEvent.click(screen.getByRole('button', { name: 'Anuluj' }));
+    expect(onClose).toHaveBeenCalled();
+    release(json({ markdown: '# Zupa' }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onExtracted).not.toHaveBeenCalled();
+    expect(calledExtractPost(fetchMock as never)).toBe(false);
+  });
+
   it('lists the steps while importing and highlights the current one', async () => {
     let release: (r: Response) => void = () => {};
     vi.stubGlobal(

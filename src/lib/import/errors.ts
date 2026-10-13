@@ -38,7 +38,15 @@ export function extractFailureMessage(status: number, serverError: string | null
 /** Turns anything thrown during an import into a message for the user; unknown failures stay generic. */
 export function importErrorMessage(e: unknown): string {
   if (e instanceof ImportError) return e.message;
-  // `fetch` rejects with a TypeError when the network is down.
-  if (e instanceof TypeError) return NETWORK;
   return GENERIC;
+}
+
+/** `fetch` that turns a network-level rejection (a TypeError) into an `ImportError`; aborts and other errors pass through. */
+export async function importFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (e) {
+    if (e instanceof TypeError) throw new ImportError(NETWORK);
+    throw e;
+  }
 }

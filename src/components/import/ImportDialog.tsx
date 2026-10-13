@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Input, Sheet } from '@/components/ui';
 import { ensureEngineReady, extractWithWebLlm, hasWebGpu } from '@/lib/import/engine';
 import {
@@ -7,6 +7,7 @@ import {
   extractFailureMessage,
   fetchFailureMessage,
   importErrorMessage,
+  importFetch,
   readApiError,
 } from '@/lib/import/errors';
 import type { ExtractedRecipe } from '@/lib/import/schema';
@@ -38,13 +39,35 @@ export function ImportDialog({
   const [error, setError] = useState<string | null>(null);
   const [modelPercent, setModelPercent] = useState<number | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Closing the dialog (or unmounting) abandons any import still in flight.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  function cancel() {
+    abortRef.current?.abort();
+    onClose();
+  }
+
   async function run() {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
+    const ensureActive = () => {
+      if (signal.aborted) throw new DOMException('Import cancelled', 'AbortError');
+    };
+    const request = async (input: string, init?: RequestInit) => {
+      const res = await importFetch(input, { ...init, signal });
+      ensureActive();
+      return res;
+    };
     setError(null);
     setModelPercent(null);
     setBrowserMode(false);
     try {
       setStage('fetch');
-      const fr = await fetch('/api/import/fetch', {
+      const fr = await request('/api/import/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -53,13 +76,13 @@ export function ImportDialog({
       const { markdown } = (await fr.json()) as { markdown: string };
 
       // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
-      const mr = await fetch('/api/import/extract');
+      const mr = await request('/api/import/extract');
       if (!mr.ok) throw new ImportError(`Nie udało się odczytać trybu importu (${mr.status}). Spróbuj ponownie.`);
       const { mode } = await mr.json();
       let recipe: ExtractedRecipe;
       if (mode === 'server') {
         setStage('extract');
-        const er = await fetch('/api/import/extract', {
+        const er = await request('/api/import/extract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ markdown }),
@@ -75,8 +98,9 @@ export function ImportDialog({
         }
         setStage('model');
         await ensureEngineReady((p) => {
-          setModelPercent(Math.round(p.progress * 100));
+          if (!signal.aborted) setModelPercent(Math.round(p.progress * 100));
         });
+        ensureActive();
         setStage('extract');
         try {
           recipe = await extractWithWebLlm(markdown);
@@ -86,9 +110,11 @@ export function ImportDialog({
           );
         }
       }
+      ensureActive();
       setStage('done');
       onExtracted(recipe, url);
     } catch (e) {
+      if (signal.aborted) return;
       setError(importErrorMessage(e));
       setStage('error');
     }
@@ -152,12 +178,12 @@ export function ImportDialog({
           </ol>
         )}
         {error && (
-          <p role="alert" className="rounded-control border border-brand px-3 py-2 text-sm">
+          <p role="alert" className="rounded-control border border-ink px-3 py-2 text-sm">
             {error}
           </p>
         )}
         <div className="flex gap-2">
-          <Button onClick={onClose} className="flex-1 lg:flex-none">
+          <Button onClick={cancel} className="flex-1 lg:flex-none">
             Anuluj
           </Button>
           <Button type="submit" variant="primary" disabled={!canSubmit} className="flex-1 lg:flex-none">
