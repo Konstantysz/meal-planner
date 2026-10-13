@@ -102,7 +102,7 @@ These are the five edge cases the original spec singled out as able to break the
 | 2 | Same ingredient in two units | `shopping-list.test.ts` | covered |
 | 3 | Import of a page with no recipe | `extract.test.ts` (garbage, missing `name`) | covered |
 | 4 | Slot pointing at an unavailable recipe | `tests/unit/plan-unavailable-recipe.test.tsx` (UI text only; no SQL FK test) | covered |
-| 5 | Ingredient without macros | `macros.test.ts` (null), `shopping-list.test.ts` (`incomplete`) | covered |
+| 5 | Ingredient without macros | `macros.test.ts` (null, `recipeMacros` `no_macros`), `recipe-macros-view.test.tsx` (badge), `shopping-list.test.ts` (`incomplete`) | covered |
 
 ## Examples
 
@@ -129,6 +129,7 @@ pnpm vitest run -t "different units"        # by test name
 - 2026-10-13: Added `errors.ts` and `match-outcome.ts` (#40).
 - 2026-10-13: Recipe list/detail redesign (#39): `toListItem`, `recipePerServing` and `recipeFieldErrors` tested; `listRecipes` query still not covered.
 - 2026-10-13: Added `extractImageUrl` and `isAllowedImageUrl` (recipe photos).
+- 2026-10-13: Review Focus #5 also pinned by `recipeMacros` and the recipe-view badge test (#73).
 - 2026-10-13: Added `list-edit.ts` and the review editors (#35).
 - 2026-10-13: Added `src/lib/macro-validation.ts` and `OffDisclaimer`; `schemas.ts` now also has `IngredientInputSchema` tests (#71).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.

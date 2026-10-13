@@ -95,7 +95,7 @@ Recipe macros, the shopping list's `incomplete` flag and import auto-matching al
 ## Known gaps
 
 - Only the creator or an app admin can update an ingredient (`ing_update`, migration 0010, [[0013-ingredient-ownership-and-app-admins]]). Seed rows and rows created before 0010 have no creator, so only an app admin can fix them. Nothing records who changed a value, only who created the row.
-- Macro-less placeholders pile up from import and manual creation. The picker inserts them as soon as they are picked, even if the recipe is never saved. Their null macros count as 0, so recipe macros are understated without any warning on the detail page (the shopping list does show „brak makro"). `scripts/backfill-ingredient-macros.ts` (service-role key, `--dry-run`) re-queries Open Food Facts for them and takes the first hit as-is.
+- Macro-less placeholders pile up from import and manual creation. The picker inserts them as soon as they are picked, even if the recipe is never saved. They are left out of recipe macros, which the recipe page reports as „makra niepełne" with the ingredient listed (the shopping list shows „(brak makro)"; see [[macro-calculation]]). `scripts/backfill-ingredient-macros.ts` (service-role key, `--dry-run`) re-queries Open Food Facts for them and takes the first hit as-is.
 - `GET /api/ingredients` returns the whole table. The picker filters client-side.
 - Rows that pass the range rules but miss the Atwater estimate stay in the table until someone runs the data-quality report and fixes them by hand. On 2026-10-13 that was „vEGGs roślinny zamiennik jajek" (298 kcal vs. 241.5, 1.23×).
 - Open Food Facts is crowd-sourced. The validator catches impossible and inconsistent rows, not plausible wrong ones; the first passing product is still taken without ranking.
@@ -125,6 +125,7 @@ pnpm tsx scripts/backfill-ingredient-macros.ts --dry-run
 
 ## Changelog
 
+- 2026-10-13: Macro-less placeholders are left out of recipe macros and reported, not counted as 0 (#73).
 - 2026-10-13: Added macro validation: shared validator, range checks on save and in the database (migration 0012), the Atwater check for Open Food Facts results, the data-quality report and the disclaimer (#71).
 - 2026-10-13: Ingredient updates limited to the creator or an app admin (migration 0010).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected the `default_unit` description, the failed-`searchOff` behaviour and the prose abbreviation for Open Food Facts. Added the picker and migration sources.
