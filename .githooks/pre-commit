@@ -27,6 +27,14 @@ if printf '%s\n' "$staged" | grep -qE '^(src/lib/|tests/|scripts/test-coverage-c
   pnpm -s coverage:check || fail "coverage:check failed. Add a test or list the function under 'Not covered'."
 fi
 
+# Migrations: deploy order against origin/main, then every migration, check and rollback on PGlite.
+if printf '%s\n' "$staged" | grep -qE '^(supabase/|scripts/db-verify\.ts$|scripts/migration-order-check\.ts$)'; then
+  if git rev-parse -q --verify origin/main >/dev/null; then
+    pnpm -s db:order origin/main || fail "db:order failed. Renumber the new migration, add its rollback and check, or revert edits to applied ones."
+  fi
+  pnpm -s db:verify || fail "db:verify failed. See the output above."
+fi
+
 # docs/wiki/RULES.md §9
 if printf '%s\n' "$staged" | grep -qE '^(docs/wiki/|scripts/wiki-check\.ts$|\.markdownlint-cli2\.jsonc$)'; then
   pnpm -s wiki:check || fail "wiki:check failed. 'pnpm wiki:fix' auto-fixes markdown style; fix the rest by hand."

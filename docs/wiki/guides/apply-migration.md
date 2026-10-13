@@ -5,14 +5,14 @@ tags: [database, rls, dev-setup]
 status: draft
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: medium
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: 19a988a
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: 5966c4c
 sources:
   - title: "Existing migrations"
     path: supabase/migrations/0004_security_hardening.sql
@@ -22,6 +22,10 @@ sources:
     path: supabase/checks/0004_security_hardening.verify.sql
   - title: "Supabase CLI config"
     path: supabase/config.toml
+  - title: "Migration check on PGlite"
+    path: scripts/db-verify.ts
+  - title: "Migration order check"
+    path: scripts/migration-order-check.ts
   - title: "Supabase GitHub integration"
     url: "https://supabase.com/docs/guides/deployment/branching/github-integration"
     accessed: 2026-10-04
@@ -33,14 +37,11 @@ sources:
 # Apply a Database Migration
 
 > [!tldr]
-> Write `supabase/migrations/000N_<name>.sql` (enable RLS and add policies in the same file), plus a rollback and a verification script. **Merging into `main` applies the migration to production automatically** (Supabase GitHub integration, "Deploy to production"). There is no preview database, so run the verification script by hand before and after the merge. Update [[database-schema]] and any affected concept page in the same PR.
+> Write `supabase/migrations/000N_<name>.sql` (enable RLS and add policies in the same file), plus a rollback and a verification script. **Merging into `main` applies the migration to production automatically** (Supabase GitHub integration, "Deploy to production"). There is no preview database. `pnpm db:verify` (also CI job `db`) runs every migration, verification script and rollback on an in-process Postgres, but only a human run of the verification script on the live project, before and after the merge, proves it there. Update the wiki pages listed in step 9 in the same PR.
 
 ## Context
 
-The hosted project `tfysxpkfbumctfuxcend` is on the Free plan and connected to `Konstantysz/meal-planner` (working directory `.`, production branch `main`, "Deploy to production" on). Branching needs the Pro plan, so the PR check "Supabase Preview" is always skipped and nothing tests the migration before merge. `supabase_migrations.schema_migrations` on the hosted project records `0001`–`0004`, so a deploy applies only newer files. See [[guides]].
-
-> [!warning] Uncertain
-> The `0001`–`0004` record is a snapshot from 2026-10-04. It was not re-checked against the live project in this pass (no read-only database query was run), and migrations `0005`–`0007` now exist in the repo.
+The hosted project `tfysxpkfbumctfuxcend` is on the Free plan and connected to `Konstantysz/meal-planner` (working directory `.`, production branch `main`, "Deploy to production" on). Branching needs the Pro plan, so the PR check "Supabase Preview" is always skipped. CI job `db` is the only pre-merge test: it runs the migrations on PGlite with a minimal Supabase stub (roles `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`, Supabase-style default privileges), which is close to, not the same as, the hosted project. On 2026-10-13 the hosted project recorded `0001`–`0007` (read-only MCP `list_migrations`), so a deploy applies only newer files. See [[guides]].
 
 On deploy, Supabase applies new migrations and deploys Edge Functions and Storage buckets declared in `config.toml`. On a persistent branch such as production, `config.toml` `[api]` and `[auth]` settings are skipped unless a `[remotes]` block opts in, so the local `site_url` doesn't leak to production. The Supabase docs list migrations, Edge Functions and Storage buckets as what gets deployed; `seed.sql` is not in that list.
 
@@ -53,10 +54,11 @@ On deploy, Supabase applies new migrations and deploys Edge Functions and Storag
 2. For every new table: `alter table … enable row level security;` plus its policies, in the same migration. Reuse `is_member_of(household_id)` (see [[rls-authorization]]). Scope member policies `to authenticated` and write `(select auth.uid())`.
 3. Add a manual rollback in `supabase/rollbacks/000N_<name>.down.sql`. The CLI ignores that folder.
 4. Add a verification script in `supabase/checks/000N_<name>.verify.sql`. Don't use `supabase/tests/`: `supabase test db` runs every file there as pgTAP.
-5. **Baseline:** run the verification script in the SQL editor before merging. The attack checks should fail on the current database.
-6. Open the PR, let CI pass, merge. Watch the deploy in the dashboard (project home, last migration).
-7. **After:** run the verification script again. It must report `ALL PASS`. Then check Database → Advisors.
-8. Update `src/lib/types.ts` (types are hand-written) and [[database-schema]].
+5. Run `pnpm db:verify`. Each migration with a verification script must report `ALL PASS` after apply and after rollback + re-apply; after the rollback alone it must print the same first line as the baseline (for example `FAIL 8 (12 checks)`), so a partial rollback fails. The fresh pass must apply every migration and the seed. The printed baseline of your migration is what the live baseline should show.
+6. **Baseline:** run the verification script in the SQL editor before merging. The attack checks should fail on the current database.
+7. Open the PR, let CI pass, merge. CI job `db` and the pre-commit hook also run `pnpm db:order`: a new migration must be numbered above every migration on `main` and ship its rollback and verification script, and a migration already on `main` must not change. If another migration PR merges first, renumber yours. Watch the deploy in the dashboard (project home, last migration).
+8. **After:** run the verification script again. It must report `ALL PASS`. Then check Database → Advisors.
+9. Update `src/lib/types.ts` (types are hand-written) and, in the same PR: [[database-schema]], [[migration-history]], [[rls-authorization]] when policies change, a new or amended ADR for a design decision ([[decisions]]), and `GLOSSARY.md` for new or changed domain terms. Editing a `stable` page: set `status: review` and `human_reviewed: false` (`pnpm wiki:check` rejects a `stable` page without human review).
 
 > [!warning] A merge is a production deploy
 > Don't merge a migration PR you haven't baselined. If a deploy breaks something, run the rollback file in the SQL editor, then `supabase migration repair --status reverted 000N`.
@@ -107,6 +109,8 @@ create policy pantry_notes_all on pantry_notes for all to authenticated
 
 ## Changelog
 
+- 2026-10-13: `pnpm db:verify` now requires the rollback to restore the baseline's full first line, not just its pass/fail outcome.
+- 2026-10-13: Added `pnpm db:verify` and `pnpm db:order` (CI job `db`, issues #78 and #79), the wiki page checklist, and the live migration record as of 2026-10-13.
 - 2026-10-09: Re-verified against a7f8f52. Fixed the example migration name (`0005_share_link_rpc.sql`), the verify-script output wording, and the `config.toml` production behaviour (confirmed by the Supabase docs). Flagged the live-state snapshot and CLI-specific commands as uncertain.
 - 2026-10-04: Rewrote for the actual flow: merge into `main` deploys to production. Added rollback and verification steps.
 - 2026-10-04: Created as a draft. The CLI flow hasn't been run against the hosted project.

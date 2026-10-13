@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchEntry, nameHit } from '@/lib/import/eval-score';
+import { matchEntry, nameHit, scoreSteps } from '@/lib/import/eval-score';
 import { UNITS } from '@/lib/import/unit';
 import { SYSTEM_PROMPT } from '@/lib/import/schema';
 import { CORPUS } from '../../fixtures/ingredient-corpus';
@@ -76,5 +76,18 @@ describe('corpus, prompt and UNITS agree', () => {
     expect(line).toBeDefined();
     const named = line!.split(',').map((s) => s.trim());
     expect(named.filter((u) => !known.has(u))).toEqual([]);
+  });
+});
+
+describe('scoreSteps', () => {
+  it('counts steps, titled steps and titles repeated in the text', () => {
+    expect(
+      scoreSteps([
+        { title: 'Smażenie cebuli', text: 'Smaż 5 minut.' },
+        { title: 'Gotowanie', text: 'Gotowanie trwa godzinę.' },
+        { title: null, text: 'Podawaj.' },
+      ]),
+    ).toEqual({ count: 3, titled: 2, repeated: 1 });
+    expect(scoreSteps([])).toEqual({ count: 0, titled: 0, repeated: 0 });
   });
 });

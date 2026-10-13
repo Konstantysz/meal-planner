@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { getOrCreatePlan, getWeekPlan } from '@/lib/db/plans';
+import { getOrCreatePlan, getWeekPlanWithMacros } from '@/lib/db/plans';
 import { normalizeWeekStart } from '@/lib/week';
 
 export async function GET(req: Request) {
@@ -21,5 +21,5 @@ export async function GET(req: Request) {
     .single();
   if (!hh) return NextResponse.json({ error: 'no household' }, { status: 400 });
   const plan = await getOrCreatePlan(supabase, hh.household_id, weekStart);
-  return NextResponse.json(await getWeekPlan(supabase, plan.id));
+  return NextResponse.json(await getWeekPlanWithMacros(supabase, plan.id));
 }
