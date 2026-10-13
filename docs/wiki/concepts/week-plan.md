@@ -2,7 +2,7 @@
 title: "Week Plan"
 summary: "Plans keyed by household and Monday week start, week navigation by ?week=, slots keyed by date and position, moving slots (drag and drop, picker), servings stepper, desktop vs mobile views and unavailable-recipe slots."
 tags: [plan, ui]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -10,8 +10,8 @@ last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Slot PATCH route"
@@ -41,7 +41,7 @@ sources:
 # Week Plan
 
 > [!tldr]
-> A plan is one household's week, keyed by `week_start_date` (the Monday). A slot is `(plan_id, date, position)` with an optional recipe and planned servings. Adding a slot is an upsert on that key; moving one or changing its servings is a `PATCH`. `/plan?week=YYYY-MM-DD` shows any week, with previous / next / today controls. Desktop shows a fixed 5-row grid with drag and drop, and mobile shows any number of meals per day. Each day shows its macro total, or „brak danych makro" when any ingredient lacked data (#44).
+> A plan is one household's week, keyed by `week_start_date` (the Monday). A slot is `(plan_id, date, position)` with an optional recipe and planned servings. Adding a slot is an upsert on that key; moving one or changing its servings is a `PATCH`. `/plan?week=YYYY-MM-DD` shows any week, with previous / next / today controls. Desktop shows a fixed 5-row grid with drag and drop, and mobile shows any number of meals per day. Each day shows its macro total, labelled „makra niepełne" when something was left out (#44, #73).
 
 ## Context
 
@@ -63,7 +63,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ### Day macro totals
 
-`computeDayMacros(plan.slots)` (`src/lib/day-macros.ts`, pure) runs in both views on the already loaded plan, so the stepper and moves update the totals at once. Per slot with a recipe: `recipeMacros` sums the base recipe (rules in [[macro-calculation]]), `perServing` divides by `servings_base`, and the result is multiplied by the slot's planned servings. A day is **incomplete** when any slot has a non-optional ingredient with a unit other than `g`/`ml`, no amount, no macros or no ingredient row; a recipe with no counted ingredients; an unavailable recipe; or a `servings_base` of 0 or less. `DayTotals` then shows „brak danych makro" instead of a partial sum that would read as a real total. A day with no recipe slot shows nothing. Desktop renders the totals in a „Razem" footer row, mobile in each day's heading.
+`computeDayMacros(plan.slots)` (`src/lib/day-macros.ts`, pure) runs in both views on the already loaded plan, so the stepper and moves update the totals at once. Per slot with a recipe: `recipeMacros` (`src/lib/macros.ts`, rules in [[macro-calculation]]) gives the recipe's per-serving macros, which are multiplied by the slot's planned servings. A day is an **incomplete macro total** (`incomplete`) when any slot's recipe left out an ingredient (macro-less, no amount, or a unit `toGrams` cannot convert), when a recipe has no counted ingredients, is unavailable, or has a `servings_base` of 0 or less, or when the planned servings are 0 or less. `known` is true when at least one slot added macros. `DayTotals` shows „brak danych makro" when nothing is known, and otherwise the sum; an incomplete sum gets a „≥" before the kcal and a „makra niepełne" line, so it never reads as a real total. A day with no recipe slot shows nothing. Desktop renders the totals in a „Razem" footer row, mobile in each day's heading.
 
 ### Moving slots and servings
 
@@ -86,7 +86,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ## Known gaps
 
-- Day totals are all-or-nothing: one non-gram or macro-less ingredient hides the whole day's total (no unit conversion, see [[macro-calculation]]).
+- Day totals don't say which ingredient or recipe was left out; the recipe page does (see [[macro-calculation]]).
 - Swapping two occupied slots is not supported; a move onto an occupied slot fails with 409 and a message.
 - `getOrCreatePlan` races on a first load (see above).
 - In dark mode the recipe name in a slot card was barely readable; the slot colours now use the `on-slot` token (#37), so this is fixed.
@@ -111,6 +111,7 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 
 ## Changelog
 
+- 2026-10-13: Day totals show a labelled lower bound instead of hiding an incomplete total; kg, l and other mass and volume units now count (#73).
 - 2026-10-13: Per-day macro totals (#44).
 - 2026-10-13: Week navigation by `?week=`, `PATCH` for slot moves and servings, drag and drop with a picker alternative, servings stepper; removed the `dayMacros` stub and the build-time week gap (#38).
 - 2026-10-13: Layout switch moved from `matchMedia` to CSS (#37).

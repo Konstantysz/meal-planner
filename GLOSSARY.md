@@ -89,8 +89,12 @@ An ingredient created with only a name and no macros, either by hand while build
 _Avoid_: bare ingredient, stub, manual ingredient (for the placeholder ingredient)
 
 **Macro-less ingredient**:
-An ingredient with no macro values at all; it counts as zero in recipe totals and marks shopping items incomplete.
+An ingredient with no macro values at all. It is left out of recipe totals, which makes them an incomplete macro total, and marks shopping items incomplete.
 _Avoid_: missing macros (for the ingredient), empty ingredient
+
+**Incomplete macro total**:
+A recipe or day macro total that leaves out at least one non-optional recipe ingredient because it is a macro-less ingredient, has no amount, or has a unit that cannot be converted to grams (łyżka, szklanka, szt). The total is a lower bound, never a real zero for the missing part. UI: „makra niepełne", with the list of left-out ingredients on the recipe page.
+_Avoid_: partial macros, missing macros (for the total), dane niepełne
 
 ### Import
 

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getRecipe } from '@/lib/db/recipes';
-import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
+import { recipeMacros } from '@/lib/macros';
 import { formatAmount } from '@/lib/scaling';
-import { MacroSummary } from '@/components/recipes/MacroSummary';
+import { RecipeMacroPanel } from '@/components/recipes/RecipeMacroPanel';
 import { RecipeActions } from '@/components/recipes/RecipeActions';
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,14 +16,10 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     notFound();
   }
 
-  const total = sumMacros(
-    recipe.ingredients.map((ri) => {
-      if (!ri.ingredients || ri.optional) return null;
-      const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
-      return calculateIngredientMacros(ri.ingredients, grams);
-    }),
+  const macros = recipeMacros(
+    recipe.ingredients.slice().sort((a, b) => a.position - b.position),
+    recipe.servings_base,
   );
-  const per = perServing(total, recipe.servings_base);
 
   return (
     <div className="p-4 space-y-4">
@@ -37,10 +33,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           <li className="rounded-control border border-line px-3 py-1 text-ink">{recipe.prep_time_min} min</li>
         )}
       </ul>
-      <div className="bg-green-50 rounded p-3">
-        <div className="text-xs text-gray-600 mb-1">Makro per porcja:</div>
-        <MacroSummary macros={per} />
-      </div>
+      <RecipeMacroPanel macros={macros} />
       {recipe.source_url && (
         <a
           href={recipe.source_url}

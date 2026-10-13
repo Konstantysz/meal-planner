@@ -2,16 +2,16 @@
 title: "Test Coverage Map"
 summary: "Which modules have unit tests, which do not, and which Review Focus edge cases are pinned by which test file."
 tags: [testing]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Unit tests"
@@ -95,7 +95,7 @@ These are the five edge cases the original spec singled out as able to break the
 | 2 | Same ingredient in two units | `shopping-list.test.ts` | covered |
 | 3 | Import of a page with no recipe | `extract.test.ts` (garbage, missing `name`) | covered |
 | 4 | Slot pointing at an unavailable recipe | `tests/unit/plan-unavailable-recipe.test.tsx` (UI text only; no SQL FK test) | covered |
-| 5 | Ingredient without macros | `macros.test.ts` (null), `shopping-list.test.ts` (`incomplete`) | covered |
+| 5 | Ingredient without macros | `macros.test.ts` (null, `recipeMacros` `no_macros`), `recipe-macros-view.test.tsx` (badge), `shopping-list.test.ts` (`incomplete`) | covered |
 
 ## Examples
 
@@ -119,6 +119,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Review Focus #5 also pinned by `recipeMacros` and the recipe-view badge test (#73).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.

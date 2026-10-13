@@ -2,16 +2,16 @@
 title: "0006 Macros per 100 g"
 summary: "Ingredient macros are stored per 100 g; recipe macros are computed per serving at read time and never stored."
 tags: [macros, database]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Architecture plan (Global Constraints)"
@@ -44,7 +44,7 @@ _Not recorded at the time; reconstructed for comparison._
 ## Consequences
 
 - Nothing to recompute when an ingredient's data improves (for example after the OFF backfill).
-- Only `g` and `ml` amounts convert to grams. Other units count as 0 (see [[macro-calculation#Known gaps]]).
+- Only mass and volume units that are plain multiples (mg, g, dag, kg; ml, cl, dl, l, with 1 ml = 1 g) convert to grams. Ingredients in other units are left out of the total and reported, never counted as 0 (see [[macro-calculation]], #73).
 
 ## Related
 
@@ -55,11 +55,12 @@ _Not recorded at the time; reconstructed for comparison._
 ## Sources
 
 - Original spec, `docs/plans/architecture_plan_document.md` (Global Constraints), `src/lib/macros.ts`
-- Unit-to-grams rule (`ri.unit === 'g' || ri.unit === 'ml'`): `src/app/(app)/recipes/[id]/page.tsx`
+- Unit-to-grams rule (`toGrams`): `src/lib/macros.ts`
 - Ingredient columns: `supabase/migrations/0001_initial.sql` (`ingredients`)
 
 ## Changelog
 
+- 2026-10-13: Updated the unit-to-grams consequence for `toGrams` and left-out reporting (#73); the decision itself is unchanged.
 - 2026-10-09: Re-verified against `a7f8f52`. Added the recipe page as the source of the unit-to-grams rule. Replaced "nutrients" with "macros" per GLOSSARY.md.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Recorded retroactively.

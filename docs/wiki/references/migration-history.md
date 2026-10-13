@@ -88,7 +88,7 @@ After each deploy the Supabase advisors were re-run. The remaining warnings are 
 
 Found in the same audit, not fixed yet (ranked list: [[known-gaps]]):
 
-- **Ingredient catalog.** One global table; since `0010` only the creator or an app admin edits a row. Unmatched import lines and picker entries become new ingredients with null macros and category `inne`, which count as 0 in recipe macros. Units are free text with no conversion. Seed values look like mixed bases (rice 349 kcal, lentils 116 kcal; the seed does not label them), and every seed row is tagged `source = 'off'`, while the picker writes `manual`. A redesign (global curated catalog plus household-private items, aliases, unit weights) is proposed but not decided. See [[ingredient-database]].
+- **Ingredient catalog.** One global table; since `0010` only the creator or an app admin edits a row. Unmatched import lines and picker entries become new ingredients with null macros and category `inne`, which recipe macros leave out and report as an incomplete macro total (#73). Units are free text with no conversion. Seed values look like mixed bases (rice 349 kcal, lentils 116 kcal; the seed does not label them), and every seed row is tagged `source = 'off'`, while the picker writes `manual`. A redesign (global curated catalog plus household-private items, aliases, unit weights) is proposed but not decided. See [[ingredient-database]].
 - Slots always plan 1 serving, so shopping amounts are per one serving. See [[week-plan]].
 - Free plan: no downloadable backups (unverified, see the warning above). The weekly backup workflow has run on schedule twice (2026-09-27 and 2026-10-04), and both runs failed; no Actions secrets are configured. See [[github-workflows]].
 
@@ -125,6 +125,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Null-macro ingredients are reported as an incomplete macro total, not counted as 0 (#73).
 - 2026-10-13: Scoped the "baselined" claims and the uncertainty warning to what was actually run; recorded the hand-applied `0010` migration and rollback during baselining; bumped `verified_commit`.
 - 2026-10-13: Recorded the live 0010 result after deploy (`ALL PASS (12 checks)`); advisors show only the expected `app_admins` (RLS, no policies) and `is_app_admin` notices.
 - 2026-10-13: The Verification table is now parsed by CI (`scripts/migration-record.ts`); added the format note.

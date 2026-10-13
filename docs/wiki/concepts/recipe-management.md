@@ -2,7 +2,7 @@
 title: "Recipe Management"
 summary: "Recipe create (atomic save_recipe RPC), edit (atomic update_recipe RPC), list with diet/allergen filters, detail and delete."
 tags: [recipes, ui]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -10,8 +10,8 @@ last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Recipe data access"
@@ -72,7 +72,7 @@ Filtering:
 - `diet`: `contains('diet_tags', diet)`. A recipe must have **all** the selected diets.
 - `exclude`: rows are fetched first and then filtered in JS (`!r.allergens.some(...)`).
 
-Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
+Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Until its macros are filled in, it is left out of the recipe totals and listed under „makra niepełne" on the detail page (see [[macro-calculation]]). Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
 
 ## Invariants and gotchas
 
@@ -119,6 +119,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: Placeholder ingredients are reported under „makra niepełne" instead of counting as 0 (#73).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
 - 2026-10-05: Documented the `optional` ingredient flag (0007).

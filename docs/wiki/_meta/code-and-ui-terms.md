@@ -3,16 +3,16 @@ title: "Code and UI Terms"
 aliases: [glossary]
 summary: "Code symbols, technical abbreviations and the Polish UI strings that appear in code and pages. Domain language lives in GLOSSARY.md."
 tags: [meta, ui]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Shared types"
@@ -53,8 +53,9 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 | String | Where | Meaning |
 |---|---|---|
 | „przepis niedostępny" | Plan slot | Slot has a `recipe_id`, but the recipe could not be read. |
-| „brak danych makro" | `MacroSummary` | No macro total available. |
+| „brak danych makro" | `MacroSummary`, `DayTotals` | No macro total available: nothing in the recipe or day could be counted. |
 | „(brak makro)" | Shopping item | The line's `incomplete` flag is set. |
+| „makra niepełne" | `RecipeMacroPanel`, `DayTotals` | An incomplete macro total: some ingredients were left out. The recipe page lists them under „Nie wliczono:"; the day total gets a „≥" prefix. |
 | „puste" | Plan slot | Slot with no recipe. |
 | „posiłek N" | Mobile plan, share page | Fallback slot label (position + 1). |
 | śniadanie, lunch, obiad, przekąska, kolacja | Desktop plan rows | Fixed labels for positions 0–4. |
@@ -74,6 +75,7 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 
 ## Changelog
 
+- 2026-10-13: Added „makra niepełne" and narrowed „brak danych makro" (#73).
 - 2026-10-09: Plan-slot string changed from „przepis usunięty" to „przepis niedostępny" (issue #16).
 - 2026-10-09: Re-verified against a7f8f52 (all code terms and UI strings grepped in `src/`). `RecipeJsonLd` now cites only the field-name evidence for schema.org; offline banner condition made precise.
 - 2026-10-09: Renamed from Glossary (alias kept); domain terms moved to the root `GLOSSARY.md`.
