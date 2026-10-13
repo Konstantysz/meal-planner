@@ -49,8 +49,12 @@ The person or site credited with a recipe's original authorship: the name from a
 _Avoid_: author (alone, it is ambiguous with the member who saved the recipe), creator, owner
 
 **Ingredient**:
-A catalogue entry, shared across all households, with macros per 100 g. Any signed-in user can add or edit one.
+A catalogue entry, shared across all households, with macros per 100 g. Any signed-in user can add one; only the user who created it or an app admin can change it.
 _Avoid_: product (an Open Food Facts term), food, item
+
+**App admin**:
+A user allowed to change any ingredient, including seed rows that have no creator. Granted only from the database console, never from the app.
+_Avoid_: admin (alone, it is ambiguous with a household's owner), moderator, superuser
 
 **Recipe ingredient**:
 An ingredient as used in one recipe: its amount, unit, and the original text it was entered or imported as.
