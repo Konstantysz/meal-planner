@@ -10,11 +10,19 @@ export interface StepLine {
 
 /**
  * Steps as cards. A step with a title is a native `<details>` (keyboard and screen-reader semantics come from
- * `<summary>`), open for the first step by default; a step without a title is a plain numbered card with nothing
+ * `<summary>`), open for the first titled step by default; a step without a title is a plain numbered card with nothing
  * to collapse. "Rozwiń wszystkie" / "Zwiń wszystkie" acts on the titled steps.
  */
 export function StepCards({ steps }: { steps: StepLine[] }) {
-  const [open, setOpen] = useState<Set<string>>(() => new Set(steps.slice(0, 1).map((s) => s.id)));
+  const [open, setOpen] = useState<Set<string>>(
+    () =>
+      new Set(
+        steps
+          .filter((s) => s.title)
+          .slice(0, 1)
+          .map((s) => s.id),
+      ),
+  );
   const titled = steps.filter((s) => s.title);
   const allOpen = titled.length > 0 && titled.every((s) => open.has(s.id));
 
@@ -34,7 +42,11 @@ export function StepCards({ steps }: { steps: StepLine[] }) {
           Kroki
         </h2>
         {titled.length > 0 && (
-          <Button onClick={() => setOpen(allOpen ? new Set() : new Set(titled.map((s) => s.id)))}>
+          <Button
+            aria-expanded={allOpen}
+            aria-controls={titled.map((s) => `step-${s.id}`).join(' ')}
+            onClick={() => setOpen(allOpen ? new Set() : new Set(titled.map((s) => s.id)))}
+          >
             {allOpen ? 'Zwiń wszystkie' : 'Rozwiń wszystkie'}
           </Button>
         )}
@@ -58,7 +70,9 @@ export function StepCards({ steps }: { steps: StepLine[] }) {
                     className="text-faint transition-transform group-open:rotate-90"
                   />
                 </summary>
-                <p className="border-t border-line px-3 py-3 pl-12 whitespace-pre-line">{s.text}</p>
+                <p id={`step-${s.id}`} className="border-t border-line px-3 py-3 pl-12 whitespace-pre-line">
+                  {s.text}
+                </p>
               </details>
             </li>
           ) : (

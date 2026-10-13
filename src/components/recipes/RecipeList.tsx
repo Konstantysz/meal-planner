@@ -36,16 +36,25 @@ export function RecipeList() {
     const params = new URLSearchParams();
     diet.forEach((d) => params.append('diet', d));
     exclude.forEach((e) => params.append('exclude', e));
+    const controller = new AbortController();
     setLoading(true);
     setFailed(false);
-    fetch(`/api/recipes?${params}`)
+    fetch(`/api/recipes?${params}`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       })
-      .then(setRecipes)
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
+      .then((body: unknown) => {
+        if (!Array.isArray(body)) throw new Error('unexpected response');
+        setRecipes(body as RecipeListItem[]);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setFailed(true);
+        setLoading(false);
+      });
+    return () => controller.abort();
   }, [diet, exclude, attempt]);
 
   function clearFilters() {

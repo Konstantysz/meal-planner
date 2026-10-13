@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getRecipe, getRecipeCoverPosition } from '@/lib/db/recipes';
 import { recipeMacrosPerServing } from '@/lib/macros';
+import { safeHttpUrl } from '@/lib/safe-url';
 import { ALLERGEN_LABELS, DIET_LABELS } from '@/lib/recipe-labels';
 import { MacroSummary } from '@/components/recipes/MacroSummary';
 import { RecipeActions } from '@/components/recipes/RecipeActions';
@@ -22,6 +23,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     notFound();
   }
 
+  const sourceUrl = safeHttpUrl(recipe.source_url);
   const per = recipeMacrosPerServing(recipe.ingredients, recipe.servings_base);
   const cover = await getRecipeCoverPosition(supabase, recipe.id);
 
@@ -69,11 +71,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
               <MacroSummary macros={per} />
             </dd>
           </dl>
-          {(recipe.source_url || recipe.source_author) && (
+          {(sourceUrl || recipe.source_author) && (
             <p className="flex flex-wrap items-center gap-x-2 text-sm">
-              {recipe.source_url && (
+              {sourceUrl && (
                 <a
-                  href={recipe.source_url}
+                  href={sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex min-h-11 items-center gap-1 underline underline-offset-2 hover:text-brand lg:min-h-0"
@@ -82,14 +84,14 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
                   <Icon name="link" width={16} height={16} />
                 </a>
               )}
-              {recipe.source_url && recipe.source_author && (
+              {sourceUrl && recipe.source_author && (
                 <span aria-hidden="true" className="text-muted">
                   ·
                 </span>
               )}
               {recipe.source_author && (
                 <span>
-                  {!recipe.source_url && <span className="text-muted">Źródło: </span>}
+                  {!sourceUrl && <span className="text-muted">Źródło: </span>}
                   {recipe.source_author}
                 </span>
               )}

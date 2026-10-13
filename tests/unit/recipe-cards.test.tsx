@@ -111,6 +111,30 @@ describe('RecipeList states', () => {
     expect(await screen.findByRole('heading', { name: 'Zupa pomidorowa' })).toBeInTheDocument();
   });
 
+  it('treats a non-array body as a failure', async () => {
+    stubFetch(ok({ error: 'x' }));
+    render(<RecipeList />);
+    expect(await screen.findByText('Nie udało się wczytać przepisów.')).toBeInTheDocument();
+  });
+
+  it('aborts the in-flight request when filters change or the list unmounts', async () => {
+    const signals: AbortSignal[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init?: RequestInit) => {
+        signals.push(init!.signal!);
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }),
+    );
+    const { unmount } = render(<RecipeList />);
+    await screen.findByText('Nie masz jeszcze przepisów.');
+    await userEvent.click(screen.getByRole('button', { name: 'wegetariańska' }));
+    expect(signals[0].aborted).toBe(true);
+    await screen.findByText('Żaden przepis nie spełnia wybranych filtrów.');
+    unmount();
+    expect(signals[signals.length - 1].aborted).toBe(true);
+  });
+
   it('offers to clear filters when they leave nothing', async () => {
     stubFetch(ok([]));
     render(<RecipeList />);
@@ -151,6 +175,19 @@ describe('StepCards', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Rozwiń wszystkie' }));
     await waitFor(() => expect(details[1]).toHaveProperty('open', true));
     expect(details[0]).toHaveProperty('open', true);
+  });
+
+  it('opens the first titled step, not an untitled first one, and reflects state on the control', async () => {
+    const mixed = [{ id: 'u', title: null, text: 'Wstęp.' }, ...steps.slice(0, 2)];
+    const { container } = render(<StepCards steps={mixed} />);
+    const details = container.querySelectorAll('details');
+    expect(details[0]).toHaveProperty('open', true);
+    expect(details[1]).toHaveProperty('open', false);
+    const toggle = screen.getByRole('button', { name: 'Rozwiń wszystkie' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', 'step-s1 step-s2');
+    await userEvent.click(toggle);
+    expect(await screen.findByRole('button', { name: 'Zwiń wszystkie' })).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('has no expand control when no step has a title', () => {

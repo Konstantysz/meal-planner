@@ -128,7 +128,7 @@ function fakeQuery(result: { data: unknown; error: unknown }) {
   const q: Record<string, unknown> = {
     then: (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve),
   };
-  for (const m of ['select', 'order', 'contains', 'not', 'eq']) q[m] = vi.fn(() => q);
+  for (const m of ['select', 'order', 'contains', 'not', 'eq', 'gte', 'limit']) q[m] = vi.fn(() => q);
   return q;
 }
 
@@ -173,10 +173,18 @@ describe('listRecipes', () => {
     expect(out.map((r) => r.id)).toEqual(['b']);
   });
 
-  it('still lists recipes (without colour) when the plan slots cannot be read', async () => {
-    const out = await listRecipes(client([row('a')], { data: null, error: { message: 'denied' } }));
-    expect(out).toHaveLength(1);
-    expect(out[0].cover_position).toBeNull();
+  it('surfaces a plan slot read error instead of hiding it', async () => {
+    await expect(listRecipes(client([row('a')], { data: null, error: new Error('denied') }))).rejects.toThrow('denied');
+  });
+
+  it('bounds the slot read to a recent date window and a row limit', async () => {
+    const slotQuery = fakeQuery({ data: [], error: null });
+    const from = vi.fn((table: string) =>
+      table === 'recipes' ? fakeQuery({ data: [row('a')], error: null }) : slotQuery,
+    );
+    await listRecipes({ from } as unknown as SupabaseClient);
+    expect(slotQuery.gte).toHaveBeenCalledWith('date', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+    expect(slotQuery.limit).toHaveBeenCalledWith(1000);
   });
 
   it('throws when the recipes query fails', async () => {
