@@ -40,9 +40,10 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 | 0007 | [[0007-units-never-summed]] | accepted |
 | 0008 | [[0008-share-link-rpc]] | accepted |
 | 0009 | [[0009-household-created-by-signup-trigger]] | accepted |
-| 0010 | [[0010-global-ingredient-catalog]] | accepted |
+| 0010 | [[0010-global-ingredient-catalog]] | accepted, amended by 0013 (migration 0010) |
 | 0011 | [[0011-html-to-markdown-import]] | accepted |
 | 0012 | [[0012-llm-structures-ingredients]] | accepted |
+| 0013 | [[0013-ingredient-ownership-and-app-admins]] | accepted |
 
 ## Related
 
@@ -54,6 +55,7 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 
 ## Changelog
 
+- 2026-10-13: Added 0013 (ingredient ownership and app admins); marked 0010 amended.
 - 2026-10-11: Added 0012 (LLM structures ingredients).
 - 2026-10-09: Added 0009 (signup trigger), 0010 (global ingredient catalog) and 0011 (HTML to Markdown import); fixed the intro on how records were made.
 - 2026-10-09: Marked 0002 superseded by the signup trigger (migration 0006).

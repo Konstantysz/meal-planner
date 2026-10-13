@@ -1,18 +1,18 @@
 ---
 title: "Ingredient Database"
-summary: "The shared, crowd-sourced ingredients table: macros per 100 g, Open Food Facts lookup and category guessing, and how rows get created."
+summary: "The shared ingredients table: macros per 100 g, Open Food Facts lookup and category guessing, and how rows get created."
 tags: [ingredients, macros]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: a7f8f52
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: 5966c4c
 sources:
   - title: "Ingredient data access"
     path: src/lib/db/ingredients.ts
@@ -40,7 +40,7 @@ sources:
 # Ingredient Database
 
 > [!tldr]
-> `ingredients` is one global table, not scoped to a household. It stores nullable macros **per 100 g** and has a case-insensitive unique name. Rows come from the 40-row seed, from manual creation (macros all null), or from Open Food Facts through `/api/ingredients/lookup`. Any signed-in user can create or edit any row.
+> `ingredients` is one global table, not scoped to a household. It stores nullable macros **per 100 g** and has a case-insensitive unique name. Rows come from the 40-row seed, from manual creation (macros all null), or from Open Food Facts through `/api/ingredients/lookup`. Any signed-in user can create a row; only its creator or an app admin can change it (since migration 0010).
 
 ## Context
 
@@ -67,7 +67,7 @@ Recipe macros, the shopping list's `incomplete` flag and import auto-matching al
 
 ## Known gaps
 
-- Any signed-in user can overwrite any ingredient's macros (`ing_update`). That is intentional, per the plan, but nothing records who changed what.
+- Only the creator or an app admin can update an ingredient (`ing_update`, migration 0010, [[0013-ingredient-ownership-and-app-admins]]). Seed rows and rows created before 0010 have no creator, so only an app admin can fix them. Nothing records who changed a value, only who created the row.
 - Macro-less placeholders pile up from import and manual creation. The picker inserts them as soon as they are picked, even if the recipe is never saved. Their null macros count as 0, so recipe macros are understated without any warning on the detail page (the shopping list does show „brak makro"). `scripts/backfill-ingredient-macros.ts` (service-role key, `--dry-run`) re-queries Open Food Facts for them and takes the first hit as-is.
 - `GET /api/ingredients` returns the whole table. The picker filters client-side.
 
@@ -96,6 +96,7 @@ pnpm tsx scripts/backfill-ingredient-macros.ts --dry-run
 
 ## Changelog
 
+- 2026-10-13: Ingredient updates limited to the creator or an app admin (migration 0010).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected the `default_unit` description, the failed-`searchOff` behaviour and the prose abbreviation for Open Food Facts. Added the picker and migration sources.
 - 2026-10-09: Linked the shared-catalog decision, [[0010-global-ingredient-catalog]].
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
