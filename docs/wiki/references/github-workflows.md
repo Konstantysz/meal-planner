@@ -55,9 +55,35 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 The ruleset is active on `main`: on 2026-10-09 `gh api repos/Konstantysz/meal-planner/rules/branches/main` listed deletion, non-fast-forward, pull_request (0 required approvals) and required_status_checks (`lint`, `wiki`, `test`, `build`, strict) from ruleset 24806035.
 
 > [!warning] `db` not yet required on GitHub
-> `db` was added to the file on 2026-10-13. Until an admin updates ruleset 24806035 from the file, GitHub requires only the four older checks.
+> `db` was added to the file on 2026-10-13. Until a repository admin syncs ruleset 24806035 (`main-protection`) from the file, GitHub requires only the four older checks. Steps: [[github-workflows#Syncing the ruleset after editing the file]].
 
-A ruleset isn't applied by merging the file; an admin imports it once (already done for this repo) (Settings → Rules → Rulesets → New ruleset → Import a ruleset) or runs:
+### Syncing the ruleset after editing the file
+
+Merging a change to `.github/rulesets/main-protection.json` does nothing on GitHub by itself. A repository admin (today @Konstantysz, the repo owner) applies it:
+
+1. Wait until the change is merged into `main` and CI has run there once, so GitHub has seen every check name the file lists (`db` included).
+2. Confirm the ruleset id. It is `24806035`, named `main-protection`:
+
+   ```bash
+   gh api repos/Konstantysz/meal-planner/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
+   ```
+
+3. From the repo root on an up-to-date `main`, overwrite the live ruleset with the file:
+
+   ```bash
+   gh api -X PUT repos/Konstantysz/meal-planner/rulesets/24806035 --input .github/rulesets/main-protection.json
+   ```
+
+   Without `gh`: Settings → Rules → Rulesets → `main-protection` → "Require status checks to pass" → "Add checks" → type `db` → select it → "Save changes".
+4. Check that `main` now requires five checks. The output must list `lint`, `wiki`, `db`, `test` and `build`:
+
+   ```bash
+   gh api repos/Konstantysz/meal-planner/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'
+   ```
+
+5. Remove the warning above and record the date in this page's Changelog.
+
+First-time setup only (already done for this repo, ruleset 24806035): an admin imports the file once (Settings → Rules → Rulesets → New ruleset → Import a ruleset) or runs:
 
 ```bash
 gh api -X POST repos/Konstantysz/meal-planner/rulesets --input .github/rulesets/main-protection.json
@@ -98,6 +124,7 @@ gh run list --workflow backup.yml --limit 5
 
 ## Changelog
 
+- 2026-10-13: Added the step-by-step ruleset sync for admins.
 - 2026-10-13: Added CI job `db` (`pnpm db:order`, `pnpm db:verify`) and listed it in the ruleset file.
 - 2026-10-09: `wiki` job now checks out full history and runs `pnpm wiki:stale` (informational).
 - 2026-10-09: Re-verified workflows and steps against a7f8f52. Confirmed the `main` ruleset is active via `gh api …/rules/branches/main` (an earlier empty result was transient). Updated the secrets and failing-run evidence to 2026-10-09. Flagged the auth/storage dump claim as uncertain.
