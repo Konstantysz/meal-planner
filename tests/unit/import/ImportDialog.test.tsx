@@ -56,6 +56,33 @@ describe('ImportDialog', () => {
     expect(engine.extractWithWebLlm).not.toHaveBeenCalled();
   });
 
+  it('submits on Enter in the URL field, like the button', async () => {
+    const f = stubFetch(json({ mode: 'server' }));
+    const onExtracted = vi.fn();
+    render(<ImportDialog onClose={() => {}} onExtracted={onExtracted} />);
+    await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), 'https://a.pl/x{Enter}');
+
+    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x'));
+    expect(calledExtractPost(f)).toBe(true);
+  });
+
+  it('Enter with an empty URL does nothing', async () => {
+    const f = stubFetch(json({ mode: 'server' }));
+    render(<ImportDialog onClose={() => {}} onExtracted={vi.fn()} />);
+    await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), '{Enter}');
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it('Anuluj does not submit', async () => {
+    const f = stubFetch(json({ mode: 'server' }));
+    const onClose = vi.fn();
+    render(<ImportDialog onClose={onClose} onExtracted={vi.fn()} />);
+    await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), 'https://a.pl/x');
+    await userEvent.click(screen.getByRole('button', { name: /anuluj/i }));
+    expect(onClose).toHaveBeenCalled();
+    expect(f).not.toHaveBeenCalled();
+  });
+
   it('browser mode: extracts with WebLLM', async () => {
     const f = stubFetch(json({ mode: 'browser' }));
     engine.hasWebGpu.mockResolvedValue(true);
