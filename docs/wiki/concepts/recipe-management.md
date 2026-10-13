@@ -32,6 +32,8 @@ sources:
     path: src/components/recipes/RecipeForm.tsx
   - title: "Ingredient picker"
     path: src/components/recipes/IngredientPicker.tsx
+  - title: "Step list editor"
+    path: src/components/recipes/StepsEditor.tsx
   - title: "Recipe list and filters"
     path: src/components/recipes/RecipeList.tsx
   - title: "Detail page"
@@ -65,7 +67,7 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 
 `updateRecipe(supabase, id, input)` validates the same `RecipeInputSchema`, then calls `rpc('update_recipe', { p_recipe_id, p_recipe })` (migration 0009). In one transaction it updates the recipe's columns (`author_id`, `household_id` and `created_at` never change), deletes all of its ingredient and step rows and inserts the submitted ones, so adding, removing and reordering need no diffing (row ids are not stable across an edit; nothing references them). It is `security invoker` like `save_recipe`, so `rec_update`, `ri_all` and `rs_all` decide. An `UPDATE` that RLS filters affects 0 rows and raises nothing, so the function raises `42501` when no row was updated; the route turns that into **403** (400 for an invalid body or a known client database error with a fixed message, 401 when signed out, 500 with a generic message for anything else, logged server-side). Any member of the household may edit its recipes (`rec_update`), not only the author.
 
-The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title). Positions are renumbered from list order on submit; steps with blank text are dropped. `source_url` and `visibility` are carried through unchanged (no field edits them).
+The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title; the step list is the `StepsEditor` component, shared with the import review form, see [[import-pipeline]]). Positions are renumbered from list order on submit; steps with blank text are dropped. `source_url` and `visibility` are carried through unchanged (no field edits them).
 
 Filtering:
 
@@ -120,6 +122,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Changelog
 
 - 2026-10-13: Placeholder ingredients are reported under „makra niepełne" instead of counting as 0 (#73).
+- 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
 - 2026-10-05: Documented the `optional` ingredient flag (0007).

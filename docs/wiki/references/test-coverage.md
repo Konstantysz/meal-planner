@@ -64,6 +64,8 @@ sources:
 | `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
 | `src/components/import/ImportReviewForm.tsx` | `tests/unit/import/ImportReviewForm.test.tsx` |
 | `src/lib/import/duration.ts` | `tests/unit/import/duration.test.ts` |
+| `src/lib/list-edit.ts` | `tests/unit/list-edit.test.ts` |
+| `src/components/import/ExtractedIngredientsEditor.tsx`, `src/components/recipes/StepsEditor.tsx` | `tests/unit/import/review-editors.test.tsx` (also `ImportReviewForm` editing) |
 | `scripts/wiki-check.ts` | `tests/unit/wiki-check.test.ts` |
 
 ## Not covered
@@ -120,6 +122,7 @@ pnpm vitest run -t "different units"        # by test name
 ## Changelog
 
 - 2026-10-13: Review Focus #5 also pinned by `recipeMacros` and the recipe-view badge test (#73).
+- 2026-10-13: Added `list-edit.ts` and the review editors (#35).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.
