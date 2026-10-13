@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import type { Ingredient } from '@/lib/types';
+import { Button, Input } from '@/components/ui';
 
 export interface PickedIngredient {
   ingredient_id: string;
@@ -76,26 +77,25 @@ export function IngredientPicker({
     }
   }
 
+  function move(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= value.length) return;
+    const next = [...value];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange(next.map((v, i) => ({ ...v, position: i })));
+  }
+
   const update = (idx: number, patch: Partial<PickedIngredient>) =>
     onChange(value.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
 
   return (
     <div className="space-y-2">
-      <input
-        placeholder="Szukaj składnika…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="w-full border rounded px-3 py-2"
-      />
+      <Input placeholder="Szukaj składnika…" value={query} onChange={(e) => setQuery(e.target.value)} />
       {filtered.length > 0 && (
-        <ul className="border rounded divide-y">
+        <ul className="rounded-control border border-line divide-y divide-line">
           {filtered.map((i) => (
             <li key={i.id}>
-              <button
-                type="button"
-                onClick={() => add(i)}
-                className="w-full text-left px-3 py-2 hover:bg-gray-100 hover:text-black"
-              >
+              <button type="button" onClick={() => add(i)} className="min-h-11 w-full px-3 text-left hover:bg-hover">
                 {i.name}
               </button>
             </li>
@@ -103,33 +103,31 @@ export function IngredientPicker({
         </ul>
       )}
       {query.length >= 2 && filtered.length === 0 && (
-        <button
-          type="button"
-          disabled={creating}
-          onClick={() => createAndAdd(query)}
-          className="w-full text-left px-3 py-2 border rounded opacity-80 hover:opacity-100"
-        >
+        <Button disabled={creating} onClick={() => createAndAdd(query)} className="w-full justify-start">
           {creating ? 'Dodaję…' : `+ Dodaj nowy składnik "${query}"`}
-        </button>
+        </Button>
       )}
-      <ul className="space-y-1">
+      <ul className="space-y-3">
         {value.map((v, idx) => (
-          <li key={idx} className="flex items-center gap-2">
-            <input
+          <li key={idx} className="flex flex-wrap items-center gap-2 border-b border-line pb-3">
+            <Input
+              aria-label="Składnik"
               value={v.raw_text}
               onChange={(e) => update(idx, { raw_text: e.target.value })}
-              className="flex-1 border rounded px-2 py-1"
+              className="min-w-40 flex-1"
             />
-            <input
+            <Input
+              aria-label="Ilość"
               type="number"
               value={v.amount ?? ''}
               onChange={(e) => update(idx, { amount: e.target.value === '' ? null : Number(e.target.value) })}
-              className="w-20 border rounded px-2 py-1"
+              className="w-20"
             />
-            <input
+            <Input
+              aria-label="Jednostka"
               value={v.unit ?? ''}
               onChange={(e) => update(idx, { unit: e.target.value || null })}
-              className="w-16 border rounded px-2 py-1"
+              className="w-20"
             />
             <label className="flex items-center gap-1 text-sm whitespace-nowrap">
               <input
@@ -139,13 +137,22 @@ export function IngredientPicker({
               />
               opcjonalny
             </label>
-            <button
-              type="button"
-              onClick={() => onChange(value.filter((_, i) => i !== idx))}
-              className="text-red-600 px-2"
+            <Button aria-label="Przesuń składnik w górę" disabled={idx === 0} onClick={() => move(idx, -1)}>
+              ↑
+            </Button>
+            <Button
+              aria-label="Przesuń składnik w dół"
+              disabled={idx === value.length - 1}
+              onClick={() => move(idx, 1)}
+            >
+              ↓
+            </Button>
+            <Button
+              aria-label="Usuń składnik"
+              onClick={() => onChange(value.filter((_, i) => i !== idx).map((x, i) => ({ ...x, position: i })))}
             >
               ×
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
