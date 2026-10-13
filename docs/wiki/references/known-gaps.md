@@ -2,7 +2,7 @@
 title: "Known Gaps"
 summary: "Ranked index of known bugs, security gaps and unfinished features, each linking to the page that documents it."
 tags: [security, spec]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -10,8 +10,8 @@ last_reviewed: 2026-10-10
 review_interval_days: 30
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Initial schema and RLS"
@@ -56,6 +56,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
+| Ingredient macros that pass the range checks but miss the Atwater estimate (e.g. „vEGGs roślinny zamiennik jajek", 1.23×) are only listed by the data-quality report, which a human must run and act on | [[ingredient-database#Known gaps]] |
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
@@ -96,6 +97,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-13: Added the Atwater data-quality row; impossible ingredient macros are now rejected (#71, migration 0012).
 - 2026-10-13: Removed the per-day macro totals row (#44).
 - 2026-10-13: Removed the static pre-render, always-1-serving, dark-mode slot name and unused `@dnd-kit` rows (#38); the per-day macros row now says not implemented.
 - 2026-10-13: Removed the login-without-signup-link row and reworded the have-marks row: the banner no longer promises a sync (#41).

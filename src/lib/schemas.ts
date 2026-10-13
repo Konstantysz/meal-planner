@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { normalizeWeekStart } from '@/lib/week';
+import { validateMacros } from '@/lib/macro-validation';
 
 export const RecipeJsonLdSchema = z.object({
   name: z.string().min(1),
@@ -12,28 +13,35 @@ export const RecipeJsonLdSchema = z.object({
   image: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
-export const IngredientInputSchema = z.object({
-  name: z.string().min(1).max(200),
-  category: z.enum([
-    'warzywa',
-    'owoce',
-    'mieso',
-    'ryby',
-    'nabial',
-    'pieczywo',
-    'makarony',
-    'przyprawy',
-    'tluszcze',
-    'napoje',
-    'inne',
-  ]),
-  kcal_per_100g: z.number().nonnegative().nullable(),
-  protein_per_100g: z.number().nonnegative().nullable(),
-  fat_per_100g: z.number().nonnegative().nullable(),
-  carbs_per_100g: z.number().nonnegative().nullable(),
-  default_unit: z.string().nullable(),
-  source: z.enum(['off', 'manual', 'ai_estimate']),
-});
+export const IngredientInputSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    category: z.enum([
+      'warzywa',
+      'owoce',
+      'mieso',
+      'ryby',
+      'nabial',
+      'pieczywo',
+      'makarony',
+      'przyprawy',
+      'tluszcze',
+      'napoje',
+      'inne',
+    ]),
+    kcal_per_100g: z.number().nonnegative().nullable(),
+    protein_per_100g: z.number().nonnegative().nullable(),
+    fat_per_100g: z.number().nonnegative().nullable(),
+    carbs_per_100g: z.number().nonnegative().nullable(),
+    default_unit: z.string().nullable(),
+    source: z.enum(['off', 'manual', 'ai_estimate']),
+  })
+  // Range rules shared with the DB CHECK constraints (migration 0012). Atwater is not applied here.
+  .superRefine((v, ctx) => {
+    for (const issue of validateMacros(v)) {
+      ctx.addIssue({ code: 'custom', message: `Implausible macros: ${issue}` });
+    }
+  });
 
 export const RecipeIngredientInputSchema = z.object({
   ingredient_id: z.string().uuid(),

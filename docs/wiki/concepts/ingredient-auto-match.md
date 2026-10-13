@@ -5,12 +5,12 @@ tags: [import, ingredients]
 status: draft
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-11
+updated: 2026-10-13
 last_reviewed: 2026-10-11
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-sonnet-5-5"
+llm_model: "claude-opus-5-5"
 human_reviewed: false
 verified_commit: c9c43ec
 sources:
@@ -24,6 +24,10 @@ sources:
     path: src/lib/import/match-ingredient.ts
   - title: "Review form"
     path: src/components/import/ImportReviewForm.tsx
+  - title: "Open Food Facts client"
+    path: src/lib/off.ts
+  - title: "Macro validator"
+    path: src/lib/macro-validation.ts
   - title: "Auto-match tests"
     path: tests/unit/import/auto-match.test.ts
   - title: "Ingredient corpus"
@@ -51,10 +55,10 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 
 1. The name is used as returned (the prompt asks for the base form, without amounts or comments). `parseLlmJson` has already run `normalizeUnit` over the unit (`łyżek` → `łyżka`, `gramów` → `g`; `unit.ts`).
 2. `findBestMatch(name, local)`: exact match scores 1, substring 0.8, otherwise word overlap / max word count, where two words match when equal or when `wordsMatch` finds a common prefix of at least 4 letters that is at least `min(len) - 3` („czosnku" ~ „czosnek", „pomidorów" ~ „pomidor"). Words under 4 letters need an exact match („sól" ≠ „sos"). Scores of 0.5 or more count as a match.
-3. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match. A failed `searchOff` call counts as no OFF result.
+3. If the local match has any macro field, it's used. Otherwise `searchOff(name)[0]` becomes an `offCandidate`, which beats a macro-less local match. A failed `searchOff` call counts as no Open Food Facts result. `searchOff` has already dropped products with implausible macros (out of range, or kcal outside 0.6–1.2× the Atwater estimate; see [[ingredient-database#Macro validation]]), so `[0]` is the first plausible product.
 4. If there's neither, a `fallbackCandidate`: the name, category `inne`, null macros, `source: 'manual'`.
 
-`ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and shows a summary notice. The review form lists each import line as `amount unit name`.
+`ImportReviewForm.autoMatch` then `POST`s each OFF or fallback candidate to `/api/ingredients`, builds the `PickedIngredient[]` list (unit falls back to the ingredient's `default_unit`), and shows a summary notice. The review form lists each import line as `amount unit name`. Under the „Auto-mapuj składniki" button it shows the Open Food Facts disclaimer („Dane z Open Food Facts — publicznej bazy tworzonej przez społeczność. Mogą zawierać błędy.").
 
 ## Invariants and gotchas
 
@@ -89,7 +93,7 @@ Names are solid on both; amount and unit are where the 2B model falls short, whi
 
 - Ingredient rows are created when the user clicks „Auto-mapuj", so they stay in the shared table even if the user then cancels the import.
 - Quality depends on the model: gemma2:2b could drop a „- około 160 g" weight or invent an amount ([[known-gaps]]).
-- OFF results are often packaged products (brand names), and the first hit is taken without ranking.
+- Open Food Facts results are often packaged products (brand names), and the first plausible hit is taken without ranking. The validator rejects impossible or inconsistent macros, not plausible wrong ones.
 
 ## Related
 
@@ -108,6 +112,7 @@ Names are solid on both; amount and unit are where the 2B model falls short, whi
 
 ## Changelog
 
+- 2026-10-13: Open Food Facts products with implausible macros are skipped, so lookup falls through to the next product; added the disclaimer under „Auto-mapuj składniki" (#71).
 - 2026-10-11: The model now structures ingredients; the staged regex parser, its corpus test and `cleanIngredientName` are removed ([[0012-llm-structures-ingredients]]).
 - 2026-10-09: Re-verified against `a7f8f52`. Updated the failed-`searchOff` behaviour.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.

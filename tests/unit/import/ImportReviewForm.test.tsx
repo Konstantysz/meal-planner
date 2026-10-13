@@ -93,6 +93,13 @@ describe('ImportReviewForm prep time', () => {
   });
 });
 
+describe('ImportReviewForm Open Food Facts disclaimer', () => {
+  it('shows the disclaimer next to the auto-match button', () => {
+    render(<ImportReviewForm extracted={BASE as never} sourceUrl="" onCancel={() => {}} onSaved={() => {}} />);
+    expect(screen.getByText(/Dane z Open Food Facts/)).toBeInTheDocument();
+  });
+});
+
 describe('ImportReviewForm step titles', () => {
   it('sends the title of each step to save_recipe, null when absent', async () => {
     const body = await saveWith({

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
+import { OffDisclaimer } from '@/components/recipes/OffDisclaimer';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
@@ -172,6 +173,7 @@ export function ImportReviewForm({
         >
           {matching ? 'Dopasowuję…' : 'Auto-mapuj składniki'}
         </button>
+        <OffDisclaimer className="mb-2" />
         <p className="text-sm opacity-70 mb-2">Zmapuj na bazę:</p>
         <IngredientPicker value={ingredients} onChange={setIngredients} />
       </div>
