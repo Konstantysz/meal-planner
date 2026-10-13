@@ -16,6 +16,7 @@ export interface RecipeFormInitialValues {
   prep_time_min: number | null;
   source_url?: string | null;
   source_author?: string | null;
+  image_url?: string | null;
   visibility?: 'private' | 'household' | 'public_link';
   diet_tags: string[];
   allergens: string[];
@@ -36,6 +37,7 @@ export function RecipeForm({
   const [servings, setServings] = useState(initialValues?.servings_base ?? 4);
   const [prepTime, setPrepTime] = useState<number | null>(initialValues?.prep_time_min ?? null);
   const [sourceAuthor, setSourceAuthor] = useState(initialValues?.source_author ?? '');
+  const [imageUrl, setImageUrl] = useState(initialValues?.image_url ?? '');
   const [dietTags, setDietTags] = useState<string[]>(initialValues?.diet_tags ?? []);
   const [allergens, setAllergens] = useState<string[]>(initialValues?.allergens ?? []);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>(initialValues?.ingredients ?? []);
@@ -56,6 +58,7 @@ export function RecipeForm({
         prep_time_min: prepTime,
         source_url: initialValues?.source_url ?? null,
         source_author: sourceAuthor.trim() || null,
+        image_url: imageUrl.trim() || null,
         visibility: initialValues?.visibility ?? 'household',
         diet_tags: dietTags,
         allergens,
@@ -120,6 +123,17 @@ export function RecipeForm({
           placeholder="np. Ania Gotuje"
           maxLength={200}
         />
+      </label>
+      <label className="block">
+        <span className="font-semibold">Zdjęcie (adres URL)</span>
+        <Input
+          type="url"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://cdn.aniagotuje.com/…"
+          maxLength={2048}
+        />
+        <span className="text-sm text-muted">Obsługiwane strony: jadlonomia.com i aniagotuje.pl.</span>
       </label>
       <fieldset>
         <legend className="font-semibold">Diety</legend>
