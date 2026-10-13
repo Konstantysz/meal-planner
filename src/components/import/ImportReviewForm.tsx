@@ -115,7 +115,9 @@ export function ImportReviewForm({
       }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? 'save failed');
+      const body: unknown = await res.json().catch(() => null);
+      const msg = (body as { error?: unknown } | null)?.error;
+      setError(typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.');
       return;
     }
     const r = await res.json();
@@ -142,8 +144,11 @@ export function ImportReviewForm({
           <input
             type="number"
             min={0}
+            step={1}
             value={prepTime ?? ''}
-            onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))}
+            onChange={(e) =>
+              setPrepTime(e.target.value === '' ? null : Math.max(0, Math.round(Number(e.target.value))))
+            }
             className="w-24 border rounded px-2 py-1"
           />
         </label>
