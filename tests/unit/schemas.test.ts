@@ -60,8 +60,13 @@ describe('RecipeInputSchema source_author and step title', () => {
     expect(parsed.steps[0].title).toBe('Zupa');
   });
 
-  it('rejects empty strings', () => {
-    expect(() => RecipeInputSchema.parse({ ...base, source_author: '' })).toThrow();
-    expect(() => RecipeInputSchema.parse({ ...base, steps: [{ position: 0, title: '', text: 'x' }] })).toThrow();
+  it('turns blank strings into null', () => {
+    const parsed = RecipeInputSchema.parse({
+      ...base,
+      source_author: '  ',
+      steps: [{ position: 0, title: '', text: 'x' }],
+    });
+    expect(parsed.source_author).toBeNull();
+    expect(parsed.steps[0].title).toBeNull();
   });
 });
