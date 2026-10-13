@@ -68,7 +68,7 @@ export const ExtractedIngredientSchema = z.object({
   amount: z.number().nullable().default(null),
   unit: z.string().nullable().default(null),
   optional: z.boolean().default(false),
-  // Not in LLM_OUTPUT_SCHEMA: set by applyQuantityRanges when the source line had a range ("1-2 łyżki").
+  // Not in LLM_OUTPUT_SCHEMA: set only by applyQuantityRanges (parseLlmJson drops any model-supplied value) when the source line had a range ("1-2 łyżki").
   range: z.string().optional(),
 });
 export type ExtractedIngredient = z.infer<typeof ExtractedIngredientSchema>;
@@ -88,6 +88,9 @@ export function parseLlmJson(raw: string): ExtractedRecipe {
   const recipe = ExtractedRecipeSchema.parse(obj);
   return {
     ...recipe,
-    recipeIngredient: recipe.recipeIngredient.map((i) => ({ ...i, unit: i.unit ? normalizeUnit(i.unit) : null })),
+    recipeIngredient: recipe.recipeIngredient.map(({ range: _modelRange, ...i }) => ({
+      ...i,
+      unit: i.unit ? normalizeUnit(i.unit) : null,
+    })),
   };
 }

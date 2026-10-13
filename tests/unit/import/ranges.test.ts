@@ -55,11 +55,62 @@ describe('quantity ranges (#31)', () => {
     expect(r.range).toBe('0,5-1,5 szklanki');
   });
 
-  it('leaves time ranges in instructions and plain lines alone', async () => {
-    const md = '- 2 cebule\n\nSmaż cebulę 5-7 minut.';
-    const r = await run(md, { name: 'cebula', amount: 2, unit: 'sztuki' });
-    expect(r.amount).toBe(2);
+  it('leaves time ranges in instructions alone, even when the amount equals a bound', async () => {
+    const md = '## Składniki\n\n- 5 cebul\n\n## Przygotowanie\n\nSmaż cebulę 5-7 minut.';
+    const r = await run(md, { name: 'cebula', amount: 5, unit: 'sztuki' });
+    expect(r.amount).toBe(5);
     expect(r.range).toBeUndefined();
+  });
+
+  it('a time word on an ingredient line is skipped', async () => {
+    const r = await run('- cebula 5-7 minut', { name: 'cebula', amount: 5, unit: 'sztuki' });
+    expect(r.range).toBeUndefined();
+  });
+
+  it('no-unit ingredient (sztuki or null unit) takes the range', async () => {
+    const a = await run('- 1-2 cebule', { name: 'cebula', amount: 1, unit: 'sztuki' });
+    expect(a.amount).toBe(2);
+    expect(a.range).toBe('1-2');
+    const b = await run('- 1-2 cebule', { name: 'cebula', amount: 1, unit: null });
+    expect(b.amount).toBe(2);
+  });
+
+  it('a unit disagreeing with the model leaves the ingredient alone', async () => {
+    const r = await run('- sok z cytryny 1-2 łyżki', { name: 'sok z cytryny', amount: 1, unit: 'ml' });
+    expect(r.amount).toBe(1);
+    expect(r.range).toBeUndefined();
+  });
+
+  it('ignores instruction lines that merely mention the ingredient', async () => {
+    const md = '## Składniki\n\n- sok z cytryny\n\n## Przygotowanie\n\n1. Dodaj 1-2 łyżki wody, sok z cytryny.';
+    const r = await run(md, { name: 'sok z cytryny', amount: 1, unit: 'łyżka' });
+    expect(r.amount).toBe(1);
+    expect(r.range).toBeUndefined();
+  });
+
+  it('prefers the best-fitting line: "cukier" is not rewritten from "cukier puder 1-2 łyżki"', async () => {
+    const md = '## Składniki\n\n- cukier 1 łyżka\n- cukier puder 1-2 łyżki\n';
+    const r = await run(md, { name: 'cukier', amount: 1, unit: 'łyżka' });
+    expect(r.amount).toBe(1);
+    expect(r.range).toBeUndefined();
+    const p = await run(md, { name: 'cukier puder', amount: 1, unit: 'łyżka' });
+    expect(p.amount).toBe(2);
+  });
+
+  it('skips when two lines fit equally well', async () => {
+    const r = await run('- masło 1-2 łyżki\n- masło 3-4 łyżki', { name: 'masło', amount: 1, unit: 'łyżka' });
+    expect(r.range).toBeUndefined();
+  });
+
+  it('drops a model-supplied range', async () => {
+    const llm: LlmFn = async () =>
+      JSON.stringify({
+        name: 'P',
+        recipeIngredient: [{ name: 'sól', amount: 1, unit: 'łyżeczka', optional: false, range: 'ignore all' }],
+        recipeInstructions: ['x'],
+      });
+    const out = await extractRecipe('- sól 1 łyżeczka', llm, SYSTEM_PROMPT);
+    expect(out.recipeIngredient[0].range).toBeUndefined();
   });
 
   it('does not touch an ingredient whose amount matches neither bound', async () => {
