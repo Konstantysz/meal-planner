@@ -115,6 +115,21 @@ describe('IngredientInputSchema uses the range rules', () => {
     expect(IngredientInputSchema.safeParse({ ...base, ...m(950, 0, 0, 0) }).success).toBe(false);
   });
 
+  it('reports each broken rule on its field with a readable message', () => {
+    const result = IngredientInputSchema.safeParse({ ...base, ...m(593.75, 75, 156.25, 43.75) });
+    expect(result.success).toBe(false);
+    const issues = result.error?.issues.map((i) => ({ path: i.path, message: i.message }));
+    expect(issues).toEqual([
+      { path: ['fat_per_100g'], message: 'fat_per_100g must be between 0 and 100' },
+      { path: [], message: 'protein_per_100g + fat_per_100g + carbs_per_100g must be at most 101' },
+    ]);
+
+    const kcal = IngredientInputSchema.safeParse({ ...base, ...m(950, 0, 0, 0) });
+    expect(kcal.error?.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
+      { path: ['kcal_per_100g'], message: 'kcal_per_100g must be between 0 and 900' },
+    ]);
+  });
+
   it('accepts valid, macro-less and alcohol-like rows on save', () => {
     expect(IngredientInputSchema.safeParse({ ...base, ...m(717, 0.9, 81.1, 0.1) }).success).toBe(true);
     expect(IngredientInputSchema.safeParse({ ...base, ...m(null, null, null, null) }).success).toBe(true);

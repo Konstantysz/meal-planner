@@ -8,6 +8,10 @@
 --     known bad rows still hold their bad values) fail; the legit paths 9-12 pass.
 --   * PGlite (pnpm db:verify) or any database without the two live rows: FAIL 8 (14 checks), because
 --     checks 13-14 pass when their row is absent ("if the row exists, it is plausible").
+--   The PASS detail of 13-14 says "(row absent)" or "(row corrected)".
+-- Not testable after deploy: the migration's "don't overwrite a hand-fixed row" guard (each update
+-- also matches the current bad values). Once 0012 has run, the bad values are gone, so no live run
+-- can exercise it; it was exercised once on PGlite with the two live rows inserted.
 --
 -- Each out-of-range write runs in its own subtransaction. If it succeeds, the block raises VRFY1 to
 -- undo it, so a successful write never leaks into the next check. Only a check_violation counts as
@@ -23,6 +27,7 @@ declare
   r record;
   estimate numeric;
   ok boolean;
+  present boolean;
   results text[] := '{}';
   fails int := 0;
 begin
@@ -118,6 +123,7 @@ begin
     select * from (values (13, pb_id, 'Peanut Butter Crunchy'), (14, skyr_id, 'Skyr Wanilia')) v(n, id, label)
   loop
     ok := true;
+    present := false;
     for estimate in
       select 4 * protein_per_100g + 9 * fat_per_100g + 4 * carbs_per_100g from ingredients where id = r.id
     loop
@@ -130,8 +136,11 @@ begin
                false)
         into ok
         from ingredients where id = r.id;
+      present := true;
     end loop;
-    results := results || format('%s %s %s row plausible if present', case when ok then 'PASS' else 'FAIL' end, r.n, r.label);
+    results := results || format('%s %s %s row plausible if present (%s)',
+      case when ok then 'PASS' else 'FAIL' end, r.n, r.label,
+      case when not present then 'row absent' when ok then 'row corrected' else 'row still bad' end);
   end loop;
 
   select count(*) into fails from unnest(results) t where t like 'FAIL%';
