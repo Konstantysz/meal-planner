@@ -34,6 +34,8 @@ sources:
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Ingredient ownership and app admins"
     path: supabase/migrations/0010_ingredient_ownership.sql
+  - title: "Schema integrity"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Ingredient seed"
     path: supabase/seed.sql
   - title: "Supabase CLI config"
@@ -57,16 +59,16 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `household_members` | (`household_id`, `user_id`) | `role` ∈ {`owner`, `member`}. FK to `households` and `auth.users`, both `on delete cascade`. |
 | `ingredients` | `id` uuid | `category` ∈ 11 Polish categories. `kcal/protein/fat/carbs_per_100g` are nullable numerics. `source` ∈ {`off`, `manual`, `ai_estimate`}. Unique index on `lower(name)`. `created_by` defaults to `auth.uid()` and is `on delete set null` (0010); null means seed or legacy row. |
 | `app_admins` | `user_id` uuid | FK to `auth.users` `on delete cascade`, `created_at`. RLS on with no policies, and `anon`/`authenticated` have no table privileges: rows are added from the SQL editor only (0010). |
-| `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, nullable `source_author` (free text: who wrote the recipe; `author_id` is who saved it), `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
-| `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` and `unit`, `raw_text`, `position`, `optional` (boolean, default false; excluded from recipe macros) |
-| `recipe_steps` | `id` uuid | `recipe_id` (cascade), `position`, nullable `title` (short heading), `text` |
+| `recipes` | `id` uuid | `household_id` (cascade), nullable `author_id` (**on delete set null** since 0013: deleting the account keeps the recipe in its household), `updated_at` (set to `now()` by trigger `recipes_set_updated_at` on every update, 0013), `servings_base > 0`, nullable `source_author` (free text: who wrote the recipe; `author_id` is who saved it), `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
+| `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` (`> 0` when set) and `unit`, `raw_text`, `position` (`>= 0`, `unique (recipe_id, position)`), `optional` (boolean, default false; excluded from recipe macros). Row rules since 0013. |
+| `recipe_steps` | `id` uuid | `recipe_id` (cascade), `position` (`>= 0`, `unique (recipe_id, position)`), nullable `title` (short heading), `text` (not blank: must contain a non-space character). Row rules since 0013. |
 | `plans` | `id` uuid | `household_id` (cascade), `week_start_date date`, `unique (household_id, week_start_date)`, check `plans_week_start_monday` (ISO weekday 1, since 0005) |
-| `plan_slots` | `id` uuid | `plan_id` (cascade), `date`, `position`, `label`, `recipe_id` (**on delete set null**), `servings numeric > 0` default 1, `unique (plan_id, date, position)` |
+| `plan_slots` | `id` uuid | `plan_id` (cascade), `date`, `position`, `label`, `recipe_id` (**on delete set null**), `servings numeric > 0` default 1, `unique (plan_id, date, position)`. `date` must fall in the plan's week (`week_start_date` to +6): trigger `plan_slots_date_in_week`, and `plans_week_keeps_slots` rejects a plan week change that would strand slots; both raise `23514` (0013) |
 | `pantry_items` | (`household_id`, `ingredient_id`) | `have_it boolean`. Nothing in the app uses this table yet. |
-| `share_tokens` | `token` text | `plan_id` (cascade), `created_by` |
+| `share_tokens` | `token` text | `plan_id` (cascade), `created_by` (**on delete cascade** since 0013: deleting the account deletes its share links) |
 
 > [!warning] Delete behaviour
-> Deleting an ingredient that any recipe uses fails with a foreign-key violation (`NO ACTION`). Deleting a recipe sets `plan_slots.recipe_id` to null but keeps the slot.
+> Deleting an ingredient that any recipe uses fails with a foreign-key violation (`NO ACTION`). Deleting a recipe sets `plan_slots.recipe_id` to null but keeps the slot. Deleting a user account (0013) removes their memberships, admin row and share tokens, sets `recipes.author_id` and `ingredients.created_by` to null, and is never blocked by a foreign key.
 
 ## Functions
 
@@ -75,9 +77,11 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `is_member_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `household_members` for `hid`. Used by most policies. `execute` is granted to `authenticated` only (0004). |
 | `is_owner_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` is the household's `owner`. Used by `hm_delete`. `authenticated` only. Added in 0004. |
 | `is_app_admin()` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `app_admins`. Used by `ing_update`. `authenticated` only. Added in 0010. |
-| `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. Kept for compatibility: the app no longer calls it. `authenticated` only. |
+| `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. The app no longer calls it, and since 0013 no client role (`public`, `anon`, `authenticated`) can execute it. |
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
 | `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008. |
+| `set_updated_at()` | trigger function, plpgsql | Sets `new.updated_at = now()`. Run by `recipes_set_updated_at` (before update on `recipes`). No client role can execute it. Added in 0013. |
+| `check_slot_date_in_week()`, `check_plan_week_keeps_slots()` | trigger functions, `security definer`, plpgsql, `search_path = public` | Enforce the slot-date-in-week rule from both sides (see `plan_slots`). `security definer` so the rule does not depend on what RLS shows the caller. No client role can execute them. Added in 0013. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
@@ -127,6 +131,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | `0007_recipe_ingredient_optional.sql` | `recipe_ingredients.optional`; `save_recipe` stores it. Rollback: `supabase/rollbacks/0007_recipe_ingredient_optional.down.sql`. Check: `supabase/checks/0007_recipe_ingredient_optional.verify.sql`. |
 | `0008_recipe_source_author_step_title.sql` | `recipes.source_author`, `recipe_steps.title`; `save_recipe` stores them. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`. Check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0010_ingredient_ownership.sql` | `app_admins`, `is_app_admin`, `ingredients.created_by` default and `on delete set null`, `ing_insert` / `ing_update` limited to the creator or an app admin. Rollback: `supabase/rollbacks/0010_ingredient_ownership.down.sql`. Check: `supabase/checks/0010_ingredient_ownership.verify.sql`. |
+| `0013_schema_integrity.sql` | Position, amount and step-text rules on `recipe_ingredients` / `recipe_steps`; `recipes.author_id` nullable and `on delete set null`, `share_tokens.created_by` `on delete cascade`; `recipes.updated_at` + trigger; slot-date-in-week triggers; revokes `execute` on `create_household_with_owner`. Rollback: `supabase/rollbacks/0013_schema_integrity.down.sql`. Check: `supabase/checks/0013_schema_integrity.verify.sql`. |
 
 ## Seed
 
@@ -158,6 +163,7 @@ from plans p;
 
 ## Changelog
 
+- 2026-10-13: Documented migration 0013 (row rules, account deletion, `recipes.updated_at`, slot date in week, signup RPC no longer executable).
 - 2026-10-13: Documented migration 0010 (`app_admins`, `is_app_admin`, ingredient ownership policies).
 - 2026-10-13: Documented migration 0008 (`recipes.source_author`, `recipe_steps.title`).
 - 2026-10-09: Terminology aligned with GLOSSARY.md.

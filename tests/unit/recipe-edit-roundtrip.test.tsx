@@ -45,6 +45,7 @@ const original = {
   diet_tags: ['wegetarianska'],
   allergens: ['gluten'],
   created_at: '2026-10-01',
+  updated_at: '2026-10-01',
   ingredients: [
     {
       id: 'ri0',

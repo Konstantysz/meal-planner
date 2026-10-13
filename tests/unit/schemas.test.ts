@@ -70,3 +70,51 @@ describe('RecipeInputSchema source_author and step title', () => {
     expect(parsed.steps[0].title).toBeNull();
   });
 });
+
+describe('RecipeInputSchema row rules (migration 0013)', () => {
+  const ing = (position: number, amount: number | null = 1) => ({
+    ingredient_id: '3422d8ca-8907-49c2-8c83-da5fc298948f',
+    amount,
+    unit: 'g',
+    raw_text: 'x',
+    position,
+  });
+  const base = {
+    name: 'Zupa',
+    servings_base: 2,
+    prep_time_min: null,
+    source_url: null,
+    ingredients: [ing(0), ing(1, null)],
+    steps: [
+      { position: 0, text: 'Pokrój' },
+      { position: 1, text: 'Gotuj' },
+    ],
+  };
+
+  it('accepts distinct non-negative positions and a null amount', () => {
+    expect(RecipeInputSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('rejects a zero or negative amount', () => {
+    expect(RecipeInputSchema.safeParse({ ...base, ingredients: [ing(0, 0)] }).success).toBe(false);
+    expect(RecipeInputSchema.safeParse({ ...base, ingredients: [ing(0, -2)] }).success).toBe(false);
+  });
+
+  it('rejects duplicate ingredient or step positions', () => {
+    expect(RecipeInputSchema.safeParse({ ...base, ingredients: [ing(0), ing(0)] }).success).toBe(false);
+    expect(
+      RecipeInputSchema.safeParse({
+        ...base,
+        steps: [
+          { position: 1, text: 'a' },
+          { position: 1, text: 'b' },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a negative step position and blank step text', () => {
+    expect(RecipeInputSchema.safeParse({ ...base, steps: [{ position: -1, text: 'a' }] }).success).toBe(false);
+    expect(RecipeInputSchema.safeParse({ ...base, steps: [{ position: 0, text: ' \t ' }] }).success).toBe(false);
+  });
+});

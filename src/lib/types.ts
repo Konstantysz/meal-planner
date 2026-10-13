@@ -56,7 +56,8 @@ export interface RecipeStep {
 export interface Recipe {
   id: string;
   household_id: string;
-  author_id: string;
+  /** Who saved it; null once that account is deleted (migration 0013). */
+  author_id: string | null;
   name: string;
   servings_base: number;
   prep_time_min: number | null;
@@ -66,6 +67,8 @@ export interface Recipe {
   diet_tags: DietTag[];
   allergens: Allergen[];
   created_at: string;
+  /** Set by the database on every update of the recipe row (migration 0013). */
+  updated_at: string;
 }
 
 export interface Plan {
