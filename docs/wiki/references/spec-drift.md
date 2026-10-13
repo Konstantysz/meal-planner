@@ -41,9 +41,8 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 | `src/lib/ics.ts` (calendar export) | Doesn't exist. No task in the plan actually specifies it. |
 | `src/lib/db/pantry.ts` and server-side pantry | Doesn't exist. The `pantry_items` table is unused. The Have mark (UI „mam to”) lives only in IndexedDB on each device. |
 | `src/hooks/useRecipes.ts` | Doesn't exist. `RecipeList` fetches directly. |
-| Drag and drop in the plan (`@dnd-kit/*`) | The packages are installed but never imported. |
 | Task 9 SQL test for `ON DELETE SET NULL` | No SQL tests exist. |
-| Review Focus #5 label „dane niepełne" and per-day macro sums | The shopping list shows „(brak makro)". Per-day sums are a stub. |
+| Review Focus #5 label „dane niepełne" and per-day macro sums | The shopping list shows „(brak makro)". Per-day sums are not implemented. |
 | `pnpm build` produces a PWA | A manifest only, with no service worker. |
 | Zero-cost Gemini Flash fallback | Paused. `callGemini` exists but no route calls it. |
 

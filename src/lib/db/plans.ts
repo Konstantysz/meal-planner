@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { PlanSlotInputSchema } from '@/lib/schemas';
+import { PlanSlotInputSchema, PlanSlotPatchSchema } from '@/lib/schemas';
+import { weekEndOf } from '@/lib/week';
 import type { Plan, PlanSlot } from '@/lib/types';
 
 export interface PlanWithSlots extends Plan {
@@ -45,6 +46,50 @@ export async function upsertSlot(supabase: SupabaseClient, input: unknown): Prom
     .select()
     .single();
   if (error) throw error;
+  return data as PlanSlot;
+}
+
+/** Thrown by `updateSlot` when the target (date, position) is already taken. */
+export class SlotOccupiedError extends Error {}
+/** Thrown by `updateSlot` when no slot with that id exists in the plan (or RLS hides it). */
+export class SlotNotFoundError extends Error {}
+
+/** Thrown by `updateSlot` when the target date lies outside the plan's Monday..Sunday window. */
+export class SlotDateOutOfWeekError extends Error {}
+
+/** Moves a slot and/or changes its servings in one UPDATE; `unique (plan_id, date, position)` rejects an occupied target. */
+export async function updateSlot(
+  supabase: SupabaseClient,
+  planId: string,
+  slotId: string,
+  input: unknown,
+): Promise<PlanSlot> {
+  const patch = PlanSlotPatchSchema.parse(input);
+  if (patch.date) {
+    const { data: plan, error: planError } = await supabase
+      .from('plans')
+      .select('week_start_date')
+      .eq('id', planId)
+      .maybeSingle();
+    if (planError) throw planError;
+    if (!plan) throw new SlotNotFoundError('slot not found');
+    const start = (plan as { week_start_date: string }).week_start_date;
+    if (patch.date < start || patch.date > weekEndOf(start)) {
+      throw new SlotDateOutOfWeekError('date outside the plan week');
+    }
+  }
+  const { data, error } = await supabase
+    .from('plan_slots')
+    .update(patch)
+    .eq('id', slotId)
+    .eq('plan_id', planId)
+    .select()
+    .maybeSingle();
+  if (error) {
+    if (error.code === '23505') throw new SlotOccupiedError('slot occupied');
+    throw error;
+  }
+  if (!data) throw new SlotNotFoundError('slot not found');
   return data as PlanSlot;
 }
 
