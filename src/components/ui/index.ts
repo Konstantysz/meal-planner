@@ -5,3 +5,4 @@ export { EmptyState } from './EmptyState';
 export { Icon, type IconName } from './Icon';
 export { Input } from './Input';
 export { Sheet } from './Sheet';
+export { Tag } from './Tag';

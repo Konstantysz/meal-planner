@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createRecipe, updateRecipe } from '@/lib/db/recipes';
+import { createRecipe, updateRecipe, listRecipes, getRecipeCoverPosition } from '@/lib/db/recipes';
 
 const input = {
   name: 'Spaghetti',
@@ -120,5 +120,74 @@ describe('updateRecipe', () => {
     const error = { code: '42501', message: 'recipe not found or not editable' };
     const { client } = mockRpc({ data: null, error });
     await expect(updateRecipe(client, 'r1', input)).rejects.toBe(error);
+  });
+});
+
+// Chainable fake of the query builder: every step returns itself, awaiting it yields `result`.
+function fakeQuery(result: { data: unknown; error: unknown }) {
+  const q: Record<string, unknown> = {
+    then: (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve),
+  };
+  for (const m of ['select', 'order', 'contains', 'not', 'eq']) q[m] = vi.fn(() => q);
+  return q;
+}
+
+describe('listRecipes', () => {
+  const ing = { kcal_per_100g: 100, protein_per_100g: 10, fat_per_100g: 5, carbs_per_100g: 20 };
+  const row = (id: string, extra: object = {}) => ({
+    id,
+    name: id,
+    servings_base: 2,
+    allergens: [],
+    recipe_ingredients: [{ amount: 200, unit: 'g', optional: false, ingredients: ing }],
+    ...extra,
+  });
+
+  function client(recipes: unknown, slots: { data: unknown; error: unknown }) {
+    const from = vi.fn((table: string) =>
+      table === 'recipes' ? fakeQuery({ data: recipes, error: null }) : fakeQuery(slots),
+    );
+    return { from } as unknown as SupabaseClient;
+  }
+
+  it('adds per-serving macros and the cover position, and drops the ingredient rows', async () => {
+    const slots = {
+      data: [
+        { recipe_id: 'a', position: 2, date: '2026-10-01' },
+        { recipe_id: 'a', position: 2, date: '2026-10-02' },
+        { recipe_id: 'b', position: 0, date: '2026-10-02' },
+      ],
+      error: null,
+    };
+    const out = await listRecipes(client([row('a'), row('c')], slots));
+    expect(out[0].macros_per_serving?.kcal).toBe(100);
+    expect(out[0].cover_position).toBe(2);
+    expect(out[1].cover_position).toBeNull();
+    expect(out[0]).not.toHaveProperty('recipe_ingredients');
+  });
+
+  it('filters excluded allergens', async () => {
+    const out = await listRecipes(client([row('a', { allergens: ['gluten'] }), row('b')], { data: [], error: null }), {
+      exclude: ['gluten'],
+    });
+    expect(out.map((r) => r.id)).toEqual(['b']);
+  });
+
+  it('still lists recipes (without colour) when the plan slots cannot be read', async () => {
+    const out = await listRecipes(client([row('a')], { data: null, error: { message: 'denied' } }));
+    expect(out).toHaveLength(1);
+    expect(out[0].cover_position).toBeNull();
+  });
+
+  it('throws when the recipes query fails', async () => {
+    const from = vi.fn(() => fakeQuery({ data: null, error: new Error('boom') }));
+    await expect(listRecipes({ from } as unknown as SupabaseClient)).rejects.toThrow('boom');
+  });
+});
+
+describe('getRecipeCoverPosition', () => {
+  it('reads the slot colour position of one recipe', async () => {
+    const from = vi.fn(() => fakeQuery({ data: [{ recipe_id: 'a', position: 3, date: '2026-10-01' }], error: null }));
+    await expect(getRecipeCoverPosition({ from } as unknown as SupabaseClient, 'a')).resolves.toBe(3);
   });
 });

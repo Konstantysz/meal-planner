@@ -158,6 +158,7 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail built (#39). The shelf is a wrapping grid on mobile too (2 columns) instead of horizontal scroll, because one shelf holds every recipe; see [[recipe-management]].
 - 2026-10-13: Review follow-up: brand focus ring measured (6.8–7.3:1 dark, 6.0–6.5:1 light); spacing steps map to Tailwind's scale.
 - 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.

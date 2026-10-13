@@ -48,8 +48,8 @@ This is the lookup table for `src/app/api/**/route.ts` and `src/app/auth/callbac
 
 | Method | Path | Input | Notes | Calls | Success |
 |---|---|---|---|---|---|
-| GET | `/api/recipes` | `?diet=…&exclude=…` (repeatable) | `diet` filters in SQL (`contains`); `exclude` drops recipes whose `allergens` match, in JS. Error → 500. | `listRecipes` | 200 `Recipe[]` |
-| POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Validation or RPC error → 400. | `createRecipe` | 201 `Recipe` |
+| GET | `/api/recipes` | `?diet=…&exclude=…` (repeatable) | `diet` filters in SQL (`contains`); `exclude` drops recipes whose `allergens` match, in JS. Error → 500. | `listRecipes` | 200 `RecipeListItem[]` (recipe + `macros_per_serving` + `cover_position`) |
+| POST | `/api/recipes` | `RecipeInput` body, validated by `RecipeInputSchema` in `createRecipe` | 401 without a session. Uses the caller's **first** household (`limit(1)`); none → 400 `no household`. Saves through the `save_recipe` RPC. Validation error → 400 with `issues` (Zod issues, for field-level messages); RPC error → 400. | `createRecipe` | 201 `Recipe` |
 | GET | `/api/recipes/[id]` | none | Any error, including a recipe the caller cannot read, is returned as 404 | `getRecipe` | 200 with ingredients and steps |
 | DELETE | `/api/recipes/[id]` | none | Direct `supabase.from('recipes').delete()`. `rec_delete` lets only the author delete, so a non-author gets **204 with nothing deleted**. Error → 400. | none | 204 |
 | GET | `/api/ingredients` | none | Error → 500 | `listIngredients` | 200 `Ingredient[]` |
@@ -105,5 +105,6 @@ await fetch(`/api/plans/${plan.id}/slots`, {
 
 ## Changelog
 
+- 2026-10-13: `GET /api/recipes` returns `RecipeListItem[]`; recipe POST and PUT 400s carry Zod `issues` (#39).
 - 2026-10-09: Re-verified against a7f8f52. Corrected the handler count (17 in 13 route files, plus `/auth/callback`), the `/api/share/[token]` call and output, the claim that every handler uses the Supabase client, and the public path list. Added error codes, Zod validation points, the `/auth/callback` route and the unnormalized `/api/shopping` week.
 - 2026-10-04: Created from a full read of the route handlers and the proxy.

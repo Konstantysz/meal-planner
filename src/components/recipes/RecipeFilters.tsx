@@ -1,7 +1,10 @@
 'use client';
+import { Chip } from '@/components/ui';
+import { ALLERGEN_LABELS, DIET_LABELS } from '@/lib/recipe-labels';
+import type { Allergen, DietTag } from '@/lib/types';
 
-const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'];
-const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'];
+const DIETS = Object.keys(DIET_LABELS) as DietTag[];
+const ALLERGENS = Object.keys(ALLERGEN_LABELS) as Allergen[];
 
 export function RecipeFilters({
   diet,
@@ -18,23 +21,29 @@ export function RecipeFilters({
     setter(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   }
   return (
-    <div className="space-y-2 p-4 border-b">
-      <div>
-        <span className="text-sm font-semibold mr-2">Diety:</span>
+    <div className="space-y-3 border-b border-line px-4 py-3 lg:px-8">
+      <fieldset className="flex flex-wrap items-center gap-2">
+        <legend className="sr-only">Diety</legend>
+        <span aria-hidden="true" className="w-16 text-sm font-semibold">
+          Diety
+        </span>
         {DIETS.map((d) => (
-          <label key={d} className="mr-3 text-sm">
-            <input type="checkbox" checked={diet.includes(d)} onChange={() => toggle(diet, d, onDiet)} /> {d}
-          </label>
+          <Chip key={d} selected={diet.includes(d)} onClick={() => toggle(diet, d, onDiet)}>
+            {DIET_LABELS[d]}
+          </Chip>
         ))}
-      </div>
-      <div>
-        <span className="text-sm font-semibold mr-2">Wyklucz:</span>
+      </fieldset>
+      <fieldset className="flex flex-wrap items-center gap-2">
+        <legend className="sr-only">Wyklucz alergeny</legend>
+        <span aria-hidden="true" className="w-16 text-sm font-semibold">
+          Wyklucz
+        </span>
         {ALLERGENS.map((a) => (
-          <label key={a} className="mr-3 text-sm">
-            <input type="checkbox" checked={exclude.includes(a)} onChange={() => toggle(exclude, a, onExclude)} /> {a}
-          </label>
+          <Chip key={a} selected={exclude.includes(a)} onClick={() => toggle(exclude, a, onExclude)}>
+            {ALLERGEN_LABELS[a]}
+          </Chip>
         ))}
-      </div>
+      </fieldset>
     </div>
   );
 }

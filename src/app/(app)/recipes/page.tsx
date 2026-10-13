@@ -1,10 +1,17 @@
 import { Suspense } from 'react';
-import { RecipeList } from '@/components/recipes/RecipeList';
+import { RecipeList, RecipeListSkeleton } from '@/components/recipes/RecipeList';
+import { ButtonLink } from '@/components/ui';
+
 export default function RecipesPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold p-4">Przepisy</h1>
-      <Suspense>
+      <div className="flex items-center justify-between gap-3 p-4 lg:px-8 lg:pt-8">
+        <h1 className="font-display text-[26px] font-extrabold tracking-tight lg:text-4xl">Przepisy</h1>
+        <ButtonLink href="/recipes/new" variant="primary">
+          Nowy przepis
+        </ButtonLink>
+      </div>
+      <Suspense fallback={<RecipeListSkeleton />}>
         <RecipeList />
       </Suspense>
     </div>

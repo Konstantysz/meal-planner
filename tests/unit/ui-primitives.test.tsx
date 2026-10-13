@@ -9,7 +9,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-import { Button, ButtonLink, Card, Chip, Input, Sheet } from '@/components/ui';
+import { Button, ButtonLink, Card, Chip, Input, Sheet, Tag } from '@/components/ui';
 import { slotClass } from '@/components/plan/slot-colors';
 
 describe('Button', () => {
@@ -47,6 +47,14 @@ describe('Input', () => {
     render(<Input aria-label="Szukaj" onChange={onChange} />);
     fireEvent.change(screen.getByRole('textbox', { name: 'Szukaj' }), { target: { value: 'zupa' } });
     expect(onChange).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Tag', () => {
+  it('is a static label, not a button', () => {
+    render(<Tag>wegetariańska</Tag>);
+    expect(screen.getByText('wegetariańska').tagName).toBe('SPAN');
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });
 

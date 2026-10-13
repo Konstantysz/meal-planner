@@ -48,3 +48,26 @@ export function perServing(total: Macros, servings: number): Macros | null {
     carbs: total.carbs / servings,
   };
 }
+
+export interface RecipeIngredientMacroRow {
+  amount: number | null;
+  unit: string | null;
+  optional: boolean;
+  ingredients: IngredientMacroInput | null;
+}
+
+/**
+ * Macros per serving of a stored recipe. Optional rows are left out; only `g` and `ml` amounts count
+ * (1 ml = 1 g, as on the detail page before). Returns null when no row contributes (every ingredient
+ * lacks macros or a weight), so the UI says „brak danych makro" instead of showing zeros, and when
+ * `servings` is not positive.
+ */
+export function recipeMacrosPerServing(rows: RecipeIngredientMacroRow[], servings: number): Macros | null {
+  const parts = rows.map((r) => {
+    if (r.optional || !r.ingredients) return null;
+    const grams = r.unit === 'g' || r.unit === 'ml' ? (r.amount ?? 0) : 0;
+    return grams > 0 ? calculateIngredientMacros(r.ingredients, grams) : null;
+  });
+  if (parts.every((p) => p === null)) return null;
+  return perServing(sumMacros(parts), servings);
+}

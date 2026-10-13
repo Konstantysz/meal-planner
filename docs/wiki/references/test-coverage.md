@@ -45,7 +45,9 @@ sources:
 | `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema` only) |
 | `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`) |
 | `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
-| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`; `getRecipe` and `listRecipes` not covered) |
+| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`, `listRecipes`, `getRecipeCoverPosition`; `getRecipe` not covered) |
+| `src/lib/recipe-cover.ts`, `recipe-form-errors.ts` | `tests/unit/recipe-cover.test.ts` |
+| `src/components/recipes/*` (card, list states, steps, scaling, form messages) | `tests/unit/recipe-cards.test.tsx` |
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
 | `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
 | `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` |
@@ -67,7 +69,7 @@ sources:
 | Module | Why it matters |
 |---|---|
 | `src/lib/db/plans.ts` | `getOrCreatePlan`, `getWeekPlan`, `upsertSlot`, `deleteSlot`. Upsert conflict key, `getOrCreatePlan` race |
-| `src/lib/db/recipes.ts` | `listRecipes`, `getRecipe`. `getRecipe` is called once per slot by `/api/shopping`. |
+| `src/lib/db/recipes.ts` | `getRecipe`. It is called once per slot by `/api/shopping`. |
 | `src/lib/db/households.ts` | `createShareToken`, `inviteMember`. The explicit membership check in `inviteMember`, token retry |
 | `src/lib/offline/shopping-store.ts` | `saveShoppingList`, `loadShoppingList`, `setHave`, `getHaveMap`. Preserving the have-map on save. A regression here once silently wiped user state. |
 | `src/lib/supabase/middleware.ts` | `updateSession`. Public-path list and redirects |
