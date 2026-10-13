@@ -74,7 +74,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | The water filter only drops a part whose every „ lub " alternative starts with „woda"; „pomidory + woda" is kept as one ingredient | [[ingredient-auto-match#Invariants and gotchas]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
 | The login page has no link to signup | [[auth-session#Known gaps]] |
-| Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
 | Slot recipe name is barely readable in dark mode | [[week-plan#Known gaps]] |
 | `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |

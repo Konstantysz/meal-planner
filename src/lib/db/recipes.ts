@@ -1,6 +1,9 @@
+import { format, subDays } from 'date-fns';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { RecipeInputSchema } from '@/lib/schemas';
-import type { Recipe } from '@/lib/types';
+import { coverPosition } from '@/lib/recipe-cover';
+import { recipeMacrosPerServing, type RecipeIngredientMacroRow } from '@/lib/macros';
+import type { Macros, Recipe } from '@/lib/types';
 
 export interface RecipeWithDetails extends Recipe {
   ingredients: Array<{
@@ -24,19 +27,73 @@ export interface RecipeWithDetails extends Recipe {
   steps: Array<{ id: string; position: number; title: string | null; text: string }>;
 }
 
+/** A list row: the recipe plus what a card shows that is not stored on it. */
+export interface RecipeListItem extends Recipe {
+  /** Per serving, computed from the ingredients; null when there is no macro data. */
+  macros_per_serving: Macros | null;
+  /** Slot position the cover takes its colour from; null when the recipe was never planned. */
+  cover_position: number | null;
+}
+
+/** How far back slot usage counts towards a cover colour; bounds the read (no migration needed). */
+const COVER_WINDOW_DAYS = 180;
+/** Stay under PostgREST's default max-rows (1000) so truncation is explicit and drops the oldest slots. */
+const COVER_SLOT_LIMIT = 1000;
+
+type PlannedSlot = { recipe_id: string; position: number; date: string };
+
+/**
+ * Recent slot usage of recipes in the household's plans (RLS scopes it), newest first. Read errors are
+ * thrown, not hidden. Only the last `COVER_WINDOW_DAYS` days count, so the colour follows current habits.
+ */
+async function plannedSlots(supabase: SupabaseClient, recipeId?: string): Promise<PlannedSlot[]> {
+  const since = format(subDays(new Date(), COVER_WINDOW_DAYS), 'yyyy-MM-dd');
+  let q = supabase
+    .from('plan_slots')
+    .select('recipe_id, position, date')
+    .not('recipe_id', 'is', null)
+    .gte('date', since)
+    .order('date', { ascending: false })
+    .limit(COVER_SLOT_LIMIT);
+  if (recipeId) q = q.eq('recipe_id', recipeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as PlannedSlot[];
+}
+
 export async function listRecipes(
   supabase: SupabaseClient,
   filters: { diet?: string[]; exclude?: string[] } = {},
-): Promise<Recipe[]> {
-  let q = supabase.from('recipes').select('*').order('created_at', { ascending: false });
+): Promise<RecipeListItem[]> {
+  let q = supabase
+    .from('recipes')
+    .select(
+      '*, recipe_ingredients(amount, unit, optional, ingredients(kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g))',
+    )
+    .order('created_at', { ascending: false });
   if (filters.diet?.length) q = q.contains('diet_tags', filters.diet);
   const { data, error } = await q;
   if (error) throw error;
-  let rows = data as Recipe[];
+  let rows = data as Array<Recipe & { recipe_ingredients: RecipeIngredientMacroRow[] | null }>;
   if (filters.exclude?.length) {
     rows = rows.filter((r) => !r.allergens.some((a) => filters.exclude!.includes(a)));
   }
-  return rows;
+  const byRecipe = new Map<string, PlannedSlot[]>();
+  for (const s of await plannedSlots(supabase)) {
+    const list = byRecipe.get(s.recipe_id);
+    if (list) list.push(s);
+    else byRecipe.set(s.recipe_id, [s]);
+  }
+  return rows.map(({ recipe_ingredients, ...recipe }) => ({
+    ...recipe,
+    macros_per_serving: recipeMacrosPerServing(recipe_ingredients ?? [], recipe.servings_base),
+    cover_position: coverPosition(byRecipe.get(recipe.id) ?? []),
+  }));
+}
+
+/** Cover colour position of one recipe (see `coverPosition`). */
+export async function getRecipeCoverPosition(supabase: SupabaseClient, recipeId: string): Promise<number | null> {
+  return coverPosition(await plannedSlots(supabase, recipeId));
 }
 
 export async function getRecipe(supabase: SupabaseClient, id: string): Promise<RecipeWithDetails> {

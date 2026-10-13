@@ -43,18 +43,7 @@ All functions are in `src/lib/macros.ts` and are pure:
 | `sumMacros(list)` | Adds the list up and skips `null` entries. An empty or all-null list gives `{0,0,0,0}`. |
 | `perServing(total, servings)` | `null` if `servings <= 0`, otherwise each field divided by `servings` |
 
-The recipe detail page combines them, dividing by the recipe's base servings (`servings_base`):
-
-```ts
-const total = sumMacros(recipe.ingredients.map((ri) => {
-  if (!ri.ingredients || ri.optional) return null;
-  const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
-  return calculateIngredientMacros(ri.ingredients, grams);
-}));
-const per = perServing(total, recipe.servings_base);
-```
-
-Optional ingredients (`ri.optional`) are skipped, so the totals describe the base recipe. See [[recipe-management]].
+`recipeMacrosPerServing(rows, servings)` combines them for a stored recipe. It skips optional rows and rows without a matched ingredient, counts only `g` and `ml` amounts above 0, and divides by the recipe's base servings (`servings_base`). It returns `null` when no row contributes or `servings <= 0`. The recipe detail page and `listRecipes` (recipe cards) both use it. Optional ingredients are skipped, so the totals describe the base recipe. See [[recipe-management]].
 
 `MacroSummary` renders `null` as „brak danych makro". Otherwise it shows `kcal · B · T · W`.
 
@@ -63,8 +52,8 @@ Optional ingredients (`ri.optional`) are skipped, so the totals describe the bas
 - **`ml` is treated as `g`.** There's no density conversion.
 - **Non-gram units count as 0, not as "unknown".** „2 łyżki oliwy" adds nothing, and nothing flags the total as partial.
 - **A macro-less ingredient is skipped; it doesn't zero the total.** An ingredient with only some macros counts the missing fields as 0.
-- **Optional recipe ingredients are skipped.** The detail page returns null for `ri.optional`, so they add nothing to the total, although they are listed on the page with „(opcjonalnie)".
-- A recipe where nothing has macros shows **„0 kcal · B 0.0 …"**, not „brak danych makro", because `sumMacros` returns zeros and `servings_base` is always above 0.
+- **Optional recipe ingredients are skipped.** `recipeMacrosPerServing` ignores `optional` rows, so they add nothing to the total, although the detail page lists them with „(opcjonalnie)".
+- A recipe where no ingredient has macros and a weight in `g`/`ml` shows **„brak danych makro"** (cards and detail page), not zeros.
 - Review Focus #1 (zero servings) is handled by `perServing` returning null, and the DB check `servings_base > 0` prevents it for stored recipes anyway.
 
 ## Known gaps
@@ -97,6 +86,7 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 
 ## Changelog
 
+- 2026-10-13: Recipe macros moved into `recipeMacrosPerServing`; a recipe with no usable macro data now says „brak danych makro" instead of zeros (#39).
 - 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.
 - 2026-10-05: Optional ingredients are excluded from recipe macros.
 - 2026-10-04: Created from the macros section of legacy `recipes.md`. Added the "0 kcal instead of no data" gotcha.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateIngredientMacros, sumMacros, perServing, hasMacros } from '@/lib/macros';
+import { calculateIngredientMacros, sumMacros, perServing, hasMacros, recipeMacrosPerServing } from '@/lib/macros';
 
 describe('calculateIngredientMacros', () => {
   it('computes macros for grams', () => {
@@ -68,5 +68,44 @@ describe('hasMacros', () => {
   );
   it('is true for fat and carbs only', () => {
     expect(hasMacros({ ...none, fat_per_100g: 5, carbs_per_100g: 10 })).toBe(true);
+  });
+});
+
+describe('recipeMacrosPerServing', () => {
+  const flour = { kcal_per_100g: 364, protein_per_100g: 10, fat_per_100g: 1, carbs_per_100g: 76 };
+  const none = { kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null };
+
+  it('sums g and ml rows and divides by servings', () => {
+    const m = recipeMacrosPerServing(
+      [
+        { amount: 200, unit: 'g', optional: false, ingredients: flour },
+        { amount: 200, unit: 'ml', optional: false, ingredients: flour },
+      ],
+      4,
+    );
+    expect(m?.kcal).toBeCloseTo(364);
+  });
+
+  it('leaves out optional rows and rows without a matched ingredient', () => {
+    const m = recipeMacrosPerServing(
+      [
+        { amount: 100, unit: 'g', optional: false, ingredients: flour },
+        { amount: 100, unit: 'g', optional: true, ingredients: flour },
+        { amount: 100, unit: 'g', optional: false, ingredients: null },
+      ],
+      1,
+    );
+    expect(m?.kcal).toBeCloseTo(364);
+  });
+
+  it('is null when nothing contributes (no macros, no weight, or unit other than g/ml)', () => {
+    expect(recipeMacrosPerServing([{ amount: 100, unit: 'g', optional: false, ingredients: none }], 2)).toBeNull();
+    expect(recipeMacrosPerServing([{ amount: 2, unit: 'szt', optional: false, ingredients: flour }], 2)).toBeNull();
+    expect(recipeMacrosPerServing([{ amount: null, unit: 'g', optional: false, ingredients: flour }], 2)).toBeNull();
+    expect(recipeMacrosPerServing([], 2)).toBeNull();
+  });
+
+  it('is null for zero servings', () => {
+    expect(recipeMacrosPerServing([{ amount: 100, unit: 'g', optional: false, ingredients: flour }], 0)).toBeNull();
   });
 });

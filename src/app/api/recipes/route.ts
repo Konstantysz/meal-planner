@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { listRecipes, createRecipe } from '@/lib/db/recipes';
 
@@ -32,6 +33,8 @@ export async function POST(req: Request) {
     const recipe = await createRecipe(supabase, body, household.household_id);
     return NextResponse.json(recipe, { status: 201 });
   } catch (e) {
+    // `issues` lets the form show field-level messages; `error` stays for callers that show one string.
+    if (e instanceof ZodError) return NextResponse.json({ error: String(e), issues: e.issues }, { status: 400 });
     return NextResponse.json({ error: String(e) }, { status: 400 });
   }
 }
