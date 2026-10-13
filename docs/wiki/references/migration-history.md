@@ -77,7 +77,7 @@ Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwawa
 | `0007` | `FAIL 2 (2 checks)` | `ALL PASS (2 checks)` |
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
-| `0010` | `FAIL 10 (12 checks)` (2026-10-13) | pending |
+| `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -124,6 +124,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Recorded the live 0010 result after deploy (`ALL PASS (12 checks)`); advisors show only the expected `app_admins` (RLS, no policies) and `is_app_admin` notices.
 - 2026-10-13: The Verification table is now parsed by CI (`scripts/migration-record.ts`); added the format note.
 - 2026-10-13: Recorded the live results for 0008 and 0009 (`ALL PASS` after deploy; no baseline was run before either merge) and the live 0010 baseline.
 - 2026-10-13: Added migration 0010 (ingredient ownership and app admins) with its expected baseline; live results pending.
