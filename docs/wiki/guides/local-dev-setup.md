@@ -54,7 +54,7 @@ The usual setup points the local app at the hosted Supabase project (`tfysxpkfbu
    ```
 
 4. Open `/signup` (the login page has no link to it) and create an account. A database trigger creates your household (see [[household-model]]). If the project requires email confirmation, confirm and then log in on `/login`.
-5. `/` is still the Next.js starter page. Go to `/recipes`.
+5. `/` redirects to `/recipes`, the start screen.
 
 ## Verify
 

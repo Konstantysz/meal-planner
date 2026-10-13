@@ -5,14 +5,14 @@ tags: [architecture]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: a7f8f52
+verified_commit: 8632fa0
 sources:
   - title: "App routes"
     path: src/app
@@ -54,7 +54,7 @@ flowchart LR
 | Layer | Location | Notes |
 |---|---|---|
 | Proxy | `src/proxy.ts` → `src/lib/supabase/middleware.ts` | Refreshes the session cookie and redirects anyone without a session. See [[auth-session]]. |
-| Pages | `src/app/(app)/*`, `(auth)/*`, `share/[token]` | `(app)` pages share `AppShell` (bottom tabs below `lg`, sidebar from it up; tokens and primitives in `src/components/ui`, rules in [[design-brief]]). `/` redirects to `/plan`. The recipe detail, recipe edit and share pages are server components that call `lib/db` (`getRecipe`, `getSharedPlan`). |
+| Pages | `src/app/(app)/*`, `(auth)/*`, `share/[token]` | `(app)` pages share `AppShell` (bottom tabs below `lg`, sidebar from it up; tokens and primitives in `src/components/ui`, rules in [[design-brief]]). `/` redirects to `/recipes`, the start screen (navigation order: Przepisy, Plan, Zakupy, Ustawienia). The recipe detail, recipe edit and share pages are server components that call `lib/db` (`getRecipe`, `getSharedPlan`). |
 | Client components | `src/components/{recipes,plan,shopping,import,auth}` | Fetch `/api/*`. Tailwind inline, no shared UI kit. |
 | Hooks | `src/hooks/usePlan.ts`, `useShoppingList.ts`, `useAuth.ts` | Wrap fetch plus local state. `useShoppingList` also reads and writes IndexedDB. |
 | Route handlers | `src/app/api/**/route.ts` | Thin: parse input, resolve the user's household, call `lib/db`. See [[api-routes]]. |
@@ -74,7 +74,7 @@ flowchart LR
 
 ## Known gaps
 
-- `/` is still the create-next-app landing page, and the root layout's metadata says "Create Next App" with `lang="en"`. See [[spec-drift#Leftover scaffold]].
+- The root layout's metadata says "Create Next App" with `lang="en"`. See [[spec-drift#Leftover scaffold]].
 - Data hooks (`usePlan`, `useShoppingList`, `RecipeList`) fetch inside `useEffect` and set loading state synchronously there. React 19 lint flags this (`react-hooks/set-state-in-effect`, currently a warning). Refactor before making the rule an error again.
 - No error boundary or `error.tsx`, and fetch errors in hooks are mostly ignored (`if (r.ok)` with no else branch).
 
