@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 1933f3c
+verified_commit: 5ddfe28
 sources:
   - title: "Slot PATCH route"
     path: src/app/api/plans/[id]/slots/[slotId]/route.ts
@@ -34,6 +34,8 @@ sources:
     path: src/components/plan/DayTotals.tsx
   - title: "Slot schema"
     path: src/lib/schemas.ts
+  - title: "Slot date rule (migration 0013)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Global styles (dark-mode foreground)"
     path: src/app/globals.css
 ---
@@ -78,6 +80,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ## Invariants and gotchas
 
+- **A slot's date is inside its plan's week** (Monday to Sunday). `PATCH` checks it first (400 „date outside the plan week"); since migration 0013 the database enforces it too: trigger `plan_slots_date_in_week` rejects a slot insert or move outside the week, and `plans_week_keeps_slots` rejects changing a plan's `week_start_date` while that would strand its slots (both `23514`). `POST /api/plans/[id]/slots` maps that error to 400 like any other upsert error.
 - **New slots start at 1 serving** (picker and drop alike); change it with the stepper.
 - **Labels aren't stored.** `label` is always sent as null. Desktop derives the label from the position and mobile shows „posiłek N", so the same slot is labelled differently in the two views.
 - A mobile slot at position 5 or higher doesn't appear in the desktop grid, and can't be moved to such a position (the move sheet offers 0–4).
@@ -112,6 +115,7 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 ## Changelog
 
 - 2026-10-13: Day totals show a labelled lower bound instead of hiding an incomplete total; kg, l and other mass and volume units now count (#73).
+- 2026-10-13: The slot-date-in-week rule is enforced in the database (migration 0013, #72).
 - 2026-10-13: Per-day macro totals (#44).
 - 2026-10-13: Week navigation by `?week=`, `PATCH` for slot moves and servings, drag and drop with a picker alternative, servings stepper; removed the `dayMacros` stub and the build-time week gap (#38).
 - 2026-10-13: Layout switch moved from `matchMedia` to CSS (#37).

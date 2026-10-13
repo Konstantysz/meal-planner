@@ -67,9 +67,10 @@ export const IngredientInputSchema = z
     }
   });
 
+// Positions, amounts and step text mirror the database rules (migration 0013), so a bad body is a 400, not a failed RPC.
 export const RecipeIngredientInputSchema = z.object({
   ingredient_id: z.string().uuid(),
-  amount: z.number().nonnegative().nullable(),
+  amount: z.number().positive().nullable(),
   unit: z.string().nullable(),
   raw_text: z.string().min(1),
   position: z.number().int().nonnegative(),
@@ -84,6 +85,10 @@ const BlankToNullSchema = z
   .transform((v) => (v === '' ? null : v))
   .nullable()
   .default(null);
+
+function uniquePositions(rows: { position: number }[]): boolean {
+  return new Set(rows.map((r) => r.position)).size === rows.length;
+}
 
 /** Optional photo URL: blank or missing becomes null; otherwise an https URL on an allowed host. */
 const ImageUrlSchema = z
@@ -107,16 +112,17 @@ export const RecipeInputSchema = z.object({
   visibility: z.enum(['private', 'household', 'public_link']).default('household'),
   diet_tags: z.array(z.enum(['wegetarianska', 'ketogeniczna', 'bezglutenowa'])).default([]),
   allergens: z.array(z.enum(['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'])).default([]),
-  ingredients: z.array(RecipeIngredientInputSchema).min(1),
+  ingredients: z.array(RecipeIngredientInputSchema).min(1).refine(uniquePositions, { message: 'duplicate position' }),
   steps: z
     .array(
       z.object({
-        position: z.number().int(),
+        position: z.number().int().nonnegative(),
         title: BlankToNullSchema,
-        text: z.string().min(1),
+        text: z.string().refine((t) => t.trim() !== '', { message: 'step text is blank' }),
       }),
     )
-    .min(1),
+    .min(1)
+    .refine(uniquePositions, { message: 'duplicate position' }),
 });
 
 export const PlanSlotInputSchema = z.object({

@@ -18,6 +18,7 @@ import {
 } from '@/lib/import/match-outcome';
 import { normalizeUnit } from '@/lib/import/unit';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
+import { positiveAmountOrNull } from '@/lib/scaling';
 
 export function ImportReviewForm({
   extracted,
@@ -140,7 +141,7 @@ export function ImportReviewForm({
         allergens: [],
         ingredients: ingredients.map((i) => ({
           ingredient_id: i.ingredient_id,
-          amount: i.amount,
+          amount: positiveAmountOrNull(i.amount),
           unit: i.unit,
           raw_text: i.raw_text,
           position: i.position,

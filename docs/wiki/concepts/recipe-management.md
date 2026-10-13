@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 1933f3c
+verified_commit: 5ddfe28
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
@@ -28,6 +28,8 @@ sources:
     path: src/components/recipes/RecipePhoto.tsx
   - title: "Allowed image hosts"
     path: src/lib/image-hosts.ts
+  - title: "Schema integrity (row rules, account deletion, updated_at)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -95,6 +97,9 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Invariants and gotchas
 
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
+- **Row rules (migration 0013).** Ingredient and step positions are unique per recipe and `>= 0`, an ingredient `amount` is null or `> 0`, and step text must contain a non-space character. The database enforces them (unique and check constraints) and `RecipeInputSchema` mirrors them, so a bad body is a 400 before the RPC runs. The forms renumber positions from list order and drop blank steps. An amount of 0 or less is sent as null („no amount", `positiveAmountOrNull` in `src/lib/scaling.ts`): auto-match maps the import model's amount that way, and `RecipeForm` and `ImportReviewForm` map a typed amount on submit. Only a direct API caller sending 0 gets a 400.
+- **`updated_at`** is set to `now()` by a database trigger on every update of the recipe row, whatever the client sends. `update_recipe` always updates that row, so every edit moves it; a direct write to `recipe_ingredients` or `recipe_steps` alone does not.
+- **Deleting the account that saved a recipe** keeps the recipe in its household with `author_id` null (migration 0013). Members still see and edit it (`rec_select`, `rec_update` pass on membership).
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
 - **List cards** (`RecipeCard`): a 3:4 `RecipeCover` (name set large, prep time on top), then source author (when set), servings, per-serving macros, and diet and allergen tags. The cover has a `photo` slot, so a future image fills it without a layout change; its tint is `hover` until covers take the colour of the most-planned slot position (see [[design-brief]]). The grid is 2 columns on mobile and up to 5 on wide screens (the brief's horizontal shelves are not built). The filters are `Chip` toggles. States: skeleton covers while loading, „Brak przepisów. Dodaj pierwszy." with one action, a message for no filter match, for no search match and for a failed fetch.
@@ -108,13 +113,14 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Known gaps
 
 - **A non-author delete silently does nothing** (RLS filters the delete, and the API returns 204). See [[rls-authorization#Invariants and gotchas]].
-- **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition and `recipes` has no `updated_at`, so two household members editing the same recipe silently overwrite each other. Accepted for now; a fix needs an `updated_at` column plus a mismatch error mapped to 409.
+- **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition, so two household members editing the same recipe silently overwrite each other. `recipes.updated_at` exists since migration 0013; the fix still needs `update_recipe` to compare it and a mismatch error mapped to 409.
+- **A recipe whose author's account was deleted cannot be deleted** through the API: `rec_delete` allows only `author_id = auth.uid()`, and `author_id` is null. Only the SQL editor can remove it.
 - An author who has left the household cannot edit their old recipe: `rec_update` USING passes but WITH CHECK (`is_member_of`) fails, so the RPC raises `42501` (403). Covered by check 9 in the verify script.
 - No pagination. `listRecipes` returns every visible recipe.
 
 ## Validation messages
 
-`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. `ImportReviewForm` reads only `error`, so it shows the short Polish sentence instead of JSON.
+`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. Duplicate positions (the 0013 row rules, only reachable from a direct API call) report „Składniki mają powtórzone pozycje" / „Kroki mają powtórzone pozycje"; an amount of 0 or less reports its row („Popraw składnik nr N"). `ImportReviewForm` joins the `fields` messages into one line, or shows a status message when there are none.
 
 ## Examples
 
@@ -147,9 +153,12 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: `recipeFieldErrors` reports duplicate positions as such instead of „Dodaj co najmniej jeden …".
 - 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
 - 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
 - 2026-10-13: Placeholder ingredients are reported under „makra niepełne" instead of counting as 0 (#73).
+- 2026-10-13: Import and the forms now send an amount of 0 or less as null instead of failing the save.
+- 2026-10-13: Documented the row rules, `updated_at` and account-deletion behaviour from migration 0013 (#72), and the matching `RecipeInputSchema` checks; the last-write-wins gap now only lacks the version check; added the author-less recipe delete gap.
 - 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
