@@ -14,4 +14,4 @@ Merging into `main` deploys a migration to production; the human runs its verifi
 - **Policies are complete.** `to authenticated`; `(select auth.uid())`; `using` and `with check` agree unless the difference is intended and commented; a new table enables RLS with its policies in the same file; `security definer` functions pin `search_path` and revoke `execute` from `public, anon`.
 - **The app still works.** Every client write the migration affects (`src/lib/db/**`, `src/app/api/**`, RPC callers) still satisfies the new policies and constraints.
 - **Deploy order.** The PR body names any open migration PR that must merge first.
-- **Docs ship with it.** The pages listed in `docs/wiki/guides/apply-migration.md` (step 9) are updated in the same PR.
+- **Docs ship with it.** The types and wiki pages that the "Apply a Database Migration" guide (`docs/wiki/guides/apply-migration.md`, the last of its Steps) says to update are updated in the same PR.
