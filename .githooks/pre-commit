@@ -17,8 +17,11 @@ if [ -n "$code" ]; then
   if [ -n "$lintable" ]; then
     printf '%s\n' "$lintable" | xargs -d '\n' pnpm -s exec eslint --no-warn-ignored \
       || fail "lint errors. Fix them (or 'pnpm lint' for the full report)."
-    printf '%s\n' "$lintable" | xargs -d '\n' pnpm -s exec vitest related --run --passWithNoTests \
-      || fail "tests related to the staged files failed. Run 'pnpm test' for the full report."
+    # A merge commit stages every file the merge touched; CI runs the full suite, so skip the per-file run.
+    if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+      printf '%s\n' "$lintable" | xargs -d '\n' pnpm -s exec vitest related --run --passWithNoTests \
+        || fail "tests related to the staged files failed. Run 'pnpm test' for the full report."
+    fi
   fi
 fi
 

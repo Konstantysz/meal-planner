@@ -61,6 +61,8 @@ On deploy, Supabase applies new migrations and deploys Edge Functions and Storag
 > [!warning] A merge is a production deploy
 > Don't merge a migration PR you haven't baselined. If a deploy breaks something, run the rollback file in the SQL editor, then `supabase migration repair --status reverted 000N`.
 
+**Stacked PRs.** Before fixing a merge order, check each PR's base: `gh pr list --json number,baseRefName`. A PR based on a `stack/*` branch lands there, not in `main`, so its migration doesn't deploy. Once its parent PR has merged, retarget it with `gh pr edit N --base main`.
+
 ### Applying without a merge
 
 `supabase link --project-ref tfysxpkfbumctfuxcend`, then `supabase db push --dry-run` and `supabase db push`. The dry run must list only your new migration. Prefer the merge deploy: it keeps `main` and production in step, and the dashboard records the deploy.
@@ -107,6 +109,7 @@ create policy pantry_notes_all on pantry_notes for all to authenticated
 
 ## Changelog
 
+- 2026-10-13: Added the stacked-PR base check. Not run against production, so `verified_commit` is unchanged.
 - 2026-10-09: Re-verified against a7f8f52. Fixed the example migration name (`0005_share_link_rpc.sql`), the verify-script output wording, and the `config.toml` production behaviour (confirmed by the Supabase docs). Flagged the live-state snapshot and CLI-specific commands as uncertain.
 - 2026-10-04: Rewrote for the actual flow: merge into `main` deploys to production. Added rollback and verification steps.
 - 2026-10-04: Created as a draft. The CLI flow hasn't been run against the hosted project.
