@@ -72,7 +72,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Root layout metadata says "Create Next App" with lang="en" | [[spec-drift#Leftover scaffold]] |
 | The water filter only drops a part whose every „ lub " alternative starts with „woda"; „pomidory + woda" is kept as one ingredient | [[ingredient-auto-match#Invariants and gotchas]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
-| Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
 | `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |
 | A recipe whose author's account was deleted can't be deleted through the API (`rec_delete` is author-only) | [[recipe-management#Known gaps]] |
@@ -100,6 +99,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-13: Removed the raw Zod JSON row; the recipe form shows field-level messages (#39).
 - 2026-10-13: Added the owner-less household, member-less household and null-`author_id` rows created by account deletion (migration 0013).
 - 2026-10-13: Migration 0013 (#72) added `recipes.updated_at` (the last-write-wins row now only lacks the version check) and account deletion; added the author-less recipe delete row.
 - 2026-10-13: Removed the per-day macro totals row (#44).

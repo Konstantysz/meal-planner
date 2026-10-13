@@ -63,6 +63,7 @@ export interface Recipe {
   prep_time_min: number | null;
   source_url: string | null;
   source_author: string | null;
+  image_url: string | null;
   visibility: Visibility;
   diet_tags: DietTag[];
   allergens: Allergen[];

@@ -41,6 +41,7 @@ const original = {
   prep_time_min: 30,
   source_url: 'https://a.pl/zupa',
   source_author: 'Ania Gotuje',
+  image_url: 'https://cdn.aniagotuje.com/pictures/a.jpg',
   visibility: 'household',
   diet_tags: ['wegetarianska'],
   allergens: ['gluten'],

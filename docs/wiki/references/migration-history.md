@@ -28,6 +28,8 @@ sources:
     path: supabase/migrations/0009_update_recipe_rpc.sql
   - title: "Ingredient ownership and app admins"
     path: supabase/migrations/0010_ingredient_ownership.sql
+  - title: "Migration 0011"
+    path: supabase/migrations/0011_recipe_image_url.sql
   - title: "Schema integrity"
     path: supabase/migrations/0013_schema_integrity.sql
   - title: "Verification record check"
@@ -43,7 +45,7 @@ sources:
 # Migration History
 
 > [!tldr]
-> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles, `0009` the `update_recipe` RPC for editing saved recipes. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. `0013` adds the integrity rules the app assumed (row positions and amounts, slot dates inside their week, `recipes.updated_at`) and lets a user account be deleted. Every migration from `0004` on has a script in `supabase/checks/`; `0008`–`0010` were confirmed live on 2026-10-13. `0008` and `0009` merged without a baseline run first, and CI now blocks that (see Verification). Read this page first if you missed that work.
+> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles, `0009` the `update_recipe` RPC for editing saved recipes. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. `0011` adds the optional recipe photo URL. `0013` adds the integrity rules the app assumed (row positions and amounts, slot dates inside their week, `recipes.updated_at`) and lets a user account be deleted. Every migration from `0004` on (`0004`–`0013`) has a script in `supabase/checks/`; `0008`–`0011` were confirmed live on 2026-10-13. `0008` and `0009` merged without a baseline run first, and CI now blocks that (see Verification). Read this page first if you missed that work.
 
 ## Context
 
@@ -63,7 +65,8 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0008` | Konstantysz/meal-planner#33 | `recipes.source_author` and `recipe_steps.title` (both nullable text); `save_recipe` reads `source_author` and per-step `title` (missing or blank = null) | Records who wrote a recipe (`author_id` is only who saved it) and an optional heading per step. No data migration, nothing populates the fields yet. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`; check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0009` | Konstantysz/meal-planner#42 | `update_recipe(p_recipe_id, p_recipe)` RPC (`security invoker`): updates the recipe's columns and replaces its ingredients and steps in one transaction; raises `42501` when RLS leaves 0 rows to update | Recipes could not be edited after saving. An RLS-filtered `UPDATE` returns no error, so the function checks the row count to fail loudly. Needs 0008. Rollback: `supabase/rollbacks/0009_update_recipe_rpc.down.sql` (drops the function only); check: `supabase/checks/0009_update_recipe_rpc.verify.sql`. |
 | `0010` | Konstantysz/meal-planner#70 | `app_admins` + `is_app_admin()`; `ingredients.created_by` defaults to `auth.uid()`, `on delete set null`; `ing_insert` requires the caller as creator; `ing_update` needs the creator or an app admin | Any signed-in user could change any ingredient's macros for every household, and no row recorded its creator (all 119 live rows null on 2026-10-13). Must deploy after `0008` and `0009`. See [[0013-ingredient-ownership-and-app-admins]]. |
-| `0013` | Konstantysz/meal-planner#72 | `recipe_ingredients` / `recipe_steps`: `unique (recipe_id, position)`, `position >= 0`, `amount > 0` when set, step text not blank. `recipes.author_id` nullable and `on delete set null`; `share_tokens.created_by` `on delete cascade`. `recipes.updated_at` maintained by trigger `recipes_set_updated_at`. Triggers `plan_slots_date_in_week` and `plans_week_keeps_slots` (`security invoker`) keep each slot inside its plan's week (`23514`). `execute` on `create_household_with_owner` revoked from `public`, `anon`, `authenticated` | None of these rules was enforced, and deleting an account failed on the `recipes` and `share_tokens` foreign keys. A CHECK cannot read `plans`, hence the triggers. Plain unique constraints suffice: `update_recipe` deletes the old rows before inserting the new ones (the check script reorders rows through it). No data fix: the live data had no violations on 2026-10-13, and the migration fails if that changed. Does not redefine `save_recipe` / `update_recipe` (`0011` does). `0011` and `0012` are reserved by open PRs. Merge only after 0011 (#92) and 0012 (#97), and before 0014 (#98). |
+| `0011` | Konstantysz/meal-planner#43 | `recipes.image_url` (nullable text, check: `http(s)://…`, at most 2048 chars); `save_recipe` and `update_recipe` store it (blank or missing = null) | Recipes had no photo and the redesign covers take one. A hotlinked URL, not Supabase Storage (Free plan). Needs 0008 and 0009. `update_recipe` clears the photo if `image_url` is omitted. Merge first: 0012 (#97), 0013 (#96) and 0014 (#98) follow this one. Rollback: `supabase/rollbacks/0011_recipe_image_url.down.sql` (restores the 0008 `save_recipe` and 0009 `update_recipe`, drops the column and its data); check: `supabase/checks/0011_recipe_image_url.verify.sql`. See [[0014-recipe-photos-hotlinked]]. |
+| `0013` | Konstantysz/meal-planner#72 | `recipe_ingredients` / `recipe_steps`: `unique (recipe_id, position)`, `position >= 0`, `amount > 0` when set, step text not blank. `recipes.author_id` nullable and `on delete set null`; `share_tokens.created_by` `on delete cascade`. `recipes.updated_at` maintained by trigger `recipes_set_updated_at`. Triggers `plan_slots_date_in_week` and `plans_week_keeps_slots` (`security invoker`) keep each slot inside its plan's week (`23514`). `execute` on `create_household_with_owner` revoked from `public`, `anon`, `authenticated` | None of these rules was enforced, and deleting an account failed on the `recipes` and `share_tokens` foreign keys. A CHECK cannot read `plans`, hence the triggers. Plain unique constraints suffice: `update_recipe` deletes the old rows before inserting the new ones (the check script reorders rows through it). No data fix: the live data had no violations on 2026-10-13, and the migration fails if that changed. Does not redefine `save_recipe` / `update_recipe` (`0011` does). `0012` is reserved by an open PR. Merge only after 0011 (#92, deployed) and 0012 (#97), and before 0014 (#98). |
 
 ## Verification
 
@@ -81,6 +84,7 @@ Each migration from `0004` on has a script in `supabase/checks/` that creates th
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
+| `0011` | `FAIL 7 (9 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (9 checks)` (2026-10-13) |
 | `0013` | `FAIL 16 (20 checks)` (live, SQL editor, 2026-10-13) | pending |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions (including `is_app_admin`) by `authenticated`, and `app_admins` has RLS with no policies (INFO) so no client can reach it. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
@@ -119,6 +123,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 - [[known-gaps]]
 - [[0008-share-link-rpc]]
 - [[0013-ingredient-ownership-and-app-admins]]
+- [[0014-recipe-photos-hotlinked]]
 
 ## Sources
 
@@ -129,6 +134,9 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Recorded the live 0011 result after deploy (`ALL PASS (9 checks)`).
+- 2026-10-13: Recorded the live 0011 baseline from the SQL editor run on 2026-10-13 (`FAIL 7 (9 checks)`); after-deploy result pending.
+- 2026-10-13: Added migration 0011 (`recipes.image_url`).
 - 2026-10-13: Recorded the live 0013 baseline from the SQL editor run on 2026-10-13.
 - 2026-10-13: 0013: three more checks (upsert path, move to another plan, foreign plan fails on RLS); baseline now `FAIL 16 (20 checks)`.
 - 2026-10-13: Added migration 0013 (schema integrity, #72) with its PGlite baseline; live results pending.

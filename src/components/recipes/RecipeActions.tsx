@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Button, ButtonLink } from '@/components/ui';
 
 export function RecipeActions({ recipeId }: { recipeId: string }) {
   const router = useRouter();
@@ -23,19 +23,16 @@ export function RecipeActions({ recipeId }: { recipeId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <Link href={`/recipes/${recipeId}/edit`} className="text-sm underline opacity-80 hover:opacity-100">
-        Edytuj
-      </Link>
-      <button
-        type="button"
-        onClick={del}
-        disabled={deleting}
-        className="text-sm text-red-600 underline disabled:opacity-50"
-      >
+    <div className="flex flex-wrap items-center gap-3">
+      <ButtonLink href={`/recipes/${recipeId}/edit`}>Edytuj</ButtonLink>
+      <Button variant="link" onClick={del} disabled={deleting}>
         {deleting ? 'Usuwam…' : 'Usuń'}
-      </button>
-      {error && <span className="text-sm text-red-600">{error}</span>}
+      </Button>
+      {error && (
+        <span role="alert" className="text-sm text-brand">
+          {error}
+        </span>
+      )}
     </div>
   );
 }
