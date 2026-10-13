@@ -63,7 +63,8 @@ The proxy calls `supabase.auth.getUser()`, which also refreshes the session, and
 
 The matcher excludes `_next/static`, `_next/image`, `favicon.ico` and `icons/`.
 
-- **Login:** `signInWithPassword`, then `router.push('/recipes')` and `router.refresh()`.
+- **Screens:** login, signup, forgot-password and reset-password share `AuthFrame` (centred 24 rem column, app name, labelled fields, one filled brand button, errors and notices in a hairline box with `role="alert"` / `role="status"`). `(auth)/layout.tsx` wraps the first three; `/reset-password` sits outside that group and wraps itself.
+- **Login:** the page links to `/signup` („Zarejestruj się") and `/forgot-password`; signup links back to `/login`. Then `signInWithPassword`, then `router.push('/recipes')` and `router.refresh()`.
 - **Signup:** `signUp` only. The client makes no household call: the `on_auth_user_created` trigger (migration 0006) creates the household and owner membership. If `signUp` returns no session (email confirmation on), the form shows „Sprawdź skrzynkę i kliknij link potwierdzający, a potem się zaloguj." instead of redirecting. See [[household-model]].
 - **Password reset:** `/forgot-password` (`ForgotPasswordForm`) calls `resetPasswordForEmail` with `redirectTo` set to `<origin>/auth/callback`, and shows the same message whether or not the account exists. The login page links to it („Nie pamiętam hasła"). The email link hits `/auth/callback?code=…`, which runs `exchangeCodeForSession` and redirects to `/reset-password` (fixed target, no `next` param). That page (`ResetPasswordForm`) calls `updateUser({ password })`, then goes to `/recipes`. A bad or expired code redirects to `/login?error=link`, which shows „Link wygasł lub jest nieprawidłowy. Poproś o nowy.". `<origin>/auth/callback` must be listed under Supabase → Authentication → URL Configuration → Redirect URLs. Supabase uses the Site URL when `redirectTo` is not allowed.
 - **Logout:** in settings: `signOut()`, then a hard navigation to `/login`.
@@ -77,7 +78,6 @@ The matcher excludes `_next/static`, `_next/image`, `favicon.ico` and `icons/`.
 
 ## Known gaps
 
-- The login page has no link to `/signup`; users have to type the URL.
 - No OAuth and no rate limiting beyond Supabase's defaults.
 
 ## Examples
@@ -102,6 +102,7 @@ const isPublic = path.startsWith('/share/') || path === '/manifest.json' || path
 
 ## Changelog
 
+- 2026-10-13: Auth screens restyled with the design primitives (#41); login now links to signup, which closes the known gap.
 - 2026-10-09: Re-verified against a7f8f52. Signup no longer calls the `create_household_with_owner` RPC (the signup trigger creates the household); documented the email-confirmation notice, the forgot-password link on the login page, and the forgot-password and reset-password form components. Added the Supabase redirect-URL behaviour (confirmed in Supabase docs). Corrected the "Added the missing signup link" note below: no signup link exists.
 - 2026-10-04: Added the password-reset flow (`/forgot-password`, `/auth/callback`, `/reset-password`).
 - 2026-10-04: Removed the email-confirmation gap (the household is created by a trigger since migration 0006). Added the missing signup link.

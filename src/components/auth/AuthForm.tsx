@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
+import { Button, ButtonLink, Input } from '@/components/ui';
+import { AUTH_TITLE, Field, FormMessage } from './AuthFrame';
 import { useRouter } from 'next/navigation';
 
 export function AuthForm({ mode, initialError }: { mode: 'login' | 'signup'; initialError?: string }) {
@@ -48,35 +49,60 @@ export function AuthForm({ mode, initialError }: { mode: 'login' | 'signup'; ini
     router.refresh();
   }
 
+  const isLogin = mode === 'login';
   return (
-    <form onSubmit={submit} className="space-y-4 max-w-sm mx-auto mt-20">
-      <h1 className="text-2xl font-bold">{mode === 'login' ? 'Zaloguj się' : 'Zarejestruj się'}</h1>
-      <input
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="email"
-        className="w-full border rounded px-3 py-2"
-      />
-      <input
-        type="password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="hasło"
-        className="w-full border rounded px-3 py-2"
-      />
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {notice && <p className="text-green-600 text-sm">{notice}</p>}
-      <button type="submit" disabled={loading} className="w-full bg-green-600 text-white rounded py-2">
-        {loading ? '...' : mode === 'login' ? 'Zaloguj' : 'Zarejestruj'}
-      </button>
-      {mode === 'login' && (
-        <Link href="/forgot-password" className="block text-center text-sm text-green-700 underline">
-          Nie pamiętam hasła
-        </Link>
-      )}
+    <form onSubmit={submit} className="space-y-4">
+      <h1 className={AUTH_TITLE}>{isLogin ? 'Zaloguj się' : 'Zarejestruj się'}</h1>
+      <Field label="E-mail" htmlFor="auth-email">
+        <Input
+          id="auth-email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </Field>
+      <Field label="Hasło" htmlFor="auth-password">
+        <Input
+          id="auth-password"
+          type="password"
+          required
+          minLength={isLogin ? undefined : 6}
+          autoComplete={isLogin ? 'current-password' : 'new-password'}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </Field>
+      {error && <FormMessage tone="error">{error}</FormMessage>}
+      {notice && <FormMessage tone="notice">{notice}</FormMessage>}
+      <Button type="submit" variant="primary" disabled={loading} className="w-full">
+        {loading ? 'Chwileczkę…' : isLogin ? 'Zaloguj' : 'Zarejestruj'}
+      </Button>
+      <div className="space-y-1 text-center text-sm text-muted">
+        {isLogin ? (
+          <>
+            <p>
+              Nie masz konta?{' '}
+              <ButtonLink href="/signup" variant="link">
+                Zarejestruj się
+              </ButtonLink>
+            </p>
+            <p>
+              <ButtonLink href="/forgot-password" variant="link">
+                Nie pamiętam hasła
+              </ButtonLink>
+            </p>
+          </>
+        ) : (
+          <p>
+            Masz już konto?{' '}
+            <ButtonLink href="/login" variant="link">
+              Zaloguj się
+            </ButtonLink>
+          </p>
+        )}
+      </div>
     </form>
   );
 }

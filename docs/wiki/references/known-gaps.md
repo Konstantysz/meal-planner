@@ -60,7 +60,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |
 | Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
-| The have-map never syncs; the offline banner promises it will | [[offline-shopping-store#Known gaps]] |
+| The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
@@ -74,7 +74,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | `/` is the create-next-app page; metadata says "Create Next App" | [[spec-drift#Leftover scaffold]] |
 | The water filter only drops a part whose every „ lub " alternative starts with „woda"; „pomidory + woda" is kept as one ingredient | [[ingredient-auto-match#Invariants and gotchas]] |
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
-| The login page has no link to signup | [[auth-session#Known gaps]] |
 | Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
 | Slot recipe name is barely readable in dark mode | [[week-plan#Known gaps]] |
 | `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |
@@ -102,6 +101,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-13: Removed the login-without-signup-link row and reworded the have-marks row: the banner no longer promises a sync (#41).
 - 2026-10-11: Closed the inflected-name gap („czosnku") and the model-output row for auto-match (the model returns base-form names now); added the model-quality row.
 - 2026-10-10: Added the inflected-name and model-output row and the water-filter row (`pomidory + woda` stays one ingredient) for ingredient auto-match.
 - 2026-10-09: Removed the shopping-list `has_macros` row (#15): the route now uses `hasMacros` across all four fields.

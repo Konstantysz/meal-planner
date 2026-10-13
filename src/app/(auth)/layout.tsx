@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
+import { AuthFrame } from '@/components/auth/AuthFrame';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  return children;
+  return <AuthFrame>{children}</AuthFrame>;
 }
