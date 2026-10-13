@@ -133,6 +133,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: Recipe list header has an outline „Import z URL" (opens `/recipes/new?import=1`) beside the filled „Nowy przepis" (#40); see [[import-pipeline]].
 - 2026-10-13: Recipe list as cover cards and detail as a Notion-style page with collapsible titled steps and ingredient scaling; form shows field-level messages instead of raw Zod JSON (#39).
 - 2026-10-13: Step editing extracted into `StepsEditor` and reused by the import review form.
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.

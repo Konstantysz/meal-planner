@@ -4,10 +4,22 @@ import type { ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
 import { StepsEditor, type RecipeFormStep } from '@/components/recipes/StepsEditor';
-import { Input } from '@/components/ui';
+import { Button, Input, Tag } from '@/components/ui';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
+
+type MatchStatus = 'matched' | 'created' | 'unmatched';
+interface MatchOutcome {
+  status: MatchStatus;
+  ingredientName: string | null;
+}
+
+const STATUS_LABEL: Record<MatchStatus, string> = {
+  matched: 'Dopasowano',
+  created: 'Utworzono — sprawdź makra',
+  unmatched: 'Nie dopasowano — dodaj ręcznie',
+};
 
 export function ImportReviewForm({
   extracted,
@@ -30,13 +42,12 @@ export function ImportReviewForm({
   );
   const [sourceAuthor, setSourceAuthor] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [outcomes, setOutcomes] = useState<MatchOutcome[] | null>(null);
   const [matching, setMatching] = useState(false);
 
   async function autoMatch() {
     setMatching(true);
     setError(null);
-    setNotice(null);
     try {
       const localIngredients: Ingredient[] = await fetch('/api/ingredients').then((r) => r.json());
       const results = await autoMatchIngredients(extracted.recipeIngredient, localIngredients, {
@@ -44,9 +55,10 @@ export function ImportReviewForm({
       });
 
       const picked: PickedIngredient[] = [];
-      let createdCount = 0;
+      const rows: MatchOutcome[] = [];
       for (const r of results) {
         let ingredient = r.ingredient;
+        let status: MatchStatus = 'matched';
         const toCreate = r.offCandidate ?? r.fallbackCandidate;
         if (!ingredient && toCreate) {
           const created = await fetch('/api/ingredients', {
@@ -56,10 +68,14 @@ export function ImportReviewForm({
           });
           if (created.ok) {
             ingredient = await created.json();
-            createdCount++;
+            status = 'created';
           }
         }
-        if (!ingredient) continue;
+        if (!ingredient) {
+          rows.push({ status: 'unmatched', ingredientName: null });
+          continue;
+        }
+        rows.push({ status, ingredientName: ingredient.name });
         picked.push({
           ingredient_id: ingredient.id,
           ingredient_name: ingredient.name,
@@ -71,17 +87,9 @@ export function ImportReviewForm({
         });
       }
       setIngredients(picked);
-      if (createdCount > 0) {
-        setNotice(
-          `Dopasowano wszystkie ${picked.length} składników (${createdCount} nowo utworzonych — sprawdź makra).`,
-        );
-      } else if (picked.length < extracted.recipeIngredient.length) {
-        setNotice(
-          `Dopasowano ${picked.length} z ${extracted.recipeIngredient.length} składników. Uzupełnij resztę ręcznie.`,
-        );
-      } else {
-        setNotice(`Dopasowano wszystkie ${picked.length} składników.`);
-      }
+      setOutcomes(rows);
+    } catch {
+      setError('Nie udało się dopasować składników. Spróbuj ponownie albo dodaj je ręcznie.');
     } finally {
       setMatching(false);
     }
@@ -119,85 +127,137 @@ export function ImportReviewForm({
       }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? 'save failed');
+      setError(
+        res.status === 401
+          ? 'Sesja wygasła. Zaloguj się ponownie.'
+          : 'Nie udało się zapisać przepisu. Sprawdź dane i spróbuj ponownie.',
+      );
       return;
     }
     const r = await res.json();
     onSaved(r.id);
   }
 
+  const counts = outcomes && {
+    matched: outcomes.filter((o) => o.status === 'matched').length,
+    created: outcomes.filter((o) => o.status === 'created').length,
+    unmatched: outcomes.filter((o) => o.status === 'unmatched').length,
+  };
+
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <p className="text-sm bg-amber-50 text-amber-900 p-2 rounded">
-        Sprawdź i uzupełnij dane z importu. Lista składników wymaga mapowania na bazę.
-      </p>
-      <Input aria-label="Nazwa przepisu" value={name} onChange={(e) => setName(e.target.value)} />
-      <label className="block">
-        <span className="font-semibold">Autor przepisu</span>
-        <Input
-          value={sourceAuthor}
-          onChange={(e) => setSourceAuthor(e.target.value)}
-          placeholder="np. Ania Gotuje"
-          maxLength={200}
-        />
-      </label>
-      <div className="flex items-center gap-3">
-        <input
-          type="number"
-          value={servings}
-          min={1}
-          onChange={(e) => setServings(Number(e.target.value))}
-          aria-label="Porcje"
-          className="w-24 border rounded px-2 py-1"
-        />
-        <label className="flex items-center gap-1 text-sm">
-          Czas (min)
-          <input
-            type="number"
-            min={0}
-            value={prepTime ?? ''}
-            onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))}
-            className="w-24 border rounded px-2 py-1"
+    <div className="mx-auto max-w-2xl space-y-6 p-4 lg:px-8 lg:pt-8">
+      <header>
+        <h1 className="font-display text-[26px] font-extrabold tracking-tight lg:text-4xl">Sprawdź import</h1>
+        <p className="mt-1 text-sm text-muted">
+          Sprawdź i uzupełnij dane z importu. Lista składników wymaga mapowania na bazę.
+        </p>
+      </header>
+
+      <section aria-labelledby="review-details" className="space-y-3">
+        <h2 id="review-details" className="sr-only">
+          Dane przepisu
+        </h2>
+        <label className="block space-y-1">
+          <span className="text-sm text-muted">Nazwa przepisu</span>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm text-muted">Autor przepisu</span>
+          <Input
+            value={sourceAuthor}
+            onChange={(e) => setSourceAuthor(e.target.value)}
+            placeholder="np. Ania Gotuje"
+            maxLength={200}
           />
         </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block space-y-1">
+            <span className="text-sm text-muted">Porcje</span>
+            <Input
+              type="number"
+              inputMode="numeric"
+              value={servings}
+              min={1}
+              onChange={(e) => setServings(Number(e.target.value))}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted">Czas (min)</span>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={prepTime ?? ''}
+              onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))}
+            />
+          </label>
+        </div>
         {totalGrams !== null && servings >= 1 && (
-          <span className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             Przepis podaje wagę ({totalGrams} g) — porcja ok. {Math.round(totalGrams / servings)} g. Popraw liczbę
             porcji, jeśli to nie pasuje.
-          </span>
+          </p>
         )}
-      </div>
-      <div>
-        <h3 className="font-semibold">Składniki (z importu: {extracted.recipeIngredient.length})</h3>
-        <ul className="text-sm opacity-70 mb-2">
-          {extracted.recipeIngredient.map((x, i) => (
-            <li key={i}>· {[x.amount, x.unit, x.name].filter((p) => p != null).join(' ')}</li>
-          ))}
+      </section>
+
+      <section aria-labelledby="review-ingredients" className="space-y-3 border-t border-line pt-4">
+        <h2 id="review-ingredients" className="font-display text-lg font-semibold">
+          Składniki z importu ({extracted.recipeIngredient.length})
+        </h2>
+        <ul className="divide-y divide-line border-y border-line text-sm">
+          {extracted.recipeIngredient.map((x, i) => {
+            const outcome = outcomes?.[i];
+            return (
+              <li key={i} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+                <span>
+                  <span className="tabular-nums">{[x.amount, x.unit].filter((p) => p != null).join(' ')}</span> {x.name}
+                  {outcome?.ingredientName && outcome.ingredientName.toLowerCase() !== x.name.trim().toLowerCase() && (
+                    <span className="block text-xs text-muted">→ {outcome.ingredientName}</span>
+                  )}
+                </span>
+                {outcome && (
+                  <Tag className={outcome.status === 'unmatched' ? 'border-ink text-ink' : undefined}>
+                    {STATUS_LABEL[outcome.status]}
+                  </Tag>
+                )}
+              </li>
+            );
+          })}
         </ul>
-        <button
-          type="button"
-          onClick={autoMatch}
-          disabled={matching}
-          className="text-sm border rounded px-3 py-1 mb-2 disabled:opacity-50"
-        >
-          {matching ? 'Dopasowuję…' : 'Auto-mapuj składniki'}
-        </button>
-        <p className="text-sm opacity-70 mb-2">Zmapuj na bazę:</p>
+        {/* One run only: a second run would create the OFF/placeholder ingredients again. */}
+        {!outcomes && (
+          <Button onClick={autoMatch} disabled={matching} className="w-full sm:w-auto">
+            {matching ? 'Dopasowuję…' : 'Auto-mapuj składniki'}
+          </Button>
+        )}
+        {counts && (
+          <p role="status" className="text-sm text-muted">
+            Dopasowano: {counts.matched} · utworzono: {counts.created} · bez dopasowania: {counts.unmatched}
+          </p>
+        )}
+        <p className="text-sm text-muted">Składniki w przepisie (zmapowane na bazę):</p>
         <IngredientPicker value={ingredients} onChange={setIngredients} />
-      </div>
-      <div>
-        <h3 className="mb-2 font-semibold">Kroki</h3>
+      </section>
+
+      <section aria-labelledby="review-steps" className="border-t border-line pt-4">
+        <h2 id="review-steps" className="mb-3 font-display text-lg font-semibold">
+          Kroki
+        </h2>
         <StepsEditor value={steps} onChange={setSteps} />
-      </div>
-      {notice && <p className="text-sm bg-blue-50 text-blue-900 p-2 rounded">{notice}</p>}
-      {error && <p className="text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button onClick={onCancel} className="px-3 py-2 border rounded">
+      </section>
+
+      {error && (
+        <p role="alert" className="rounded-control border border-ink px-3 py-2 text-sm">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2 pb-4">
+        <Button onClick={onCancel} className="flex-1 lg:flex-none">
           Anuluj
-        </button>
-        <button onClick={save} className="bg-green-600 text-white rounded px-4 py-2">
+        </Button>
+        <Button variant="primary" onClick={save} className="flex-1 lg:flex-none">
           Zapisz przepis
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -62,6 +62,7 @@ sources:
 | `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
 | `src/components/import/ImportReviewForm.tsx` | `tests/unit/import/ImportReviewForm.test.tsx` |
 | `src/lib/import/duration.ts` | `tests/unit/import/duration.test.ts` |
+| `src/lib/import/errors.ts` | `tests/unit/import/errors.test.ts` |
 | `scripts/wiki-check.ts` | `tests/unit/wiki-check.test.ts` |
 
 ## Not covered

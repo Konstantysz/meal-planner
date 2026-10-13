@@ -114,20 +114,20 @@ export function IngredientPicker({
               aria-label="Składnik"
               value={v.raw_text}
               onChange={(e) => update(idx, { raw_text: e.target.value })}
-              className="min-w-40 flex-1"
+              className="basis-full"
             />
             <Input
               aria-label="Ilość"
               type="number"
               value={v.amount ?? ''}
               onChange={(e) => update(idx, { amount: e.target.value === '' ? null : Number(e.target.value) })}
-              className="w-20"
+              className="max-w-24"
             />
             <Input
               aria-label="Jednostka"
               value={v.unit ?? ''}
               onChange={(e) => update(idx, { unit: e.target.value || null })}
-              className="w-20"
+              className="max-w-24"
             />
             <label className="flex items-center gap-1 text-sm whitespace-nowrap">
               <input

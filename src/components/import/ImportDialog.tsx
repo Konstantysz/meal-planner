@@ -1,7 +1,30 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Button, Input, Sheet } from '@/components/ui';
 import { ensureEngineReady, extractWithWebLlm, hasWebGpu } from '@/lib/import/engine';
+import {
+  ImportError,
+  extractFailureMessage,
+  fetchFailureMessage,
+  importErrorMessage,
+  importFetch,
+  readApiError,
+} from '@/lib/import/errors';
 import type { ExtractedRecipe } from '@/lib/import/schema';
+
+type Stage = 'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error';
+type Step = 'fetch' | 'model' | 'extract';
+
+const STEP_LABEL: Record<Step, string> = {
+  fetch: 'Pobieram stronę',
+  model: 'Ładuję model (pierwszy raz może potrwać kilka minut)',
+  extract: 'Odczytuję przepis',
+};
+
+/** Steps the import goes through; the model step exists only in browser mode (WebLLM). */
+function stepsFor(browserMode: boolean): Step[] {
+  return browserMode ? ['fetch', 'model', 'extract'] : ['fetch', 'extract'];
+}
 
 export function ImportDialog({
   onClose,
@@ -11,102 +34,163 @@ export function ImportDialog({
   onExtracted: (r: ExtractedRecipe, url: string) => void;
 }) {
   const [url, setUrl] = useState('');
-  const [stage, setStage] = useState<'idle' | 'fetch' | 'model' | 'extract' | 'done' | 'error'>('idle');
+  const [stage, setStage] = useState<Stage>('idle');
+  const [browserMode, setBrowserMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modelProgress, setModelProgress] = useState<{ text: string; progress: number } | null>(null);
+  const [modelPercent, setModelPercent] = useState<number | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Closing the dialog (or unmounting) abandons any import still in flight.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  function cancel() {
+    abortRef.current?.abort();
+    onClose();
+  }
 
   async function run() {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
+    const ensureActive = () => {
+      if (signal.aborted) throw new DOMException('Import cancelled', 'AbortError');
+    };
+    const request = async (input: string, init?: RequestInit) => {
+      const res = await importFetch(input, { ...init, signal });
+      ensureActive();
+      return res;
+    };
     setError(null);
-    setModelProgress(null);
+    setModelPercent(null);
+    setBrowserMode(false);
     try {
       setStage('fetch');
-      const fr = await fetch('/api/import/fetch', {
+      const fr = await request('/api/import/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
-      if (!fr.ok) throw new Error((await fr.json()).error ?? 'fetch failed');
+      if (!fr.ok) throw new ImportError(fetchFailureMessage(fr.status, await readApiError(fr)));
       const { markdown } = (await fr.json()) as { markdown: string };
 
       // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
-      const mr = await fetch('/api/import/extract');
-      if (!mr.ok) throw new Error(`Nie udało się odczytać trybu LLM (${mr.status})`);
+      const mr = await request('/api/import/extract');
+      if (!mr.ok) throw new ImportError(`Nie udało się odczytać trybu importu (${mr.status}). Spróbuj ponownie.`);
       const { mode } = await mr.json();
       let recipe: ExtractedRecipe;
       if (mode === 'server') {
         setStage('extract');
-        const er = await fetch('/api/import/extract', {
+        const er = await request('/api/import/extract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ markdown }),
         });
-        if (!er.ok) throw new Error((await er.json()).error ?? 'extract failed');
+        if (!er.ok) throw new ImportError(extractFailureMessage(er.status, await readApiError(er)));
         recipe = await er.json();
       } else {
+        setBrowserMode(true);
         if (!(await hasWebGpu())) {
-          throw new Error(
+          throw new ImportError(
             'Ta przeglądarka nie obsługuje WebGPU. Import działa tu tylko z serwerem uruchomionym z LLM_MODE=server.',
           );
         }
         setStage('model');
         await ensureEngineReady((p) => {
-          setModelProgress({ text: p.text, progress: p.progress });
+          if (!signal.aborted) setModelPercent(Math.round(p.progress * 100));
         });
+        ensureActive();
         setStage('extract');
-        recipe = await extractWithWebLlm(markdown);
+        try {
+          recipe = await extractWithWebLlm(markdown);
+        } catch {
+          throw new ImportError(
+            'Model w przeglądarce nie odczytał przepisu. Spróbuj ponownie lub dodaj przepis ręcznie.',
+          );
+        }
       }
+      ensureActive();
       setStage('done');
       onExtracted(recipe, url);
     } catch (e) {
-      setError(String(e));
+      if (signal.aborted) return;
+      setError(importErrorMessage(e));
       setStage('error');
     }
   }
 
-  const canSubmit = !!url && (stage === 'idle' || stage === 'error' || stage === 'done');
+  const busy = stage === 'fetch' || stage === 'model' || stage === 'extract';
+  const canSubmit = !!url && !busy;
+  const steps = stepsFor(browserMode);
+  const current = steps.indexOf(stage as Step);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-background text-ink rounded-sheet p-4 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (canSubmit) void run();
-          }}
-        >
-          <h3 className="font-semibold mb-3">Import przepisu z URL</h3>
-          <input
+    <Sheet open onClose={onClose} title="Import przepisu z URL">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canSubmit) void run();
+        }}
+        className="space-y-4"
+      >
+        <label className="block space-y-1">
+          <span className="text-sm text-muted">Adres strony z przepisem</span>
+          <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://www.jadlonomia.com/..."
             type="url"
-            className="w-full border rounded px-3 py-2 mb-3"
+            inputMode="url"
+            autoFocus
+            disabled={busy}
           />
-          <div className="text-sm text-gray-600 mb-2">
-            {stage === 'fetch' && 'Pobieram stronę…'}
-            {stage === 'model' && (modelProgress?.text ?? 'Ładuję model (pierwszy raz może potrwać kilka minut)…')}
-            {stage === 'extract' && 'Wyciągam przepis…'}
-            {stage === 'done' && 'Gotowe'}
-          </div>
-          {stage === 'model' && modelProgress && (
-            <div className="w-full h-2 bg-gray-200 rounded mb-2 overflow-hidden">
-              <div
-                className="h-full bg-green-600 transition-all"
-                style={{ width: `${Math.round(modelProgress.progress * 100)}%` }}
-              />
-            </div>
-          )}
-          {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-3 py-1">
-              Anuluj
-            </button>
-            <button type="submit" disabled={!canSubmit} className="bg-green-600 text-white rounded px-3 py-1">
-              Importuj
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </label>
+        <p className="text-xs text-muted">Obsługujemy m.in. jadlonomia.com i aniagotuje.pl.</p>
+        {busy && (
+          <ol role="status" aria-live="polite" className="space-y-2 border-t border-line pt-3 text-sm">
+            {steps.map((s, i) => {
+              const state = i < current ? 'done' : i === current ? 'active' : 'todo';
+              return (
+                <li key={s} className={state === 'todo' ? 'text-faint' : 'text-ink'} aria-current={state === 'active'}>
+                  <span aria-hidden="true" className="mr-2 inline-block w-4 text-center">
+                    {state === 'done' ? '✓' : state === 'active' ? '…' : '·'}
+                  </span>
+                  {STEP_LABEL[s]}
+                  {state === 'active' && s === 'model' && modelPercent !== null && (
+                    <span className="tabular-nums"> — {modelPercent}%</span>
+                  )}
+                  {state === 'active' && s === 'model' && modelPercent !== null && (
+                    <div
+                      role="progressbar"
+                      aria-label="Postęp ładowania modelu"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={modelPercent}
+                      className="mt-1 h-1 w-full overflow-hidden rounded-block bg-hover"
+                    >
+                      <div className="h-full bg-ink transition-all" style={{ width: `${modelPercent}%` }} />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        {error && (
+          <p role="alert" className="rounded-control border border-ink px-3 py-2 text-sm">
+            {error}
+          </p>
+        )}
+        <div className="flex gap-2">
+          <Button onClick={cancel} className="flex-1 lg:flex-none">
+            Anuluj
+          </Button>
+          <Button type="submit" variant="primary" disabled={!canSubmit} className="flex-1 lg:flex-none">
+            {stage === 'error' ? 'Spróbuj ponownie' : 'Importuj'}
+          </Button>
+        </div>
+      </form>
+    </Sheet>
   );
 }

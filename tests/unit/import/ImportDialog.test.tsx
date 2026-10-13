@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -42,6 +42,15 @@ async function runImport() {
 const calledExtractPost = (f: ReturnType<typeof stubFetch>) =>
   f.mock.calls.some(([url, init]) => url === '/api/import/extract' && init?.method === 'POST');
 
+beforeAll(() => {
+  // jsdom has no <dialog> behaviour; emulate open/close.
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false;
+  };
+});
 beforeEach(() => Object.values(engine).forEach((m) => m.mockReset()));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -110,13 +119,102 @@ describe('ImportDialog', () => {
     engine.extractWithWebLlm.mockRejectedValue(new Error('Device was lost'));
     await runImport();
 
-    expect(await screen.findByText(/Device was lost/)).toBeInTheDocument();
+    expect(await screen.findByText(/Model w przeglądarce nie odczytał przepisu/)).toBeInTheDocument();
+    expect(screen.queryByText(/Device was lost/)).not.toBeInTheDocument();
     expect(calledExtractPost(f)).toBe(false);
   });
 
   it('shows an error when the mode cannot be read (e.g. expired session)', async () => {
     stubFetch(new Response('<html>login</html>', { status: 500 }));
     await runImport();
-    expect(await screen.findByText(/odczytać trybu LLM \(500\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/odczytać trybu importu \(500\)/)).toBeInTheDocument();
+  });
+
+  it('maps a failed page fetch to a Polish message, not the raw server error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ error: 'Error: Fetch failed: 404' }, 500)),
+    );
+    await runImport();
+    expect(await screen.findByText('Nie znaleziono takiej strony. Sprawdź adres.')).toBeInTheDocument();
+    expect(screen.queryByText(/Fetch failed/)).not.toBeInTheDocument();
+  });
+
+  it('maps a failed server extraction to a generic Polish message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const key = `${init?.method ?? 'GET'} ${url}`;
+        if (key === 'POST /api/import/fetch') return json({ markdown: '# Zupa' });
+        if (key === 'GET /api/import/extract') return json({ mode: 'server' });
+        return json({ error: 'Error: ZodError: invalid' }, 502);
+      }),
+    );
+    await runImport();
+    expect(await screen.findByText(/Model nie odczytał przepisu/)).toBeInTheDocument();
+    expect(screen.queryByText(/Zod/)).not.toBeInTheDocument();
+  });
+
+  it('shows a connection message when the network is down, and lets the user retry', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    await runImport();
+    expect(await screen.findByText(/Brak połączenia z serwerem/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Spróbuj ponownie' })).toBeEnabled();
+  });
+
+  it('ignores the result when the user cancels mid-import', async () => {
+    let release: (r: Response) => void = () => {};
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      const key = `${init?.method ?? 'GET'} ${url}`;
+      if (key === 'POST /api/import/fetch') return new Promise<Response>((resolve) => (release = resolve));
+      if (key === 'GET /api/import/extract') return Promise.resolve(json({ mode: 'server' }));
+      return Promise.resolve(json(RECIPE));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const onClose = vi.fn();
+    const onExtracted = vi.fn();
+    render(<ImportDialog onClose={onClose} onExtracted={onExtracted} />);
+    await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), 'https://a.pl/x');
+    await userEvent.click(screen.getByRole('button', { name: /importuj/i }));
+    await screen.findByText('Pobieram stronę');
+    await userEvent.click(screen.getByRole('button', { name: 'Anuluj' }));
+    expect(onClose).toHaveBeenCalled();
+    release(json({ markdown: '# Zupa' }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onExtracted).not.toHaveBeenCalled();
+    expect(calledExtractPost(fetchMock as never)).toBe(false);
+  });
+
+  it('lists the steps while importing and highlights the current one', async () => {
+    let release: (r: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((resolve) => (release = resolve))),
+    );
+    await runImport();
+    const step = await screen.findByText('Pobieram stronę');
+    expect(step.closest('li')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByText('Odczytuję przepis')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /importuj/i })).toBeDisabled();
+    release(json({ markdown: '' }, 400));
+    expect(await screen.findByText(/poprawny adres/)).toBeInTheDocument();
+  });
+
+  it('browser mode shows the model step with its percentage', async () => {
+    stubFetch(json({ mode: 'browser' }));
+    engine.hasWebGpu.mockResolvedValue(true);
+    engine.ensureEngineReady.mockImplementation(async (cb: (p: { text: string; progress: number }) => void) => {
+      cb({ text: 'Fetching param cache', progress: 0.42 });
+      await new Promise(() => {});
+    });
+    await runImport();
+    expect(await screen.findByText(/42%/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '42');
+    expect(screen.queryByText(/Fetching param cache/)).not.toBeInTheDocument();
   });
 });
