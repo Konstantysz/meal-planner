@@ -13,7 +13,7 @@ confidence: medium
 llm_generated: true
 llm_model: "claude-sonnet-5-5"
 human_reviewed: false
-verified_commit: e0f0256
+verified_commit: 8632fa0
 sources:
   - title: "Theme tokens today (create-next-app defaults)"
     path: src/app/globals.css

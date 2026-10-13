@@ -5,14 +5,14 @@ tags: [dev-setup]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: medium
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: dd67b66
+verified_commit: 8632fa0
 sources:
   - title: "Package manifest"
     path: package.json

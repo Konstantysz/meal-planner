@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: a7f8f52
+verified_commit: 8632fa0
 sources:
   - title: "Slot PATCH route"
     path: src/app/api/plans/[id]/slots/[slotId]/route.ts

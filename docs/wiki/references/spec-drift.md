@@ -5,14 +5,14 @@ tags: [spec]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: 656711c
+verified_commit: 8632fa0
 sources:
   - title: "Architecture plan"
     path: docs/plans/architecture_plan_document.md
