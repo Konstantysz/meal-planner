@@ -9,6 +9,7 @@ const DIRS = [
   'src/components/plan',
   'src/components/shopping',
   'src/components/auth',
+  'src/components/import',
 ];
 const FORBIDDEN = [
   /#[0-9a-fA-F]{3,8}\b/,
