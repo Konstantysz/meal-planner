@@ -3,14 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import { IngredientPicker, type PickedIngredient } from './IngredientPicker';
+import { StepsEditor, type EditableStep } from './StepsEditor';
 
 const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'] as const;
 const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'] as const;
 
-export interface RecipeFormStep {
-  title: string;
-  text: string;
-}
+export type RecipeFormStep = EditableStep;
 
 export interface RecipeFormInitialValues {
   name: string;
@@ -46,18 +44,6 @@ export function RecipeForm({
   const [steps, setSteps] = useState<RecipeFormStep[]>(initialValues?.steps ?? [{ title: '', text: '' }]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  function updateStep(idx: number, patch: Partial<RecipeFormStep>) {
-    setSteps(steps.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  }
-
-  function moveStep(idx: number, dir: -1 | 1) {
-    const target = idx + dir;
-    if (target < 0 || target >= steps.length) return;
-    const next = [...steps];
-    [next[idx], next[target]] = [next[target], next[idx]];
-    setSteps(next);
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -181,46 +167,7 @@ export function RecipeForm({
       </div>
       <div>
         <h3 className="mb-2 font-semibold">Kroki</h3>
-        <ol className="space-y-3">
-          {steps.map((s, i) => (
-            <li key={i} className="space-y-2 border-b border-line pb-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="w-6 text-muted tabular-nums">{i + 1}.</span>
-                <Input
-                  aria-label={`Tytuł kroku ${i + 1}`}
-                  value={s.title}
-                  onChange={(e) => updateStep(i, { title: e.target.value })}
-                  placeholder="Tytuł kroku (opcjonalnie)"
-                  maxLength={200}
-                  className="min-w-40 flex-1"
-                />
-                <Button aria-label={`Przesuń krok ${i + 1} w górę`} disabled={i === 0} onClick={() => moveStep(i, -1)}>
-                  ↑
-                </Button>
-                <Button
-                  aria-label={`Przesuń krok ${i + 1} w dół`}
-                  disabled={i === steps.length - 1}
-                  onClick={() => moveStep(i, 1)}
-                >
-                  ↓
-                </Button>
-                <Button aria-label={`Usuń krok ${i + 1}`} onClick={() => setSteps(steps.filter((_, x) => x !== i))}>
-                  ×
-                </Button>
-              </div>
-              <textarea
-                aria-label={`Treść kroku ${i + 1}`}
-                value={s.text}
-                onChange={(e) => updateStep(i, { text: e.target.value })}
-                rows={3}
-                className="w-full rounded-control border border-line bg-background px-3 py-2 text-base text-ink lg:text-sm"
-              />
-            </li>
-          ))}
-        </ol>
-        <Button className="mt-2" onClick={() => setSteps([...steps, { title: '', text: '' }])}>
-          + krok
-        </Button>
+        <StepsEditor steps={steps} onChange={setSteps} />
       </div>
       {error && (
         <p role="alert" className="rounded-control border border-brand px-3 py-2">

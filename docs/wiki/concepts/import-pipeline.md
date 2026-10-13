@@ -18,6 +18,12 @@ sources:
     path: src/components/import/ImportDialog.tsx
   - title: "Import review form"
     path: src/components/import/ImportReviewForm.tsx
+  - title: "Editable imported ingredient rows"
+    path: src/components/import/ExtractedIngredientsEditor.tsx
+  - title: "Step list editor (shared with RecipeForm)"
+    path: src/components/recipes/StepsEditor.tsx
+  - title: "List edit helpers"
+    path: src/lib/list-edit.ts
   - title: "New recipe page"
     path: src/app/(app)/recipes/new/page.tsx
   - title: "Fetch route"
@@ -76,6 +82,20 @@ sequenceDiagram
 
 The `ImportDialog` is a native `<form>`: Enter in the URL field submits like "Importuj" (same disabled rules). Its stage machine is `idle → fetch → (model) → extract → done`, and any exception moves it to `error`, with the message shown inline. `/recipes/new` swaps `RecipeForm` for `ImportReviewForm` once a recipe has been extracted, and passes the source URL through as `source_url` (commit `b1bd2db`).
 
+## Review form structure
+
+`ImportReviewForm` owns all state and the save call; the editors are controlled components with no fetching of their own, so the review screen can be restyled without touching behaviour.
+
+| Piece | File | Job |
+|---|---|---|
+| `ImportReviewForm` | `src/components/import/ImportReviewForm.tsx` | Name, servings, time, „Autor przepisu" (`source_author`), auto-match, save |
+| `ExtractedIngredientsEditor` | `src/components/import/ExtractedIngredientsEditor.tsx` | The imported rows: add („+ składnik"), remove, move, edit name, amount, unit, optional. Editing an amount drops the row's `range` text |
+| `IngredientPicker` | `src/components/recipes/IngredientPicker.tsx` | The matched rows that are saved (shared with `RecipeForm`) |
+| `StepsEditor` | `src/components/recipes/StepsEditor.tsx` | Add („+ krok"), remove, move, edit title and text (shared with `RecipeForm`) |
+| `moveItem`, `removeItem` | `src/lib/list-edit.ts` | Pure list edits used by both editors |
+
+„Auto-mapuj składniki" matches the edited rows (blank names skipped), not the original model output. Steps with blank text are dropped on save and positions follow list order.
+
 ## Invariants and gotchas
 
 - **The photo comes from the raw page, not the Markdown.** `cleanHtml` drops images, so `/api/import/fetch` also runs `extractImageUrl(html, url)` (`src/lib/import/image.ts`): the JSON-LD Recipe `image`, then `og:image`, resolved against the page URL and kept only if its host is in `IMAGE_HOSTS`. The result is `image_url` (or null) in the response; the review form prefills an editable „Zdjęcie (adres URL)" field and saves it as `recipes.image_url`. See [[0014-recipe-photos-hotlinked]].
@@ -115,6 +135,7 @@ LLM_MODE=server pnpm dev
 ## Changelog
 
 - 2026-10-13: Fetch route returns `image_url`; review form saves it (migration 0011). Status set to `review` for the edit.
+- 2026-10-13: Review form edits imported ingredient rows and steps (add, remove, reorder) and `source_author` (#35).
 - 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.
 - 2026-10-11: Dropped the ingredients bypass; the fetch route returns only `markdown`.

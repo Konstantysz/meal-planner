@@ -148,7 +148,7 @@ function MoveDialog({
                     {POSITION_LABELS[p]}
                   </button>
                 ))}
-                {free[date].length === 0 && <span className="text-sm text-faint">brak wolnych miejsc</span>}
+                {free[date].length === 0 && <span className="text-sm text-muted">brak wolnych miejsc</span>}
               </div>
             </li>
           );

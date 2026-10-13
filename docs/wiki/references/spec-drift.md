@@ -5,14 +5,14 @@ tags: [spec]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: 656711c
+verified_commit: 8632fa0
 sources:
   - title: "Architecture plan"
     path: docs/plans/architecture_plan_document.md
@@ -72,11 +72,7 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 
 ## Leftover scaffold
 
-- `src/app/page.tsx` (`/`) is still the create-next-app landing page, and the manifest's `start_url` is `/`.
 - `src/app/layout.tsx` metadata is still "Create Next App", with `lang="en"`.
-
-> [!warning] Uncertain
-> Whether signed-in users reach the `/` landing page depends on the redirects in `updateSession` (`src/lib/supabase/middleware.ts`, used by `src/proxy.ts`). Not traced in full, so the earlier claim that logged-in users see it was removed.
 
 ## Examples
 

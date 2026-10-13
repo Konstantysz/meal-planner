@@ -38,6 +38,8 @@ sources:
     path: src/components/recipes/RecipeForm.tsx
   - title: "Ingredient picker"
     path: src/components/recipes/IngredientPicker.tsx
+  - title: "Step list editor"
+    path: src/components/recipes/StepsEditor.tsx
   - title: "Recipe list and filters"
     path: src/components/recipes/RecipeList.tsx
   - title: "Detail page"
@@ -129,6 +131,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 ## Changelog
 
 - 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
+- 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
 - 2026-10-05: Documented the `optional` ingredient flag (0007).
