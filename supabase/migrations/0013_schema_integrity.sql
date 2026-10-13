@@ -8,6 +8,8 @@
 --      created are deleted with them (on delete cascade). household_members and app_admins already
 --      cascade, ingredients.created_by is already set null (0010); plans have no user column.
 --      rec_insert still requires author_id = auth.uid(), so new recipes always carry their author.
+--      A recipe whose author_id is null cannot be deleted through the API: rec_delete allows only the
+--      author. Until 0014 (#98) lands, any household member can also null author_id through rec_update.
 --   3. recipes.updated_at, maintained by a BEFORE UPDATE trigger (clients cannot set it). Existing
 --      rows start at their created_at. update_recipe (0009) always updates the recipe row, so an edit
 --      moves it; a direct write to recipe_ingredients/recipe_steps alone does not.
@@ -19,7 +21,10 @@
 --      constraint trigger: no app flow moves a plan and its slots in the same transaction.
 --   5. create_household_with_owner (0003, replaced by the signup trigger in 0006) is no longer
 --      executable by public, anon or authenticated. Nothing in src/ calls it.
+--      Intentionally revoked, not dropped, so the 0013 rollback can restore 0004's grant; dropping
+--      the function is a follow-up.
 -- Does not redefine save_recipe or update_recipe (0011 does).
+-- Merge only after 0011 (#92) and 0012 (#97), and before 0014 (#98).
 -- Live data had no violations of any rule on 2026-10-13. If that changed, the migration fails: the
 -- CHECK and UNIQUE constraints validate existing rows, and the slot rule has an explicit check below.
 -- Rollback: supabase/rollbacks/0013_schema_integrity.down.sql

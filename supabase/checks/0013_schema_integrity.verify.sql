@@ -308,6 +308,7 @@ begin
   results := results || format('%s 18 update_recipe succeeds with reordered rows', case when coalesce(ok, false) then 'PASS' else 'FAIL' end);
 
   -- 19. Deleting d (a recipe and a share token) succeeds; the recipe stays in ha, visible to a
+  -- (the remaining member), with author_id null; d's share token is deleted with the account.
   perform set_config('role', 'postgres', true);
   begin
     delete from auth.users where id = d;

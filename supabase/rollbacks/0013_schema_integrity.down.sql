@@ -1,6 +1,8 @@
 -- Manual rollback for migrations/0013_schema_integrity.sql.
 -- Not picked up by `supabase db push` (outside supabase/migrations).
 -- Roll back the app code first if it reads recipes.updated_at (src/lib/types.ts only types it).
+-- Roll back later migrations that depend on recipes.updated_at or a nullable recipes.author_id
+-- first (for example a 0014+ fork_recipe extension).
 -- Loses: recipes.updated_at values. Restores: author_id NOT NULL with no on-delete action, share
 -- tokens without cascade, and execute on create_household_with_owner for authenticated (0004 grants).
 -- Fails, on purpose, if a recipe lost its author to an account deletion since 0013: give those rows
