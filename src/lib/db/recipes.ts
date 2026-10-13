@@ -21,7 +21,7 @@ export interface RecipeWithDetails extends Recipe {
       carbs_per_100g: number | null;
     } | null;
   }>;
-  steps: Array<{ id: string; position: number; text: string }>;
+  steps: Array<{ id: string; position: number; title: string | null; text: string }>;
 }
 
 export async function listRecipes(
@@ -46,7 +46,7 @@ export async function getRecipe(supabase: SupabaseClient, id: string): Promise<R
       `
       *,
       ingredients:recipe_ingredients(*, ingredients(id, name, category, kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g)),
-      steps:recipe_steps(id, position, text)
+      steps:recipe_steps(id, position, title, text)
     `,
     )
     .eq('id', id)
@@ -56,7 +56,8 @@ export async function getRecipe(supabase: SupabaseClient, id: string): Promise<R
 }
 
 /**
- * Saves recipe, ingredients and steps in one transaction (save_recipe RPC, migration 0006).
+ * Saves recipe, ingredients and steps in one transaction (save_recipe RPC, migration 0006;
+ * source_author and step titles since 0008).
  * The author is always the signed-in user (auth.uid() in the database); RLS decides the household.
  */
 export async function createRecipe(supabase: SupabaseClient, input: unknown, householdId: string): Promise<Recipe> {

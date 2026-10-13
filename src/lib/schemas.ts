@@ -44,16 +44,34 @@ export const RecipeIngredientInputSchema = z.object({
   optional: z.boolean().default(false),
 });
 
+/** Trimmed optional text (<= 200 chars); missing, null or blank becomes null. */
+const BlankToNullSchema = z
+  .string()
+  .trim()
+  .max(200)
+  .transform((v) => (v === '' ? null : v))
+  .nullable()
+  .default(null);
+
 export const RecipeInputSchema = z.object({
   name: z.string().min(1).max(200),
   servings_base: z.number().int().positive(),
   prep_time_min: z.number().int().nonnegative().nullable(),
   source_url: z.string().url().nullable(),
+  source_author: BlankToNullSchema,
   visibility: z.enum(['private', 'household', 'public_link']).default('household'),
   diet_tags: z.array(z.enum(['wegetarianska', 'ketogeniczna', 'bezglutenowa'])).default([]),
   allergens: z.array(z.enum(['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'])).default([]),
   ingredients: z.array(RecipeIngredientInputSchema).min(1),
-  steps: z.array(z.object({ position: z.number().int(), text: z.string().min(1) })).min(1),
+  steps: z
+    .array(
+      z.object({
+        position: z.number().int(),
+        title: BlankToNullSchema,
+        text: z.string().min(1),
+      }),
+    )
+    .min(1),
 });
 
 export const PlanSlotInputSchema = z.object({
