@@ -76,6 +76,18 @@ describe('recipeFieldErrors', () => {
       steps: [{ position: 0, text: '' }],
     });
     if (result.success) throw new Error('expected a failure');
-    expect(recipeFieldErrors(result.error).steps).toBeDefined();
+    expect(recipeFieldErrors(result.error).steps).toBe('Popraw krok nr 1');
+  });
+
+  it('does not say the list is empty when an ingredient is the problem', () => {
+    const result = RecipeInputSchema.safeParse({
+      ...invalid,
+      name: 'Zupa',
+      servings_base: 2,
+      steps: [{ position: 0, text: 'Gotuj' }],
+      ingredients: [{ ingredient_id: 'nie-uuid', amount: 1, unit: 'g', raw_text: '', position: 0, optional: false }],
+    });
+    if (result.success) throw new Error('expected a failure');
+    expect(recipeFieldErrors(result.error).ingredients).toBe('Popraw składnik nr 1');
   });
 });

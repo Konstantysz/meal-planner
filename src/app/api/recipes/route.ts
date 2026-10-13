@@ -36,6 +36,14 @@ export async function POST(req: Request) {
   } catch (e) {
     if (e instanceof ZodError)
       return NextResponse.json({ error: 'nieprawidłowe dane przepisu', fields: recipeFieldErrors(e) }, { status: 400 });
-    return NextResponse.json({ error: String(e) }, { status: 400 });
+    // save_recipe raises 42501 when RLS blocks the insert.
+    const code = (e as { code?: string } | null)?.code;
+    if (code === '42501') return NextResponse.json({ error: 'brak dostępu do przepisu' }, { status: 403 });
+    // Known client errors: bad text/uuid (22P02), unknown ingredient (23503), empty ingredients/steps (22023).
+    if (code === '22P02' || code === '23503' || code === '22023')
+      return NextResponse.json({ error: 'nieprawidłowe dane przepisu' }, { status: 400 });
+    // Anything else is a server fault: log details, never echo them to the client.
+    console.error('save_recipe failed', e);
+    return NextResponse.json({ error: 'nie udało się zapisać przepisu' }, { status: 500 });
   }
 }

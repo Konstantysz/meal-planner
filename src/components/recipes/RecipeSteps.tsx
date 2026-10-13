@@ -41,9 +41,12 @@ export function RecipeSteps({ steps }: { steps: DisplayStep[] }) {
             <details
               open={open[i]}
               onToggle={(e) => setOne(i, e.currentTarget.open)}
-              className="rounded-block border border-line"
+              className="group rounded-block border border-line"
             >
-              <summary className="flex min-h-11 cursor-pointer items-start gap-3 p-3 marker:content-none">
+              <summary className="flex min-h-11 cursor-pointer items-start gap-3 p-3 [&::-webkit-details-marker]:hidden marker:content-none">
+                <span aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-90">
+                  ›
+                </span>
                 <span className="w-6 shrink-0 font-display font-semibold tabular-nums text-muted">{i + 1}.</span>
                 {s.title ? (
                   <span className="font-medium">{s.title}</span>

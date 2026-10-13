@@ -34,15 +34,22 @@ export function RecipeList() {
     const params = new URLSearchParams();
     diet.forEach((d) => params.append('diet', d));
     exclude.forEach((e) => params.append('exclude', e));
+    const ctrl = new AbortController();
     setLoading(true);
     setFailed(false);
-    fetch(`/api/recipes?${params}`)
+    fetch(`/api/recipes?${params}`, { signal: ctrl.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(String(r.status));
-        setRecipes(await r.json());
+        const data: RecipeListItem[] = await r.json();
+        if (!ctrl.signal.aborted) setRecipes(data);
       })
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!ctrl.signal.aborted) setFailed(true);
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setLoading(false);
+      });
+    return () => ctrl.abort();
   }, [diet, exclude]);
 
   return (
@@ -55,18 +62,16 @@ export function RecipeList() {
           <EmptyState
             message={filtered ? 'Brak przepisów dla wybranych filtrów.' : 'Brak przepisów. Dodaj pierwszy.'}
             action={
-              filtered ? undefined : (
-                <ButtonLink variant="primary" href="/recipes/new">
-                  Dodaj przepis
-                </ButtonLink>
-              )
+              <ButtonLink variant="primary" href="/recipes/new">
+                Dodaj przepis
+              </ButtonLink>
             }
           />
         )}
         {!loading && !failed && recipes.length > 0 && visible.length === 0 && (
           <EmptyState message={`Brak przepisów pasujących do „${q}”.`} />
         )}
-        {!loading && visible.length > 0 && (
+        {!loading && !failed && visible.length > 0 && (
           <div className={GRID}>
             {visible.map((r) => (
               <RecipeCard key={r.id} recipe={r} />

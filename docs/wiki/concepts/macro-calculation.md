@@ -45,16 +45,7 @@ All functions are in `src/lib/macros.ts` and are pure:
 | `sumMacros(list)` | Adds the list up and skips `null` entries. An empty or all-null list gives `{0,0,0,0}`. |
 | `perServing(total, servings)` | `null` if `servings <= 0`, otherwise each field divided by `servings` |
 
-The recipe detail page combines them, dividing by the recipe's base servings (`servings_base`):
-
-```ts
-const total = sumMacros(recipe.ingredients.map((ri) => {
-  if (!ri.ingredients || ri.optional) return null;
-  const grams = ri.unit === 'g' || ri.unit === 'ml' ? (ri.amount ?? 0) : 0;
-  return calculateIngredientMacros(ri.ingredients, grams);
-}));
-const per = perServing(total, recipe.servings_base);
-```
+The recipe list and the detail page both call `recipePerServing(ingredients, servings_base)` (`src/lib/day-macros.ts`): it sums the counted ingredients, then divides by the recipe's base servings (`servings_base`). The result is `null` as soon as one counted ingredient is incomplete (see below), so a partial sum never reads as a real value.
 
 The plan's day totals (`computeDayMacros`, `src/lib/day-macros.ts`) apply the same rules per slot: per-serving macros times planned servings, summed per day, flagged incomplete instead of silently low.
 
@@ -65,17 +56,17 @@ Optional ingredients (`ri.optional`) are skipped, so the totals describe the bas
 ## Invariants and gotchas
 
 - **`ml` is treated as `g`.** There's no density conversion.
-- **Non-gram units count as 0, not as "unknown".** „2 łyżki oliwy" adds nothing, and nothing flags the total as partial.
+- **Only `g` and `ml` count; anything else makes the recipe „brak danych makro".** „2 łyżki oliwy", „1 szt jajko" or an ingredient with no amount mark the whole recipe incomplete instead of adding 0.
 - **A macro-less ingredient is skipped; it doesn't zero the total.** An ingredient with only some macros counts the missing fields as 0.
 - **Optional recipe ingredients are skipped.** The detail page returns null for `ri.optional`, so they add nothing to the total, although they are listed on the page with „(opcjonalnie)".
-- A recipe where nothing has macros shows **„0 kcal · B 0.0 …"**, not „brak danych makro", because `sumMacros` returns zeros and `servings_base` is always above 0.
+- A recipe where nothing has macros shows „brak danych makro", not „0 kcal": `recipePerServing` returns `null` when any counted ingredient is incomplete.
 - Review Focus #1 (zero servings) is handled by `perServing` returning null, and the DB check `servings_base > 0` prevents it for stored recipes anyway.
 
 ## Known gaps
 
-- No unit conversion (łyżka, szklanka, szt → grams). Recipes that use those units count as 0, so their totals come out low. The import parser recognises these units (`src/lib/import/parse-ingredient.ts`), but nothing converts them.
-- No "incomplete" flag at the recipe level. The plan's Review Focus #5 marking exists only on the shopping list (see [[shopping-list-aggregation]]).
-- Plan day totals reuse these rules but are all-or-nothing: any ingredient counted as 0 makes the day „brak danych makro" (see [[week-plan#Day macro totals]]).
+- No unit conversion (łyżka, szklanka, szt → grams). Recipes that use those units show „brak danych makro", so many imported recipes have no per-serving macros on the cards. The import parser recognises these units (`src/lib/import/parse-ingredient.ts`), but nothing converts them.
+- Recipes are all-or-nothing: there is no partial total with an "incomplete" flag. The plan's Review Focus #5 marking exists on the shopping list (see [[shopping-list-aggregation]]).
+- Plan day totals reuse these rules: an incomplete recipe makes the day „brak danych makro" (see [[week-plan#Day macro totals]]).
 
 ## Examples
 
@@ -101,6 +92,7 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail use all-or-nothing `recipePerServing` (#39).
 - 2026-10-13: Documented per-day totals in the plan (#44).
 - 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.
 - 2026-10-05: Optional ingredients are excluded from recipe macros.

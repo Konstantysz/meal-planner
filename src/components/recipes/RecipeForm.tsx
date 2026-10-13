@@ -8,6 +8,9 @@ import { IngredientPicker, type PickedIngredient } from './IngredientPicker';
 const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'] as const;
 const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'] as const;
 
+/** Error keys that have a `FieldError` in this form; any other key goes in the form-level alert. */
+const VISIBLE_FIELDS = ['name', 'servings_base', 'prep_time_min', 'source_author', 'ingredients', 'steps'];
+
 /** Polish message under a field; `aria-describedby` points the field at it. */
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -105,7 +108,11 @@ export function RecipeForm({
       const fields = (j as { fields?: RecipeFieldErrors }).fields;
       if (fields) {
         setFieldErrors(fields);
-        setError(fields._form ?? 'Popraw zaznaczone pola');
+        // Keys without a field on this form (source_url, visibility, tags, _form) would otherwise be invisible.
+        const hidden = Object.entries(fields)
+          .filter(([k]) => !VISIBLE_FIELDS.includes(k))
+          .map(([, m]) => m);
+        setError(hidden.length > 0 ? hidden.join('. ') : 'Popraw zaznaczone pola');
       } else setError(typeof j.error === 'string' ? j.error : 'Błąd zapisu');
       return;
     }
@@ -133,6 +140,8 @@ export function RecipeForm({
           min={1}
           value={servings}
           onChange={(e) => setServings(Number(e.target.value))}
+          aria-invalid={!!fieldErrors.servings_base}
+          aria-describedby={fieldErrors.servings_base ? 'err-servings' : undefined}
           className="w-24"
         />
         <span>porcji, czas (min):</span>
@@ -142,6 +151,8 @@ export function RecipeForm({
           min={0}
           value={prepTime ?? ''}
           step={1}
+          aria-invalid={!!fieldErrors.prep_time_min}
+          aria-describedby={fieldErrors.prep_time_min ? 'err-servings' : undefined}
           onChange={(e) => setPrepTime(e.target.value === '' ? null : Math.max(0, Math.round(Number(e.target.value))))}
           className="w-24"
         />
@@ -154,6 +165,7 @@ export function RecipeForm({
           onChange={(e) => setSourceAuthor(e.target.value)}
           placeholder="np. Ania Gotuje"
           maxLength={200}
+          aria-invalid={!!fieldErrors.source_author}
           aria-describedby={fieldErrors.source_author ? 'err-author' : undefined}
         />
         <FieldError id="err-author" message={fieldErrors.source_author} />
