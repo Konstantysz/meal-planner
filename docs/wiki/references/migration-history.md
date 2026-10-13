@@ -81,7 +81,7 @@ Each migration from `0004` on has a script in `supabase/checks/` that creates th
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
-| `0013` | not yet run (PGlite baseline `FAIL 16 (20 checks)`) | pending |
+| `0013` | `FAIL 16 (20 checks)` (2026-10-13; PGlite `FAIL 16 (20 checks)`) | pending |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions (including `is_app_admin`) by `authenticated`, and `app_admins` has RLS with no policies (INFO) so no client can reach it. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -129,6 +129,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Recorded the live 0013 baseline (`FAIL 16 (20 checks)`).
 - 2026-10-13: 0013: three more checks (upsert path, move to another plan, foreign plan fails on RLS); baseline now `FAIL 16 (20 checks)`.
 - 2026-10-13: Added migration 0013 (schema integrity, #72) with its PGlite baseline; live results pending.
 - 2026-10-13: Scoped the "baselined" claims and the uncertainty warning to what was actually run; recorded the hand-applied `0010` migration and rollback during baselining; bumped `verified_commit`.
