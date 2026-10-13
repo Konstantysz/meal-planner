@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { normalizeWeekStart } from '@/lib/week';
+import { isAllowedImageUrl } from '@/lib/image-hosts';
 import { MACRO_LIMITS, validateMacros, type MacroIssue } from '@/lib/macro-validation';
 
 export const RecipeJsonLdSchema = z.object({
@@ -84,12 +85,25 @@ const BlankToNullSchema = z
   .nullable()
   .default(null);
 
+/** Optional photo URL: blank or missing becomes null; otherwise an https URL on an allowed host. */
+const ImageUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .transform((v) => (v === '' ? null : v))
+  .nullable()
+  .default(null)
+  .refine((v) => v === null || isAllowedImageUrl(v), { message: 'image host not allowed' })
+  // new URL lowercases the scheme; the DB check `^https?://` is case-sensitive.
+  .transform((v) => (v === null ? null : new URL(v).href));
+
 export const RecipeInputSchema = z.object({
   name: z.string().min(1).max(200),
   servings_base: z.number().int().positive(),
   prep_time_min: z.number().int().nonnegative().nullable(),
   source_url: z.string().url().nullable(),
   source_author: BlankToNullSchema,
+  image_url: ImageUrlSchema,
   visibility: z.enum(['private', 'household', 'public_link']).default('household'),
   diet_tags: z.array(z.enum(['wegetarianska', 'ketogeniczna', 'bezglutenowa'])).default([]),
   allergens: z.array(z.enum(['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'])).default([]),

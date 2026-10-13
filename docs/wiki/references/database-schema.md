@@ -30,6 +30,8 @@ sources:
     path: supabase/migrations/0005_share_link_rpc.sql
   - title: "Atomic recipe save and signup trigger"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
+  - title: "Recipe photo URL"
+    path: supabase/migrations/0011_recipe_image_url.sql
   - title: "Optional ingredient flag"
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Ingredient ownership and app admins"
@@ -45,7 +47,7 @@ sources:
 # Database Schema
 
 > [!tldr]
-> There are 11 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. The migrations are the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), the optional-ingredient flag (0007), source author plus step title (0008), the `update_recipe` RPC (0009), ingredient ownership with app admins (0010) and ingredient macro range checks (0012). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
+> There are 11 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. 12 migration files exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), the optional-ingredient flag (0007), source author plus step title (0008), the `update_recipe` RPC (0009), ingredient ownership with app admins (0010), the recipe photo URL (0011) and ingredient macro range checks (0012). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
 
 ## Context
 
@@ -59,7 +61,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `household_members` | (`household_id`, `user_id`) | `role` ∈ {`owner`, `member`}. FK to `households` and `auth.users`, both `on delete cascade`. |
 | `ingredients` | `id` uuid | `category` ∈ 11 Polish categories. `kcal/protein/fat/carbs_per_100g` are nullable numerics; since 0012, CHECK constraints keep protein, fat and carbs each in 0–100, their sum at most 101 and kcal in 0–900 (`ingredients_*_range`, `ingredients_macro_sum`). `source` ∈ {`off`, `manual`, `ai_estimate`}. Unique index on `lower(name)`. `created_by` defaults to `auth.uid()` and is `on delete set null` (0010); null means seed or legacy row. |
 | `app_admins` | `user_id` uuid | FK to `auth.users` `on delete cascade`, `created_at`. RLS on with no policies, and `anon`/`authenticated` have no table privileges: rows are added from the SQL editor only (0010). |
-| `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, nullable `source_author` (free text: who wrote the recipe; `author_id` is who saved it), `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
+| `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, nullable `source_author` (free text: who wrote the recipe; `author_id` is who saved it), nullable `image_url` (hotlinked photo, `http(s)://` only, at most 2048 chars, 0011; the app accepts only hosts in `src/lib/image-hosts.ts`), `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
 | `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` and `unit`, `raw_text`, `position`, `optional` (boolean, default false; excluded from recipe macros) |
 | `recipe_steps` | `id` uuid | `recipe_id` (cascade), `position`, nullable `title` (short heading), `text` |
 | `plans` | `id` uuid | `household_id` (cascade), `week_start_date date`, `unique (household_id, week_start_date)`, check `plans_week_start_monday` (ISO weekday 1, since 0005) |
@@ -79,7 +81,8 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `is_app_admin()` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `app_admins`. Used by `ing_update`. `authenticated` only. Added in 0010. |
 | `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. Kept for compatibility: the app no longer calls it. `authenticated` only. |
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
-| `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008. |
+| `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008, and `image_url` (missing or blank = null) since 0011. |
+| `update_recipe(p_recipe_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Replaces a recipe's fields, ingredients and steps in one transaction (added in 0009); raises `42501` when the recipe is not found or not editable under RLS. Stores `image_url` (missing or blank = null, so an omitted value clears the photo) since 0011. `authenticated` only. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
@@ -129,6 +132,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | `0007_recipe_ingredient_optional.sql` | `recipe_ingredients.optional`; `save_recipe` stores it. Rollback: `supabase/rollbacks/0007_recipe_ingredient_optional.down.sql`. Check: `supabase/checks/0007_recipe_ingredient_optional.verify.sql`. |
 | `0008_recipe_source_author_step_title.sql` | `recipes.source_author`, `recipe_steps.title`; `save_recipe` stores them. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`. Check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0010_ingredient_ownership.sql` | `app_admins`, `is_app_admin`, `ingredients.created_by` default and `on delete set null`, `ing_insert` / `ing_update` limited to the creator or an app admin. Rollback: `supabase/rollbacks/0010_ingredient_ownership.down.sql`. Check: `supabase/checks/0010_ingredient_ownership.verify.sql`. |
+| `0011_recipe_image_url.sql` | `recipes.image_url` plus its check; `save_recipe` and `update_recipe` store it. Rollback: `supabase/rollbacks/0011_recipe_image_url.down.sql`. Check: `supabase/checks/0011_recipe_image_url.verify.sql`. |
 | `0012_ingredient_macro_checks.sql` | Corrects two live Open Food Facts rows, then adds the macro range checks on `ingredients`. Rollback: `supabase/rollbacks/0012_ingredient_macro_checks.down.sql`. Check: `supabase/checks/0012_ingredient_macro_checks.verify.sql`. |
 
 ## Seed
@@ -155,13 +159,14 @@ from plans p;
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`, `0008_recipe_source_author_step_title.sql`, `0010_ingredient_ownership.sql`, `0012_ingredient_macro_checks.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`, `0008_recipe_source_author_step_title.sql`, `0009_update_recipe_rpc.sql`, `0010_ingredient_ownership.sql`, `0011_recipe_image_url.sql`, `0012_ingredient_macro_checks.sql`
 - `supabase/seed.sql`, `supabase/config.toml`
 - Supabase security and performance advisors, run 2026-10-04
 
 ## Changelog
 
 - 2026-10-13: Documented migration 0012 (ingredient macro range checks).
+- 2026-10-13: Documented migration 0011 (`recipes.image_url`).
 - 2026-10-13: Documented migration 0010 (`app_admins`, `is_app_admin`, ingredient ownership policies).
 - 2026-10-13: Documented migration 0008 (`recipes.source_author`, `recipe_steps.title`).
 - 2026-10-09: Terminology aligned with GLOSSARY.md.

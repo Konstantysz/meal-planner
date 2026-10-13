@@ -2,7 +2,7 @@
 title: "Recipe Management"
 summary: "Recipe create (atomic save_recipe RPC), edit (atomic update_recipe RPC), list with diet/allergen filters, detail and delete."
 tags: [recipes, ui]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -11,7 +11,7 @@ review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
-human_reviewed: true
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Recipe data access"
@@ -22,6 +22,12 @@ sources:
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "update_recipe RPC"
     path: supabase/migrations/0009_update_recipe_rpc.sql
+  - title: "Recipe photo URL"
+    path: supabase/migrations/0011_recipe_image_url.sql
+  - title: "Photo layer"
+    path: src/components/recipes/RecipePhoto.tsx
+  - title: "Allowed image hosts"
+    path: src/lib/image-hosts.ts
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -67,7 +73,9 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 
 `updateRecipe(supabase, id, input)` validates the same `RecipeInputSchema`, then calls `rpc('update_recipe', { p_recipe_id, p_recipe })` (migration 0009). In one transaction it updates the recipe's columns (`author_id`, `household_id` and `created_at` never change), deletes all of its ingredient and step rows and inserts the submitted ones, so adding, removing and reordering need no diffing (row ids are not stable across an edit; nothing references them). It is `security invoker` like `save_recipe`, so `rec_update`, `ri_all` and `rs_all` decide. An `UPDATE` that RLS filters affects 0 rows and raises nothing, so the function raises `42501` when no row was updated; the route turns that into **403** (400 for an invalid body or a known client database error with a fixed message, 401 when signed out, 500 with a generic message for anything else, logged server-side). Any member of the household may edit its recipes (`rec_update`), not only the author.
 
-The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title; the step list is the `StepsEditor` component, shared with the import review form, see [[import-pipeline]]). Positions are renumbered from list order on submit; steps with blank text are dropped. `source_url` and `visibility` are carried through unchanged (no field edits them).
+The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title). Positions are renumbered from list order on submit; steps with blank text are dropped. It also edits the photo URL („Zdjęcie (adres URL)"); a blank value clears it. `source_url` and `visibility` are carried through unchanged (no field edits them).
+
+Photo: `recipes.image_url` (0011) is a hotlinked https URL on a host from `IMAGE_HOSTS` in `src/lib/image-hosts.ts`; `RecipeInputSchema` rejects other hosts and `next.config.ts` allows the same hosts for `next/image`. The detail page shows it in a 16:9 band above the title with a „Zdjęcie: <host>" credit (host of the photo URL), and the band (`RecipePhotoBand`) renders nothing when the URL fails to load. `update_recipe` sets `image_url` to null when the payload omits it, so editing clients send the stored value. Reasoning: [[0014-recipe-photos-hotlinked]]. The list cards do not show the photo yet; `RecipePhoto` is the layer for the redesigned cover ([[design-brief]]).
 
 Filtering:
 
@@ -111,6 +119,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - [[macro-calculation]]
 - [[ingredient-database]]
 - [[import-pipeline]]
+- [[0014-recipe-photos-hotlinked]]
 - [[api-routes]]
 
 ## Sources
@@ -121,6 +130,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
 - 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
