@@ -45,7 +45,7 @@ One ordered instruction of a recipe: an optional title and its details. A source
 _Avoid_: instruction, direction, krok (UI label only)
 
 **Fork**:
-A member's own copy of a recipe another member saved, made when they edit it, with its recipe ingredients and steps. Only the member who saved a recipe, or an app admin, changes or deletes it in place; anyone else edits a fork. The fork remembers the recipe it came from; the original and the slots planned with it stay unchanged. UI: „Kopia innego przepisu".
+A member's own copy of a recipe another member saved, made when they edit it, with its recipe ingredients and steps. Only the member who saved a recipe, or an app admin, changes or deletes it in place; anyone else edits a fork. The fork remembers the recipe it came from; the original and the slots planned with it stay unchanged. A member has at most one fork of a recipe; editing it again reopens it. UI: the name ends in „(kopia)".
 _Avoid_: clone, duplicate, variant, version
 
 **Source author**:

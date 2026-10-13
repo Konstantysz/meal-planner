@@ -19,9 +19,13 @@ const rpc = vi.fn(async (fn: string, args: RpcArgs) => {
   const rec = db.get(args.p_recipe_id);
   if (fn === 'fork_recipe') {
     if (!rec) return { data: null, error: { code: 'P0002', message: 'recipe not found' } };
+    // Like fork_recipe: the caller's existing fork of this source is returned, not duplicated.
+    const existing = [...db.values()].find((r) => r.forked_from_id === rec.id && r.author_id === ME);
+    if (existing) return { data: existing.id, error: null };
     db.set(FORK, {
       ...structuredClone(rec),
       id: FORK,
+      name: `${rec.name} (kopia)`,
       author_id: ME,
       forked_from_id: rec.id,
       ingredients: rec.ingredients.map((i, n) => ({ ...i, id: `fri${n}` })),
@@ -133,7 +137,7 @@ describe('editing another member’s recipe', () => {
     // The fork's edit page renders the form for the fork, which the member authors.
     const fork = db.get(FORK)!;
     expect(canEditRecipe(fork, ME, false)).toBe(true);
-    expect(recipeToFormValues(fork)).toEqual(before);
+    expect(recipeToFormValues(fork)).toEqual({ ...before, name: 'Zupa (kopia)' });
     render(<RecipeForm initialValues={recipeToFormValues(fork)} recipeId={FORK} />);
     const name = screen.getByLabelText('Nazwa przepisu');
     await userEvent.clear(name);
@@ -149,6 +153,13 @@ describe('editing another member’s recipe', () => {
     expect(recipeToFormValues(saved).steps[1]).toEqual({ title: 'Gotowanie', text: 'Gotuj.' });
     expect(recipeToFormValues(db.get('r1')!)).toEqual(before);
     expect(db.get('r1')!.author_id).toBe('u1');
+
+    // A second "Edytuj" on the original opens the same fork instead of making another one.
+    router.push.mockClear();
+    render(<RecipeActions recipeId="r1" canEdit={false} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/recipes/${FORK}/edit`));
+    expect(db.size).toBe(2);
   });
 
   it('refuses a direct edit of the original with an error and changes nothing', async () => {

@@ -85,6 +85,8 @@ export async function updateRecipe(supabase: SupabaseClient, id: string, input: 
  * Copies a readable recipe with its ingredients and steps as the signed-in user's own recipe
  * (fork_recipe RPC, migration 0014) and returns the fork's id. The fork records the source in
  * `forked_from_id`; the source is never changed. A recipe the caller cannot read raises P0002.
+ * The caller's existing fork of the same source is returned instead of a duplicate; a new fork's
+ * name ends in " (kopia)". A source whose ingredients or steps the caller cannot read raises 22023.
  */
 export async function forkRecipe(supabase: SupabaseClient, id: string): Promise<string> {
   const { data, error } = await supabase.rpc('fork_recipe', { p_recipe_id: id });
@@ -101,4 +103,15 @@ export async function deleteRecipe(supabase: SupabaseClient, id: string): Promis
   const { data, error } = await supabase.from('recipes').delete().eq('id', id).select('id');
   if (error) throw error;
   return (data ?? []).length > 0;
+}
+
+/**
+ * The name of a recipe the caller can read, or null when it is missing, hidden by RLS or the
+ * lookup fails. Used to link a fork to its original only when that link would open.
+ */
+export async function getRecipeName(supabase: SupabaseClient, id: string): Promise<string | null> {
+  const { data, error } = await supabase.from('recipes').select('name').eq('id', id).maybeSingle();
+  if (error || !data) return null;
+  const parsed = z.object({ name: z.string() }).safeParse(data);
+  return parsed.success ? parsed.data.name : null;
 }

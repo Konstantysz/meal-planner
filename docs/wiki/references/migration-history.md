@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5e8ed97
+verified_commit: 1c21fbf
 sources:
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
@@ -63,7 +63,7 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0008` | Konstantysz/meal-planner#33 | `recipes.source_author` and `recipe_steps.title` (both nullable text); `save_recipe` reads `source_author` and per-step `title` (missing or blank = null) | Records who wrote a recipe (`author_id` is only who saved it) and an optional heading per step. No data migration, nothing populates the fields yet. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`; check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0009` | Konstantysz/meal-planner#42 | `update_recipe(p_recipe_id, p_recipe)` RPC (`security invoker`): updates the recipe's columns and replaces its ingredients and steps in one transaction; raises `42501` when RLS leaves 0 rows to update | Recipes could not be edited after saving. An RLS-filtered `UPDATE` returns no error, so the function checks the row count to fail loudly. Needs 0008. Rollback: `supabase/rollbacks/0009_update_recipe_rpc.down.sql` (drops the function only); check: `supabase/checks/0009_update_recipe_rpc.verify.sql`. |
 | `0010` | Konstantysz/meal-planner#70 | `app_admins` + `is_app_admin()`; `ingredients.created_by` defaults to `auth.uid()`, `on delete set null`; `ing_insert` requires the caller as creator; `ing_update` needs the creator or an app admin | Any signed-in user could change any ingredient's macros for every household, and no row recorded its creator (all 119 live rows null on 2026-10-13). Must deploy after `0008` and `0009`. See [[0013-ingredient-ownership-and-app-admins]]. |
-| `0014` | pending (issue Konstantysz/meal-planner#75) | `recipes.forked_from_id` (on delete set null) + index; `fork_recipe(p_recipe_id)` RPC (`security invoker`) copies a readable recipe with its recipe ingredients and steps as the caller's recipe; `rec_update` / `rec_delete` need the author or an app admin; `ri_all` / `rs_all` split into household reads and author-or-admin writes | Any member could edit another member's recipe, and its ingredients and steps directly. Others now edit a fork. After `0014`, check 3 of the `0009` script (a member who is not the author can edit) fails by design. Needs `0010` (`is_app_admin`). Does not copy `recipes.image_url` from PR #92: whichever merges second adds it to `fork_recipe`. See [[0015-recipe-forks]]. |
+| `0014` | pending (issue Konstantysz/meal-planner#75) | `recipes.forked_from_id` (on delete set null) + index; `fork_recipe(p_recipe_id)` RPC (`security invoker`) copies a readable recipe with its recipe ingredients and steps as the caller's recipe (name „… (kopia)"; returns the caller's existing fork of the same source instead of a duplicate; `22023` when no ingredients or steps are readable); `rec_update` / `rec_delete` need the author or an app admin; `ri_all` / `rs_all` split into household reads and author-or-admin writes | Any member could edit another member's recipe, and its ingredients and steps directly. Others now edit a fork. After `0014`, check 3 of the `0009` script (a member who is not the author can edit) fails by design. Needs `0010` (`is_app_admin`). `fork_recipe` copies the `recipes` columns as of migration 0010. Open PRs add more: #92 (`recipes.image_url`, 0011) and the 0013 PR (`recipes.updated_at`, nullable `author_id`); whichever of them merges after 0014 must extend `fork_recipe` in a new migration. See [[0015-recipe-forks]]. |
 
 ## Verification
 
@@ -81,7 +81,7 @@ Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwawa
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
-| `0014` | not yet run (PGlite baseline `FAIL 11 (16 checks)`) | pending |
+| `0014` | not yet run (PGlite baseline `FAIL 16 (21 checks)`) | pending |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions (including `is_app_admin`) by `authenticated`, and `app_admins` has RLS with no policies (INFO) so no client can reach it. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 

@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1c21fbf
 sources:
   - title: "Unit tests"
     path: tests/unit
@@ -49,7 +49,7 @@ sources:
 | `src/lib/db/plans.ts` | `tests/unit/db/plans.test.ts` (`updateSlot` only) |
 | `src/app/api/plans/[id]/slots/[slotId]/route.ts` | `tests/unit/plan-slot-route.test.ts` (`PATCH`) |
 | `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
-| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`, `forkRecipe`, `deleteRecipe`; `getRecipe` and `listRecipes` not covered) |
+| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`, `forkRecipe`, `deleteRecipe`, `getRecipeName`; `getRecipe` and `listRecipes` not covered) |
 | `src/lib/db/app-admins.ts` | `tests/unit/db/app-admins.test.ts` (`isAppAdmin`) |
 | `src/lib/recipe-access.ts` | `tests/unit/recipe-access.test.ts` (`canEditRecipe`) |
 | `src/app/api/recipes/[id]/fork/route.ts`, `src/app/api/recipes/[id]/route.ts` | `tests/unit/recipe-fork-route.test.ts` (`POST` fork, `DELETE`), `tests/unit/recipe-update-route.test.ts` (`PUT`) |

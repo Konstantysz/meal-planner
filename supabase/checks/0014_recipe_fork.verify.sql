@@ -3,8 +3,10 @@
 -- each check as authenticated/anon, then ALWAYS aborts with an exception: nothing persists.
 -- Read the result in the error message:
 --   "VERIFY 0014: ALL PASS (n checks)"  or  "VERIFY 0014: FAIL ..." with the list.
--- Before 0014 is applied, expected baseline: FAIL 11 (16 checks). Checks 3 (rec_delete was already
--- author-only), 6, 10, 11 and 13 (legit paths) pass before; every other check fails.
+-- Before 0014 is applied, expected baseline: FAIL 16 (21 checks). Checks 3 (rec_delete was already
+-- author-only), 6, 10, 11 and 13 (legit paths) pass before; every other check fails. Checks that
+-- need the fork (16-21) are forced to FAIL while fork_recipe is missing, so none passes for the
+-- wrong reason (an update of a fork that does not exist would touch 0 rows).
 -- Needs migration 0010 (app_admins, is_app_admin) and at least one row in ingredients (the seed
 -- provides 40).
 --
@@ -22,6 +24,8 @@ declare
   ing uuid;
   rid uuid := gen_random_uuid();  -- the original recipe
   fid uuid;                       -- the member's fork
+  fid2 uuid;
+  nm text;
   pid uuid := gen_random_uuid();
   sid uuid := gen_random_uuid();
   orig jsonb;
@@ -185,7 +189,9 @@ begin
     execute 'select fork_recipe($1)' into fid using rid;
     perform set_config('role', 'postgres', true);
     fork := to_jsonb((select r from recipes r where r.id = fid));
-    ok := (fork - 'id' - 'household_id' - 'author_id' - 'created_at' - 'forked_from_id') = orig
+    ok := (fork - 'id' - 'household_id' - 'author_id' - 'created_at' - 'forked_from_id' - 'name')
+        = (orig - 'name')
+      and fork ->> 'name' = (orig ->> 'name') || ' (kopia)'
       and (fork ->> 'author_id')::uuid = m
       and (fork ->> 'household_id')::uuid = ha
       and (fork ->> 'forked_from_id')::uuid = rid;
@@ -210,7 +216,7 @@ begin
   exception when others then ok := false;
   end;
   perform set_config('role', 'authenticated', true);
-  results := results || format('%s 7 member fork copies recipe, ingredients and steps', case when has_fn and coalesce(ok, false) then 'PASS' else 'FAIL' end);
+  results := results || format('%s 7 member fork copies recipe (name + " (kopia)"), ingredients and steps', case when has_fn and coalesce(ok, false) then 'PASS' else 'FAIL' end);
 
   -- 8. The member edits their fork; the original, its children and its plan slot are unchanged
   begin
@@ -310,9 +316,97 @@ begin
     and not has_function_privilege('anon', 'public.fork_recipe(uuid)', 'execute');
   results := results || format('%s 15 fork_recipe grants (authenticated only)', case when ok then 'PASS' else 'FAIL' end);
 
-  perform set_config('role', 'postgres', true);
+  -- 16. Forking the same recipe again returns the member's existing fork (no duplicate)
+  perform set_config('request.jwt.claims', json_build_object('sub', m, 'role', 'authenticated')::text, true);
+  begin
+    execute 'select fork_recipe($1)' into fid2 using rid;
+    perform set_config('role', 'postgres', true);
+    execute 'select count(*) from recipes where forked_from_id = $1 and author_id = $2' into n using rid, m;
+    ok := fid2 = fid and n = 1;
+  exception when others then ok := false;
+  end;
+  perform set_config('role', 'authenticated', true);
+  results := results || format('%s 16 repeated fork returns the existing fork', case when has_fn and coalesce(ok, false) then 'PASS' else 'FAIL' end);
 
-  -- 16. Deleting the original keeps the fork; its forked_from_id becomes null
+  -- 17. The member moves an ingredient row from their fork into the author's recipe
+  --     (only ri_update's with check stops this: the row starts in a recipe the member authors)
+  if has_fn and fid is not null then
+    begin
+      update recipe_ingredients set recipe_id = rid where recipe_id = fid;
+      get diagnostics n = row_count;
+      if n > 0 then
+        raise exception using errcode = 'VRFY1';
+      end if;
+      ok := true;
+    exception
+      when sqlstate 'VRFY1' then ok := false;
+      when others then ok := true;
+    end;
+  else
+    ok := false;
+  end if;
+  results := results || format('%s 17 member cannot move a fork ingredient into the author''s recipe', case when ok then 'PASS' else 'FAIL' end);
+
+  -- 18. The same for a step (rs_update's with check)
+  if has_fn and fid is not null then
+    begin
+      update recipe_steps set recipe_id = rid where recipe_id = fid;
+      get diagnostics n = row_count;
+      if n > 0 then
+        raise exception using errcode = 'VRFY1';
+      end if;
+      ok := true;
+    exception
+      when sqlstate 'VRFY1' then ok := false;
+      when others then ok := true;
+    end;
+  else
+    ok := false;
+  end if;
+  results := results || format('%s 18 member cannot move a fork step into the author''s recipe', case when ok then 'PASS' else 'FAIL' end);
+
+  -- 19. An outsider can read a public_link recipe but not its ingredients and steps: the fork
+  --     raises 22023 instead of saving an empty recipe, and leaves nothing behind
+  perform set_config('role', 'postgres', true);
+  update recipes set visibility = 'public_link' where id = rid;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', o, 'role', 'authenticated')::text, true);
+  if has_fn then
+    begin
+      execute 'select fork_recipe($1)' into fid2 using rid;
+      raise exception using errcode = 'VRFY1';
+    exception
+      when sqlstate 'VRFY1' then ok := false;
+      when others then ok := sqlstate = '22023';
+    end;
+    perform set_config('role', 'postgres', true);
+    execute 'select count(*) from recipes where forked_from_id = $1 and author_id = $2' into n using rid, o;
+    ok := ok and n = 0;
+  else
+    ok := false;
+  end if;
+  perform set_config('role', 'postgres', true);
+  update recipes set visibility = 'household' where id = rid;
+  results := results || format('%s 19 fork without readable ingredients or steps raises 22023', case when ok then 'PASS' else 'FAIL' end);
+
+  -- 20. A long name keeps the suffix within 200 characters; a fork of a fork is not suffixed twice
+  update recipes set name = repeat('x', 200) where id = rid;
+  update recipes set name = 'verify fork edit (kopia)' where id = fid;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  begin
+    execute 'select fork_recipe($1)' into fid2 using rid;
+    select name into nm from recipes where id = fid2;
+    ok := length(nm) = 200 and nm like '% (kopia)';
+    execute 'select fork_recipe($1)' into fid2 using fid;
+    select name into nm from recipes where id = fid2;
+    ok := ok and nm = 'verify fork edit (kopia)';
+  exception when others then ok := false;
+  end;
+  perform set_config('role', 'postgres', true);
+  results := results || format('%s 20 fork name suffix fits 200 characters and is added once', case when has_fn and coalesce(ok, false) then 'PASS' else 'FAIL' end);
+
+  -- 21. Deleting the original keeps the fork; its forked_from_id becomes null
   begin
     delete from recipes where id = rid;
     fork := to_jsonb((select r from recipes r where r.id = fid));
@@ -321,7 +415,7 @@ begin
     ok := ok and n = 1;
   exception when others then ok := false;
   end;
-  results := results || format('%s 16 deleting the original keeps the fork, link set null', case when has_fn and coalesce(ok, false) then 'PASS' else 'FAIL' end);
+  results := results || format('%s 21 deleting the original keeps the fork, link set null', case when has_fn and coalesce(ok, false) then 'PASS' else 'FAIL' end);
 
   select count(*) into fails from unnest(results) t where t like 'FAIL%';
   raise exception 'VERIFY 0014: % (% checks)%',

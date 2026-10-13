@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 68dcc28
+verified_commit: 1c21fbf
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
@@ -81,7 +81,7 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 - Author or app admin: `RecipeActions` shows the „Edytuj" link to `/recipes/[id]/edit` and „Usuń".
 - Anyone else: `RecipeActions` shows „Edytuj" as `ForkEditButton` and no „Usuń". The click calls `POST /api/recipes/[id]/fork`, then opens `/recipes/<fork>/edit`. Opening `/recipes/[id]/edit` directly shows „Utwórz kopię i edytuj" instead of the form: forking is a write, so it waits for a click rather than running on page load.
 
-`forkRecipe(supabase, id)` calls `rpc('fork_recipe', { p_recipe_id })` (migration 0014) and returns the new id. In one transaction the function copies the recipe's columns (name, servings, prep time, source URL, source author, visibility, diets, allergens), its recipe ingredients (with `optional`) and its steps (with titles) into a new recipe authored by the caller, with `forked_from_id` pointing at the source. The fork goes into the source's household when the caller is a member (the normal case), otherwise into the caller's own household. It is `security invoker`: the reads and inserts are ones RLS already allows. A recipe the caller cannot read raises `P0002` (404); 401 when signed out, 500 with a generic message otherwise. The original is never changed, and plan slots keep pointing at the recipe they were planned with. The detail page of a fork shows „Kopia innego przepisu." with a link to the original (while it exists; deleting it sets `forked_from_id` to null).
+`forkRecipe(supabase, id)` calls `rpc('fork_recipe', { p_recipe_id })` (migration 0014) and returns the new id. In one transaction the function copies the recipe's columns (name, servings, prep time, source URL, source author, visibility, diets, allergens), its recipe ingredients (with `optional`) and its steps (with titles) into a new recipe authored by the caller, named „… (kopia)" (the suffix is added once and fits the 200-character limit), with `forked_from_id` pointing at the source. It copies the `recipes` columns as of migration 0010. Open PRs add more: #92 (`recipes.image_url`, 0011) and the 0013 PR (`recipes.updated_at`, nullable `author_id`); whichever of them merges after 0014 must extend `fork_recipe` in a new migration. When the caller already has a fork of the source in that household, the function returns the most recent one instead, so a repeated „Edytuj" opens the same fork. The fork goes into the source's household when the caller is a member (the normal case), otherwise into the caller's own household. It is `security invoker`: the reads and inserts are ones RLS already allows. A recipe the caller cannot read raises `P0002` (404). One that is readable while its ingredients or steps are not (`public_link` from outside the household) raises `22023` (400) rather than producing an empty fork. 401 when signed out, 403 for `42501`, 500 with a generic message otherwise. The original is never changed, and plan slots keep pointing at the recipe they were planned with. The detail page of a fork shows „Kopia przepisu „<name>"" linking to the original, only when `getRecipeName` can read it (deleting the original sets `forked_from_id` to null; an unreadable one shows nothing).
 
 `deleteRecipe(supabase, id)` deletes with `.select('id')` and reports whether a row went. `rec_delete` hides recipes the caller may not delete, so 0 rows means refused (or unknown id) and the route answers **403** instead of 204.
 
@@ -145,6 +145,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: A repeated fork reuses the caller's fork; forks are named „… (kopia)"; `22023` for an empty copy; the original link shows only when readable.
 - 2026-10-13: Recipe forks (migration 0014, issue #75): only the author or an app admin edits or deletes in place; others fork via `POST /api/recipes/[id]/fork`. A refused delete now answers 403; removed the silent-delete gap. Live results pending.
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.

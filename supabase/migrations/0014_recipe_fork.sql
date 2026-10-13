@@ -14,8 +14,9 @@
 -- Plan slots keep pointing at the recipe they were planned with: nothing rewrites them.
 -- Requires app code that forks before editing someone else's recipe (same PR); old app code
 -- gets a 403 on such an edit instead of saving it.
--- Follow-up: recipes.image_url (open PR #92) is not copied by fork_recipe. Whichever of the two
--- PRs merges second must add it to the fork's insert column list.
+-- Columns: fork_recipe copies the recipes columns as of 0010. Open PRs add more: #92
+-- (recipes.image_url, 0011) and the 0013 PR (recipes.updated_at, nullable author_id). Whichever of
+-- those merges after this one must extend fork_recipe in a NEW migration (never edit this file).
 -- Rollback: supabase/rollbacks/0014_recipe_fork.down.sql
 
 -- ---------------------------------------------------------------------------
@@ -116,8 +117,13 @@ create policy rs_delete on public.recipe_steps for delete to authenticated
 -- recipe the caller authors, which ri_insert / rs_insert require. No definer rights are needed.
 -- Household of the fork: the source recipe's household when the caller is a member (the normal
 -- case: another member's recipe), otherwise the caller's own household (owner role first).
--- Copies every recipe column that exists after 0010 except id, household_id, author_id and
--- created_at; forked_from_id points at the source (a fork of a fork points at its direct source).
+-- Idempotent per caller: when the caller already has a fork of this source in that household, the
+-- most recent one is returned instead of creating another (repeated "Edytuj" makes no duplicates).
+-- A new fork copies the recipes columns as of 0010 except id, household_id, author_id and
+-- created_at; its name gets the suffix " (kopia)" (once, kept within the app's 200-character
+-- limit). forked_from_id points at the source (a fork of a fork points at its direct source).
+-- A recipe readable without its ingredients or steps (public_link from outside the household:
+-- ri_select / rs_select hide them) would copy into an empty recipe, so that raises 22023.
 create or replace function public.fork_recipe(p_recipe_id uuid)
 returns uuid
 language plpgsql
@@ -128,6 +134,7 @@ declare
   src public.recipes;
   target_household uuid;
   new_id uuid;
+  n int;
 begin
   if (select auth.uid()) is null then
     raise exception 'not authenticated' using errcode = '42501';
@@ -151,12 +158,25 @@ begin
     end if;
   end if;
 
+  select id into new_id
+  from recipes
+  where forked_from_id = src.id
+    and author_id = (select auth.uid())
+    and household_id = target_household
+  order by created_at desc, id
+  limit 1;
+  if new_id is not null then
+    return new_id;
+  end if;
+
   insert into recipes (
     household_id, author_id, name, servings_base, prep_time_min, source_url,
     visibility, diet_tags, allergens, source_author, forked_from_id
   )
   values (
-    target_household, (select auth.uid()), src.name, src.servings_base, src.prep_time_min,
+    target_household, (select auth.uid()),
+    case when src.name like '% (kopia)' then src.name else left(src.name, 192) || ' (kopia)' end,
+    src.servings_base, src.prep_time_min,
     src.source_url, src.visibility, src.diet_tags, src.allergens, src.source_author, src.id
   )
   returning id into new_id;
@@ -165,11 +185,19 @@ begin
   select new_id, ri.ingredient_id, ri.amount, ri.unit, ri.raw_text, ri.position, ri.optional
   from recipe_ingredients ri
   where ri.recipe_id = src.id;
+  get diagnostics n = row_count;
+  if n = 0 then
+    raise exception 'recipe has no readable ingredients' using errcode = '22023';
+  end if;
 
   insert into recipe_steps (recipe_id, position, text, title)
   select new_id, rs.position, rs.text, rs.title
   from recipe_steps rs
   where rs.recipe_id = src.id;
+  get diagnostics n = row_count;
+  if n = 0 then
+    raise exception 'recipe has no readable steps' using errcode = '22023';
+  end if;
 
   return new_id;
 end;

@@ -48,6 +48,20 @@ describe('POST /api/recipes/[id]/fork', () => {
     expect((await fork()).status).toBe(400);
   });
 
+  it('returns 403 when the database refuses the fork (42501)', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'no household' } });
+    const res = await fork();
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('brak dostępu do przepisu');
+  });
+
+  it('returns 400 when the recipe has no readable ingredients or steps (22023)', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: '22023', message: 'recipe has no readable steps' } });
+    const res = await fork();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('nie można skopiować składników lub kroków przepisu');
+  });
+
   it('returns 500 with a generic message and logs for unknown database errors', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     rpc.mockResolvedValue({ data: null, error: { code: 'XX000', message: 'relation "secret" exploded' } });

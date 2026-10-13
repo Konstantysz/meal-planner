@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createRecipe, deleteRecipe, forkRecipe, updateRecipe } from '@/lib/db/recipes';
+import { createRecipe, deleteRecipe, forkRecipe, getRecipeName, updateRecipe } from '@/lib/db/recipes';
 
 const input = {
   name: 'Spaghetti',
@@ -170,5 +170,31 @@ describe('deleteRecipe', () => {
     const error = { code: '22P02', message: 'invalid input syntax for type uuid' };
     const { client } = mockDelete({ data: null, error });
     await expect(deleteRecipe(client, 'nope')).rejects.toBe(error);
+  });
+});
+
+describe('getRecipeName', () => {
+  function mockSelect(result: { data: unknown; error: unknown }) {
+    const maybeSingle = vi.fn().mockResolvedValue(result);
+    const eq = vi.fn(() => ({ maybeSingle }));
+    const select = vi.fn(() => ({ eq }));
+    const from = vi.fn(() => ({ select }));
+    return { client: { from } as unknown as SupabaseClient, from, eq };
+  }
+
+  it('returns the name of a readable recipe', async () => {
+    const { client, from, eq } = mockSelect({ data: { name: 'Zupa' }, error: null });
+    await expect(getRecipeName(client, 'r1')).resolves.toBe('Zupa');
+    expect(from).toHaveBeenCalledWith('recipes');
+    expect(eq).toHaveBeenCalledWith('id', 'r1');
+  });
+
+  it('returns null for a missing or RLS-hidden recipe', async () => {
+    await expect(getRecipeName(mockSelect({ data: null, error: null }).client, 'r1')).resolves.toBeNull();
+  });
+
+  it('returns null on a database error', async () => {
+    const { client } = mockSelect({ data: null, error: { code: '22P02' } });
+    await expect(getRecipeName(client, 'nope')).resolves.toBeNull();
   });
 });

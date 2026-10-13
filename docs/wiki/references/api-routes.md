@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1c21fbf
 sources:
   - title: "Route handlers"
     path: src/app/api
@@ -53,7 +53,7 @@ This is the lookup table for `src/app/api/**/route.ts` and `src/app/auth/callbac
 | GET | `/api/recipes/[id]` | none | Any error, including a recipe the caller cannot read, is returned as 404 | `getRecipe` | 200 with ingredients and steps |
 | PUT | `/api/recipes/[id]` | `RecipeInput` body, validated by `RecipeInputSchema` in `updateRecipe` | 401 without a session. Replaces the recipe through the `update_recipe` RPC. Not the author or an app admin, or no such recipe (`42501`) → 403; invalid body or known client database error → 400; anything else → 500 with a generic message. | `updateRecipe` | 200 `Recipe` |
 | DELETE | `/api/recipes/[id]` | none | 401 without a session. `rec_delete` lets only the author or an app admin delete (0014); `deleteRecipe` asks for the deleted rows back, so 0 rows (refused or unknown id) → **403**. Malformed id → 400; other error → 500 with a generic message. | `deleteRecipe` | 204 |
-| POST | `/api/recipes/[id]/fork` | none | 401 without a session. Copies the recipe, its ingredients and steps as the caller's recipe through the `fork_recipe` RPC (0014). Unreadable or unknown recipe (`P0002`) → 404; malformed id → 400; other error → 500 with a generic message. | `forkRecipe` | 201 `{ id }` |
+| POST | `/api/recipes/[id]/fork` | none | 401 without a session. Copies the recipe, its ingredients and steps as the caller's recipe through the `fork_recipe` RPC (0014), or returns the caller's existing fork of it. Unreadable or unknown recipe (`P0002`) → 404; malformed id, or no readable ingredients or steps (`22023`) → 400; refused (`42501`) → 403; other error → 500 with a generic message. | `forkRecipe` | 201 `{ id }` |
 | GET | `/api/ingredients` | none | Error → 500 | `listIngredients` | 200 `Ingredient[]` |
 | POST | `/api/ingredients` | `IngredientInput` body, validated by `IngredientInputSchema` in `createIngredient` | Any error, validation or RLS, is a generic 400 | `createIngredient` | 201 `Ingredient` |
 | GET | `/api/ingredients/lookup` | `?q=` (required) | No database access. Open Food Facts search. Missing `q` → 400. A non-OK upstream response or an unparseable body gives an empty list. A network throw → 500 `Lookup failed`. Results are not saved. | `searchOff` | 200 `IngredientInput[]` |

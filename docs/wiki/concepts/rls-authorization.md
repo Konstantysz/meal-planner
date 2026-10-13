@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 68dcc28
+verified_commit: 1c21fbf
 sources:
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql

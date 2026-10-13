@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { getRecipe } from '@/lib/db/recipes';
+import { getRecipe, getRecipeName } from '@/lib/db/recipes';
 import { isAppAdmin } from '@/lib/db/app-admins';
 import { canEditRecipe } from '@/lib/recipe-access';
 import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
@@ -22,6 +22,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     data: { user },
   } = await supabase.auth.getUser();
   const canEdit = canEditRecipe(recipe, user?.id ?? null, await isAppAdmin(supabase));
+  // Link a fork to its original only when the original is still readable (else the link would 404).
+  const originalName = recipe.forked_from_id ? await getRecipeName(supabase, recipe.forked_from_id) : null;
 
   const total = sumMacros(
     recipe.ingredients.map((ri) => {
@@ -38,11 +40,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold">{recipe.name}</h1>
         <RecipeActions recipeId={recipe.id} canEdit={canEdit} />
       </div>
-      {recipe.forked_from_id && (
+      {recipe.forked_from_id && originalName !== null && (
         <p className="text-sm text-muted">
-          Kopia innego przepisu.{' '}
+          Kopia przepisu{' '}
           <Link href={`/recipes/${recipe.forked_from_id}`} className="underline">
-            Zobacz oryginał
+            „{originalName}”
           </Link>
         </p>
       )}

@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1c21fbf
 sources: []
 ---
 

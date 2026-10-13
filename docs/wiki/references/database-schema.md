@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 68dcc28
+verified_commit: 1c21fbf
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -80,7 +80,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. Kept for compatibility: the app no longer calls it. `authenticated` only. |
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
 | `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008. |
-| `fork_recipe(p_recipe_id uuid)` | `security invoker`, plpgsql, returns `uuid` | Copies a recipe the caller can read, with its recipe ingredients and steps, as a new recipe authored by `auth.uid()` with `forked_from_id` set to the source; returns the new id. Household: the source's when the caller is a member, else the caller's own (owner role first). Raises `P0002` for an unreadable or unknown recipe. RLS applies. `authenticated` only. Added in 0014. See [[0015-recipe-forks]]. |
+| `fork_recipe(p_recipe_id uuid)` | `security invoker`, plpgsql, returns `uuid` | Copies a recipe the caller can read, with its recipe ingredients and steps, as a new recipe authored by `auth.uid()`, named „… (kopia)", with `forked_from_id` set to the source; returns the new id, or the caller's existing fork of that source. Copies the `recipes` columns as of 0010. Raises `22023` when no ingredients or steps are readable. Household: the source's when the caller is a member, else the caller's own (owner role first). Raises `P0002` for an unreadable or unknown recipe. RLS applies. `authenticated` only. Added in 0014. See [[0015-recipe-forks]]. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
