@@ -63,44 +63,49 @@ export function ImportDialog({
     }
   }
 
+  const canSubmit = !!url && (stage === 'idle' || stage === 'error' || stage === 'done');
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-background text-ink rounded-sheet p-4 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-semibold mb-3">Import przepisu z URL</h3>
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://www.jadlonomia.com/..."
-          type="url"
-          className="w-full border rounded px-3 py-2 mb-3"
-        />
-        <div className="text-sm text-gray-600 mb-2">
-          {stage === 'fetch' && 'Pobieram stronę…'}
-          {stage === 'model' && (modelProgress?.text ?? 'Ładuję model (pierwszy raz może potrwać kilka minut)…')}
-          {stage === 'extract' && 'Wyciągam przepis…'}
-          {stage === 'done' && 'Gotowe'}
-        </div>
-        {stage === 'model' && modelProgress && (
-          <div className="w-full h-2 bg-gray-200 rounded mb-2 overflow-hidden">
-            <div
-              className="h-full bg-green-600 transition-all"
-              style={{ width: `${Math.round(modelProgress.progress * 100)}%` }}
-            />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canSubmit) void run();
+          }}
+        >
+          <h3 className="font-semibold mb-3">Import przepisu z URL</h3>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.jadlonomia.com/..."
+            type="url"
+            className="w-full border rounded px-3 py-2 mb-3"
+          />
+          <div className="text-sm text-gray-600 mb-2">
+            {stage === 'fetch' && 'Pobieram stronę…'}
+            {stage === 'model' && (modelProgress?.text ?? 'Ładuję model (pierwszy raz może potrwać kilka minut)…')}
+            {stage === 'extract' && 'Wyciągam przepis…'}
+            {stage === 'done' && 'Gotowe'}
           </div>
-        )}
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1">
-            Anuluj
-          </button>
-          <button
-            onClick={run}
-            disabled={!url || (stage !== 'idle' && stage !== 'error' && stage !== 'done')}
-            className="bg-green-600 text-white rounded px-3 py-1"
-          >
-            Importuj
-          </button>
-        </div>
+          {stage === 'model' && modelProgress && (
+            <div className="w-full h-2 bg-gray-200 rounded mb-2 overflow-hidden">
+              <div
+                className="h-full bg-green-600 transition-all"
+                style={{ width: `${Math.round(modelProgress.progress * 100)}%` }}
+              />
+            </div>
+          )}
+          {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-3 py-1">
+              Anuluj
+            </button>
+            <button type="submit" disabled={!canSubmit} className="bg-green-600 text-white rounded px-3 py-1">
+              Importuj
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
