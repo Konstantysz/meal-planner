@@ -25,8 +25,10 @@ pnpm lint         # ESLint (flat config, eslint-config-next)
 pnpm format       # Prettier write (CI runs format:check)
 pnpm wiki:check   # validate docs/wiki (frontmatter, links, avoided terms, markdownlint)
 pnpm wiki:stale   # wiki pages whose sources changed since verified_commit
+pnpm db:verify    # migrations, verification scripts and rollbacks on PGlite
+pnpm db:order     # new migrations numbered above origin/main, applied ones unchanged
 ```
-CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:check and build on every PR. The pre-commit hook checks staged files the same way.
+CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:check, db:verify and build on every PR. The pre-commit hook checks staged files the same way.
 
 ## Conventions
 - Shared types in `src/lib/types.ts`; Zod schemas in `src/lib/schemas.ts`. No `any` — use `unknown` + Zod parsing at boundaries.
