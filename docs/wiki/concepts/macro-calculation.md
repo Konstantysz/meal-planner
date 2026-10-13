@@ -91,7 +91,7 @@ A total with `complete: false` is an **incomplete macro total**: a lower bound, 
 - **Unknown is not zero.** A left-out ingredient never adds 0 to a total that is shown as complete; it makes the total an incomplete macro total.
 - **A partly filled ingredient counts.** An ingredient with only some macro fields counts the missing fields as 0 and is not reported (`hasMacros` is true).
 - **Optional recipe ingredients are skipped silently.** They are listed on the page with „(opcjonalnie)" but never appear in `leftOut`.
-- **Consistent with the shopping list.** `no_macros` uses the same `hasMacros` test as the shopping list's incomplete shopping item, so an ingredient marked „(brak makro)" there is the one left out here. Unit and amount reasons apply only to macros; the shopping list still sums the item in its own unit.
+- **Consistent with the shopping list.** `no_macros` uses the same `hasMacros` test as the shopping list's incomplete shopping item, so an ingredient marked „(brak makro)" there is the one left out here. Unit and amount reasons apply only to macros; the shopping list still sums the item in its own unit. It never converts units (a `kg` line and a `g` line of the same ingredient stay separate items), because it computes no macros, so `toGrams` does not apply there.
 - Review Focus #1 (zero servings) is handled by `perServing` returning null, and the DB check `servings_base > 0` prevents it for stored recipes anyway.
 
 ## Known gaps

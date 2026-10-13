@@ -25,7 +25,7 @@ export function RecipeMacroPanel({ macros }: { macros: RecipeMacros }) {
           <p className="mt-1 text-xs text-muted">Nie wliczono:</p>
           <ul className="list-disc pl-5 text-xs text-muted" aria-label="Składniki pominięte w makro">
             {macros.leftOut.map((l, i) => (
-              <li key={i}>
+              <li key={`${l.name}-${i}`}>
                 {l.name} ({REASON_LABEL[l.reason]})
               </li>
             ))}

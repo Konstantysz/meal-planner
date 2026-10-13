@@ -74,8 +74,13 @@ const GRAMS_PER_UNIT: Record<string, number> = {
 export function toGrams(amount: number, unit: string | null): number | null {
   if (unit === null) return null;
   const key = unit.trim().toLowerCase().replace(/\.$/, '');
+  const exact = GRAMS_PER_UNIT[key];
+  if (exact !== undefined) return amount * exact;
+  // Fallback for one inflected word only: normalizeUnit lets the last unit-like word win, so a multi-word
+  // unit such as "szklanka 250 ml" would read as ml and hide a household measure.
+  if (/\s/.test(key)) return null;
   const canonical = normalizeUnit(key);
-  const factor = GRAMS_PER_UNIT[key] ?? (canonical === null ? undefined : GRAMS_PER_UNIT[canonical]);
+  const factor = canonical === null ? undefined : GRAMS_PER_UNIT[canonical];
   return factor === undefined ? null : amount * factor;
 }
 
@@ -92,7 +97,11 @@ export interface MacroRecipeIngredient {
   amount: number | null;
   unit: string | null;
   optional: boolean;
-  /** Fallback name for the left-out list when the ingredient row has no name. */
+  /**
+   * Fallback name for the left-out list when the ingredient row has no name. Names come only from what the
+   * caller selected: the plan query selects neither `name` nor `raw_text`, so its left-out names would all read
+   * "składnik" (day totals don't show names).
+   */
   raw_text?: string;
   ingredients: (IngredientMacroInput & { name?: string }) | null;
 }

@@ -112,6 +112,11 @@ describe('toGrams', () => {
     expect(toGrams(2, 'łyżki')).toBeNull();
   });
 
+  it('does not read a multi-word household unit as its trailing metric unit', () => {
+    expect(toGrams(1, 'szklanka 250 ml')).toBeNull();
+    expect(toGrams(2, 'łyżki po 15 g')).toBeNull();
+  });
+
   it('returns null for units that are not a mass or volume multiple', () => {
     for (const unit of ['łyżka', 'łyżeczka', 'szklanka', 'sztuki', 'szt', 'garść', '', null]) {
       expect(toGrams(1, unit)).toBeNull();

@@ -17,7 +17,10 @@ export function DayTotals({ day }: { day: DayMacros | undefined }) {
   const { kcal, protein, fat, carbs } = day.macros;
   return (
     <p className="text-xs tabular-nums text-ink" data-testid="day-totals">
-      <span className="block font-semibold">{`${day.incomplete ? '≥ ' : ''}${Math.round(kcal)} kcal`}</span>
+      <span className="block font-semibold">
+        {day.incomplete && '≥ '}
+        {Math.round(kcal)} kcal
+      </span>
       <span className="block text-muted">
         B {Math.round(protein)} · T {Math.round(fat)} · W {Math.round(carbs)}
       </span>
