@@ -6,7 +6,7 @@ import type { ExtractedIngredient } from '@/lib/import/schema';
 /**
  * Editable list of the ingredient rows the import produced, before they are matched to the database
  * (`autoMatchIngredients` reads this list). Add, remove, move, edit name, amount, unit and optional flag.
- * Editing an amount drops the row's source `range` text, which no longer describes it.
+ * Editing an amount or unit drops the row's source `range` text, which no longer describes it.
  */
 export function ExtractedIngredientsEditor({
   rows,
@@ -36,14 +36,17 @@ export function ExtractedIngredientsEditor({
               step="any"
               value={r.amount ?? ''}
               onChange={(e) =>
-                update(i, { amount: e.target.value === '' ? null : Number(e.target.value), range: undefined })
+                update(i, {
+                  amount: e.target.value === '' ? null : Math.max(0, Number(e.target.value)),
+                  range: undefined,
+                })
               }
               className="w-20"
             />
             <Input
               aria-label={`Jednostka składnika z importu ${i + 1}`}
               value={r.unit ?? ''}
-              onChange={(e) => update(i, { unit: e.target.value || null })}
+              onChange={(e) => update(i, { unit: e.target.value || null, range: undefined })}
               className="w-20"
             />
             <label className="flex items-center gap-1 text-sm whitespace-nowrap">

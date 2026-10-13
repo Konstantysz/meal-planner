@@ -7,6 +7,7 @@ import { StepsEditor, type EditableStep } from '@/components/recipes/StepsEditor
 import { ExtractedIngredientsEditor } from './ExtractedIngredientsEditor';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
+import { normalizeUnit } from '@/lib/import/unit';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 
 export function ImportReviewForm({
@@ -41,7 +42,9 @@ export function ImportReviewForm({
     setNotice(null);
     try {
       const localIngredients: Ingredient[] = await fetch('/api/ingredients').then((r) => r.json());
-      const toMatch = rows.filter((r) => r.name.trim());
+      const toMatch = rows
+        .filter((r) => r.name.trim())
+        .map((r) => ({ ...r, unit: r.unit ? (normalizeUnit(r.unit.trim()) ?? r.unit.trim()) : null }));
       const results = await autoMatchIngredients(toMatch, localIngredients, {
         searchOff: (q) => fetch(`/api/ingredients/lookup?q=${encodeURIComponent(q)}`).then((r) => r.json()),
       });
@@ -93,6 +96,11 @@ export function ImportReviewForm({
       setError('Zmapuj co najmniej jeden składnik przed zapisem.');
       return;
     }
+    const cleanSteps = steps.filter((s) => s.text.trim());
+    if (cleanSteps.length === 0) {
+      setError('Dodaj co najmniej jeden krok.');
+      return;
+    }
     setError(null);
     const res = await fetch('/api/recipes', {
       method: 'POST',
@@ -114,9 +122,7 @@ export function ImportReviewForm({
           position: i.position,
           optional: i.optional,
         })),
-        steps: steps
-          .filter((s) => s.text.trim())
-          .map((s, i) => ({ position: i, title: s.title.trim() || null, text: s.text })),
+        steps: cleanSteps.map((s, i) => ({ position: i, title: s.title.trim() || null, text: s.text })),
       }),
     });
     if (!res.ok) {
