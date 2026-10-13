@@ -70,9 +70,9 @@ Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwawa
 | `0005` | `FAIL 7 (10 checks)` | `ALL PASS (10 checks)` |
 | `0006` | `FAIL 7 (7 checks)` (features missing) | `ALL PASS (7 checks)` |
 | `0007` | `FAIL 2 (2 checks)` | `ALL PASS (2 checks)` |
-| `0008` | not yet run (expect `FAIL` on the checks that need the new columns) | not yet run (expect `ALL PASS (5 checks)`) |
-| `0009` | not yet run (expect `FAIL`: the function does not exist) | not yet run (expect `ALL PASS (9 checks)`) |
-| `0010` | Expected `FAIL 10 (12 checks)` (PGlite run, 2026-10-13) | Pending |
+| `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
+| `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
+| `0010` | `FAIL 10 (12 checks)` (2026-10-13) | pending |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -119,6 +119,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Recorded the live results for 0008 and 0009 (`ALL PASS` after deploy; no baseline was run before either merge) and the live 0010 baseline.
 - 2026-10-13: Added migration 0010 (ingredient ownership and app admins) with its expected baseline; live results pending.
 - 2026-10-13: Added migration 0009 (`update_recipe` RPC); the SQL and its check script were written without a Postgres to run them against, live results pending.
 - 2026-10-13: Added migration 0008 (`recipes.source_author`, `recipe_steps.title`); live results pending.
