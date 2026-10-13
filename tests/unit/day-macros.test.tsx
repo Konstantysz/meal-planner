@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { computeDayMacros, recipeMacros, type DaySlotInput, type PlannedRecipeIngredient } from '@/lib/day-macros';
+import { computeDayMacros, type DaySlotInput, type PlannedRecipeIngredient } from '@/lib/day-macros';
 import { DayTotals } from '@/components/plan/DayTotals';
 
 const oil = { kcal_per_100g: 900, protein_per_100g: 0, fat_per_100g: 100, carbs_per_100g: 0 };
 const rice = { kcal_per_100g: 350, protein_per_100g: 7, fat_per_100g: 1, carbs_per_100g: 78 };
-const none = { kcal_per_100g: null, protein_per_100g: null, fat_per_100g: null, carbs_per_100g: null };
 
 const ing = (
   ingredients: PlannedRecipeIngredient['ingredients'],
@@ -25,37 +24,6 @@ const slot = (
   servings: 1,
   recipe: { servings_base: over.base ?? 2, ingredients: over.ingredients ?? ricePlate },
   ...over,
-});
-
-describe('recipeMacros', () => {
-  it('sums g and ml ingredients', () => {
-    const r = recipeMacros(ricePlate);
-    expect(r.total.kcal).toBeCloseTo(880);
-    expect(r.incomplete).toBe(false);
-  });
-
-  it('adds 0 and flags a non-gram unit', () => {
-    const r = recipeMacros([ing(rice, 200), ing(oil, 2, 'łyżka')]);
-    expect(r.total.kcal).toBeCloseTo(700);
-    expect(r.incomplete).toBe(true);
-  });
-
-  it('adds 0 and flags a macro-less ingredient or a missing amount', () => {
-    expect(recipeMacros([ing(rice, 100), ing(none, 50)])).toMatchObject({ incomplete: true });
-    expect(recipeMacros([ing(rice, 100), ing(oil, null)])).toMatchObject({ incomplete: true });
-    expect(recipeMacros([ing(rice, 100), ing(null, 50)])).toMatchObject({ incomplete: true });
-  });
-
-  it('skips optional ingredients without flagging them', () => {
-    const r = recipeMacros([ing(rice, 100), ing(oil, 1, 'szt', true)]);
-    expect(r.total.kcal).toBeCloseTo(350);
-    expect(r.incomplete).toBe(false);
-  });
-
-  it('flags a recipe with no counted ingredients', () => {
-    expect(recipeMacros([])).toMatchObject({ incomplete: true });
-    expect(recipeMacros([ing(oil, 1, 'szt', true)])).toMatchObject({ incomplete: true });
-  });
 });
 
 describe('computeDayMacros', () => {
@@ -85,13 +53,19 @@ describe('computeDayMacros', () => {
 
   it('marks the day incomplete when one slot has incomplete data, keeping the rest of the sum', () => {
     const days = computeDayMacros([slot({}), slot({ ingredients: [ing(oil, 2, 'łyżka'), ing(rice, 100)] })]);
-    expect(days['2026-10-05'].incomplete).toBe(true);
+    expect(days['2026-10-05']).toMatchObject({ incomplete: true, known: true });
     expect(days['2026-10-05'].macros.kcal).toBeCloseTo(440 + 175);
+  });
+
+  it('counts kg and l like g and ml', () => {
+    const day = computeDayMacros([slot({ ingredients: [ing(rice, 0.2, 'kg'), ing(oil, 0.02, 'l')] })])['2026-10-05'];
+    expect(day.macros.kcal).toBeCloseTo(440);
+    expect(day.incomplete).toBe(false);
   });
 
   it('marks the day incomplete for an unavailable recipe, zero servings_base or zero servings', () => {
     const unavailable = computeDayMacros([slot({ recipe: null })])['2026-10-05'];
-    expect(unavailable).toMatchObject({ incomplete: true });
+    expect(unavailable).toMatchObject({ incomplete: true, known: false });
     expect(unavailable.macros.kcal).toBe(0);
     expect(computeDayMacros([slot({ base: 0 })])['2026-10-05'].incomplete).toBe(true);
     expect(computeDayMacros([slot({ servings: 0 })])['2026-10-05'].incomplete).toBe(true);
@@ -110,8 +84,19 @@ describe('DayTotals', () => {
     expect(screen.getByText('B 7 · T 11 · W 78')).toBeTruthy();
   });
 
-  it('shows „brak danych makro" when incomplete', () => {
+  it('shows „brak danych makro" when no slot added macros', () => {
     render(<DayTotals day={computeDayMacros([slot({ recipe: null })])['2026-10-05']} />);
     expect(screen.getByText('brak danych makro')).toBeTruthy();
+  });
+
+  it('labels a partial sum as a lower bound', () => {
+    render(<DayTotals day={computeDayMacros([slot({}), slot({ recipe: null })])['2026-10-05']} />);
+    expect(screen.getByText('≥ 440 kcal')).toBeTruthy();
+    expect(screen.getByText('makra niepełne')).toBeTruthy();
+  });
+
+  it('does not label a complete sum', () => {
+    render(<DayTotals day={computeDayMacros([slot({})])['2026-10-05']} />);
+    expect(screen.queryByText('makra niepełne')).toBeNull();
   });
 });

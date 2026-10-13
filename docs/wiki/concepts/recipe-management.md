@@ -10,9 +10,9 @@ last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
+llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1933f3c
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
@@ -90,7 +90,7 @@ Filtering:
 - `diet`: `contains('diet_tags', diet)`. A recipe must have **all** the selected diets.
 - `exclude`: rows are fetched first and then filtered in JS (`!r.allergens.some(...)`).
 
-Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
+Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Until its macros are filled in, it is left out of the recipe totals and listed under „makra niepełne" on the detail page (see [[macro-calculation]]). Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
 
 ## Invariants and gotchas
 
@@ -99,7 +99,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
 - **List cards** (`RecipeCard`): a 3:4 `RecipeCover` (name set large, prep time on top), then source author (when set), servings, per-serving macros, and diet and allergen tags. The cover has a `photo` slot, so a future image fills it without a layout change; its tint is `hover` until covers take the colour of the most-planned slot position (see [[design-brief]]). The grid is 2 columns on mobile and up to 5 on wide screens (the brief's horizontal shelves are not built). The filters are `Chip` toggles. States: skeleton covers while loading, „Brak przepisów. Dodaj pierwszy." with one action, a message for no filter match, for no search match and for a failed fetch.
 - `listRecipes` also selects each recipe's ingredient macro columns and returns `RecipeListItem` (`Recipe` plus `macros_per_serving`, from `toListItem` and `recipePerServing`). `WeekPlan` reads the same endpoint and ignores the extra field.
-- **Per-serving macros** use the rule of the day totals ([[week-plan]]): when any counted ingredient lacks data (a non-gram unit, no macros, or none counted) the value is null and the UI shows „brak danych makro". The detail page used to show a partial sum.
+- **Per-serving macros** ([[macro-calculation]]): the detail page (`RecipeDetail`) shows `RecipeMacroPanel`, a partial total labelled „co najmniej" with the „makra niepełne" list when an ingredient was left out (no macros, no amount, or a unit `toGrams` can't convert). List cards stay all-or-nothing: `recipePerServing` is null („brak danych makro") unless the total is complete.
 - **Detail page**: cover band, title, servings and prep time as large tags (plain `RecipeTag`, not the interactive `Chip`), diet and allergen tags, a property list („Na porcję"; „Autor" with the „Źródło" link next to it), then ingredients beside steps on wide screens (one column on mobile).
 - `RecipeIngredients` shows `formatAmount(amount, unit)` followed by `raw_text`, with a servings stepper that scales amounts from `servings_base` through `scaleAmount`. Macros per serving do not change with it. Manual entries set `raw_text` to the ingredient name.
 - `RecipeSteps` renders each step as a `<details>` card. A step with a title shows it in the summary and its text when open; a step without one is a numbered card whose text is the summary (two lines closed). The first step starts open; „Rozwiń wszystkie" / „Zwiń wszystkie" toggles all (hidden for a single step).
@@ -149,6 +149,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 - 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
 - 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
+- 2026-10-13: Placeholder ingredients are reported under „makra niepełne" instead of counting as 0 (#73).
 - 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.

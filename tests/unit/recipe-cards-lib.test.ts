@@ -21,6 +21,14 @@ describe('recipePerServing', () => {
     expect(recipePerServing([ing(rice), ing(none)], 2)).toBeNull();
   });
 
+  it('is null for a partial total, so a card never shows a partial sum', () => {
+    expect(recipePerServing([ing(rice), ing(rice, 2, 'łyżka')], 2)).toBeNull();
+  });
+
+  it('counts units toGrams converts', () => {
+    expect(recipePerServing([ing(rice, 0.2, 'kg')], 2)?.kcal).toBeCloseTo(350);
+  });
+
   it('is null for a recipe with no ingredients or zero servings', () => {
     expect(recipePerServing([], 2)).toBeNull();
     expect(recipePerServing([ing(rice)], 0)).toBeNull();
