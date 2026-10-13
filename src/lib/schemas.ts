@@ -64,6 +64,17 @@ export const PlanSlotInputSchema = z.object({
   servings: z.number().positive(),
 });
 
+// Body of PATCH /api/plans/[id]/slots/[slotId]: move a slot and/or change its servings.
+export const PlanSlotPatchSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    position: z.number().int().nonnegative(),
+    servings: z.number().positive().max(99),
+  })
+  .partial()
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: 'date, position or servings required' });
+
 // Shape returned by the get_shared_plan(token) RPC (migration 0005).
 export const SharedPlanSchema = z.object({
   week_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -83,4 +94,5 @@ export type RecipeJsonLd = z.infer<typeof RecipeJsonLdSchema>;
 export type SharedPlan = z.infer<typeof SharedPlanSchema>;
 export type RecipeInput = z.infer<typeof RecipeInputSchema>;
 export type IngredientInput = z.infer<typeof IngredientInputSchema>;
+export type PlanSlotPatch = z.infer<typeof PlanSlotPatchSchema>;
 export type PlanSlotInput = z.infer<typeof PlanSlotInputSchema>;

@@ -14,6 +14,8 @@ const PATHS = {
   energy: 'M13 3 5 14h6l-1 7 8-11h-6l1-7Z',
   link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   close: 'M6 6l12 12M18 6 6 18',
+  grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
+  move: 'M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3',
 } as const;
 
 export type IconName = keyof typeof PATHS;

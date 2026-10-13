@@ -5,7 +5,7 @@ tags: [security, spec]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-10
 review_interval_days: 30
 confidence: high
@@ -44,7 +44,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 
 | Gap | Details |
 |---|---|
-| `/plan` and `/shopping` are statically pre-rendered, so production shows the build week | [[week-plan#Known gaps]] |
 | `/api/import/fetch` fetches any URL for any signed-in user (SSRF) | [[api-routes#Routes]] |
 | A non-author recipe delete returns 204 and deletes nothing | [[recipe-management#Known gaps]] |
 | An RLS-hidden recipe in a slot makes `/api/shopping` throw | [[shopping-list-aggregation#Invariants and gotchas]] |
@@ -57,8 +56,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
-| Per-day macro totals are a stub | [[week-plan#Known gaps]] |
-| Plan slots always use 1 serving | [[week-plan#Invariants and gotchas]] |
+| Per-day macro totals are not implemented (#44) | [[week-plan#Known gaps]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
 | The have-map never syncs; the offline banner promises it will | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
@@ -76,10 +74,8 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
 | The login page has no link to signup | [[auth-session#Known gaps]] |
 | Recipe form shows raw Zod JSON on validation errors | [[recipe-management#Known gaps]] |
-| Slot recipe name is barely readable in dark mode | [[week-plan#Known gaps]] |
 | `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |
-| `@dnd-kit` is installed but unused | [[spec-drift#Planned but not built]] |
 
 ## Examples
 
@@ -102,6 +98,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-13: Removed the static pre-render, always-1-serving, dark-mode slot name and unused `@dnd-kit` rows (#38); the per-day macros row now says not implemented.
 - 2026-10-11: Closed the inflected-name gap („czosnku") and the model-output row for auto-match (the model returns base-form names now); added the model-quality row.
 - 2026-10-10: Added the inflected-name and model-output row and the water-filter row (`pomidory + woda` stays one ingredient) for ingredient auto-match.
 - 2026-10-09: Removed the shopping-list `has_macros` row (#15): the route now uses `hasMacros` across all four fields.

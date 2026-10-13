@@ -3,19 +3,16 @@ import { addDays, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { PlanWithSlots } from '@/lib/db/plans';
 import { PlanSlot } from './PlanSlot';
-import { DayMacroSummary } from './DayMacroSummary';
+import type { SlotHandlers } from './plan-handlers';
 
+// No touch drag on mobile: moving a slot goes through the "Przenieś" picker, adding through the recipe picker.
 export function WeekPlanMobile({
   plan,
   onAdd,
   onRemove,
-  dayMacros,
-}: {
-  plan: PlanWithSlots;
-  onAdd: (date: string, position: number) => void;
-  onRemove: (slotId: string) => void;
-  dayMacros: Record<string, import('@/lib/types').Macros | null>;
-}) {
+  onServingsChange,
+  onOpenMove,
+}: { plan: PlanWithSlots } & Pick<SlotHandlers, 'onAdd' | 'onRemove' | 'onServingsChange' | 'onOpenMove'>) {
   const start = new Date(plan.week_start_date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -35,7 +32,10 @@ export function WeekPlanMobile({
                   label={s.label ?? `posiłek ${s.position + 1}`}
                   position={s.position}
                   recipeName={s.recipe?.name ?? (s.recipe_id ? 'przepis niedostępny' : null)}
+                  servings={s.servings}
                   onRemove={() => onRemove(s.id)}
+                  onMove={() => onOpenMove(s.id)}
+                  onServingsChange={(n) => onServingsChange(s.id, n)}
                 />
               ))}
               <button
@@ -45,7 +45,6 @@ export function WeekPlanMobile({
                 + dodaj posiłek
               </button>
             </div>
-            <DayMacroSummary macros={dayMacros[dateStr] ?? null} />
           </section>
         );
       })}

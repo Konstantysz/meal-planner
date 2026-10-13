@@ -71,7 +71,7 @@ Optional ingredients (`ri.optional`) are skipped, so the totals describe the bas
 
 - No unit conversion (łyżka, szklanka, szt → grams). Recipes that use those units count as 0, so their totals come out low. The import parser recognises these units (`src/lib/import/parse-ingredient.ts`), but nothing converts them.
 - No "incomplete" flag at the recipe level. The plan's Review Focus #5 marking exists only on the shopping list (see [[shopping-list-aggregation]]).
-- Per-day totals in the plan are a stub (see [[week-plan#Known gaps]]).
+- Per-day totals in the plan are not implemented (see [[week-plan#Known gaps]]).
 
 ## Examples
 
