@@ -63,7 +63,7 @@ On deploy, Supabase applies new migrations and deploys Edge Functions and Storag
 > [!warning] A merge is a production deploy
 > Don't merge a migration PR you haven't baselined. If a deploy breaks something, run the rollback file in the SQL editor, then `supabase migration repair --status reverted 000N`.
 
-**Stacked PRs.** Before fixing a merge order, check each PR's base: `gh pr list --json number,baseRefName`. A PR based on a `stack/*` branch lands there, not in `main`, so its migration doesn't deploy. Once its parent PR has merged, retarget it with `gh pr edit N --base main`.
+**Stacked PRs.** Before deciding which migration PR merges first, check each PR's base: `gh pr list --json number,baseRefName`. A PR based on a `stack/*` branch lands there, not in `main`, so its migration doesn't deploy. Once its parent PR has merged, retarget it with `gh pr edit N --base main`. CI runs `pnpm db:order "origin/$BASE_REF"`, so a stacked PR is ordered against the stack branch, not `main`: after retargeting, re-run CI so `db:order` checks against `main`. Merging a `stack/*` branch into `main` deploys every migration on it at once, so baseline each one first.
 
 ### Applying without a merge
 
@@ -111,6 +111,7 @@ create policy pantry_notes_all on pantry_notes for all to authenticated
 
 ## Changelog
 
+- 2026-10-13: Stacked-PR note: `db:order` runs against the stack base, and merging a stack deploys every migration on it.
 - 2026-10-13: Added the stacked-PR base check. Not run against production, so `verified_commit` is unchanged.
 - 2026-10-13: `pnpm db:verify` now requires the rollback to restore the baseline's full first line, not just its pass/fail outcome.
 - 2026-10-13: Added `pnpm db:verify` and `pnpm db:order` (CI job `db`, issues #78 and #79), the wiki page checklist, and the live migration record as of 2026-10-13.

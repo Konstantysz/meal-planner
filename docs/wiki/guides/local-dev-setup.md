@@ -2,16 +2,16 @@
 title: "Local Dev Setup"
 summary: "Get the app running locally against the hosted Supabase project: tools, env file, first account, and the checks to run."
 tags: [dev-setup]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: medium
 llm_generated: true
 llm_model: "claude-haiku-5-5"
-human_reviewed: true
+human_reviewed: false
 verified_commit: dd67b66
 sources:
   - title: "Package manifest"
@@ -77,7 +77,6 @@ pnpm wiki:check  # if you touched docs/wiki
 | `pnpm test`: „Failed to start forks worker" | Node is too old (20.x, outside the jsdom 30 / vitest 5 engine ranges). Install Node 24. |
 | `pnpm format:check` lists dozens of files you didn't touch | CRLF line endings from a checkout made before `.gitattributes` (`eol=lf`). With a clean tree: `git rm -rq --cached . && git reset -q --hard HEAD`. |
 | Windows: `git worktree remove` fails „Filename too long" | Nested `node_modules` paths exceed the Windows path limit. `cmd /c rmdir /s /q <path>`, then `git worktree prune`. |
-| Windows: `python3: command not found` | Python isn't on PATH. Run scripts with `uv run python <script>`. |
 | `pnpm dev`: „Another next dev server is already running" | An old server holds port 3000. `taskkill /PID <pid> /F` (the PID is in the message). |
 
 > [!warning] Uncertain: local Supabase stack
@@ -106,7 +105,7 @@ $env:LLM_MODE='server'; pnpm dev -H 0.0.0.0
 
 ## Changelog
 
-- 2026-10-13: Added the Windows `python3` remedy (`uv run python`). Not run in this change, so `verified_commit` is unchanged.
+- 2026-10-13: Status set to `review` (`human_reviewed: false`) because LLM text was added to a human-reviewed page. Dropped the Windows `python3` row: the repo has no Python scripts and `uv` is not a prerequisite.
 - 2026-10-10: Added the Windows `git worktree remove` „Filename too long" remedy. Not run in this change, so `verified_commit` stays at dd67b66.
 - 2026-10-09: Checked at a7f8f52: Node 24 CI pin, jsdom/vitest engine ranges, pnpm pin, scripts, hooks, Postgres 17 and seed in `config.toml`, `/signup`, `/recipes`, the `pnpm build` route markers and the test run (148 tests, 25 files, Node 22.23.2). Updated the test count. Left `verified_commit` at dd67b66 because the machine-specific steps are uncertain.
 - 2026-10-09: Node prerequisite restated from the CI pin and the jsdom/vitest engine ranges; Node 22.23.2 test run noted.
