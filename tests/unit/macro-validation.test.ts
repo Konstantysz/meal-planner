@@ -82,8 +82,15 @@ describe('validateMacros: Atwater rule (Open Food Facts results)', () => {
     expect(validateMacros(m(231, 0, 0, 0), { atwater: true })).toEqual(['atwater']);
   });
 
-  it('does not judge Atwater when a value is missing', () => {
+  it('does not judge Atwater without kcal', () => {
     expect(validateMacros(m(null, 10, 10, 10), { atwater: true })).toEqual([]);
+  });
+
+  it('uses the present macros as a lower bound when some are missing', () => {
+    // Skyr-like row with fat missing: partial estimate 64 kcal, lower bound 0.6 × 64 − 10 = 28.4.
+    expect(validateMacros(m(22, 6.5, null, 9.5), { atwater: true })).toEqual(['atwater']);
+    expect(validateMacros(m(29, 6.5, null, 9.5), { atwater: true })).toEqual([]);
+    // No upper bound: the missing macro may account for the rest.
     expect(validateMacros(m(500, 10, null, 10), { atwater: true })).toEqual([]);
   });
 

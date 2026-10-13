@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: c9c43ec
+verified_commit: d219835
 sources:
   - title: "Auto-match orchestrator"
     path: src/lib/import/auto-match.ts

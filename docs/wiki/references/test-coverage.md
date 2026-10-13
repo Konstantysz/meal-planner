@@ -2,17 +2,17 @@
 title: "Test Coverage Map"
 summary: "Which modules have unit tests, which do not, and which Review Focus edge cases are pinned by which test file."
 tags: [testing]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: a7f8f52
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: d219835
 sources:
   - title: "Unit tests"
     path: tests/unit
@@ -43,7 +43,9 @@ sources:
 | `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` |
 | `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` |
 | `src/lib/off.ts` | `tests/unit/off.test.ts` |
-| `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema` only) |
+| `src/components/recipes/OffDisclaimer.tsx` | `tests/unit/off-disclaimer.test.tsx` (in `IngredientPicker`); `tests/unit/import/ImportReviewForm.test.tsx` (in the import review) |
+| `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema`); `tests/unit/macro-validation.test.ts` (`IngredientInputSchema` macro rules) |
+| `src/lib/macro-validation.ts` | `tests/unit/macro-validation.test.ts` (`validateMacros`, `atwaterKcal`) |
 | `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`, `shiftWeek`, `resolveWeek`) |
 | `src/lib/plan-slots.ts` | `tests/unit/plan-slots.test.ts` |
 | `src/lib/db/plans.ts` | `tests/unit/db/plans.test.ts` (`updateSlot` only) |
@@ -119,6 +121,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Added `src/lib/macro-validation.ts` and `OffDisclaimer`; `schemas.ts` now also has `IngredientInputSchema` tests (#71).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.

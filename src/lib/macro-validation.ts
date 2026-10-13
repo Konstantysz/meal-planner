@@ -36,7 +36,9 @@ const inRange = (v: number | null, max: number) => v == null || (v >= 0 && v <= 
 /**
  * Every rule the macros break; an empty list means valid. Null values are not judged (a macro-less or
  * partly filled ingredient is allowed). With `atwater: true` (Open Food Facts results) the stated kcal
- * must also agree with the Atwater estimate; a row with any of the four values missing is not judged.
+ * must also agree with the Atwater estimate. Without kcal there is nothing to judge; with kcal but some of
+ * protein, fat or carbs missing, the present ones give a lower bound (kcal below 0.6× their estimate minus
+ * the slack is rejected, no upper bound).
  * An alcohol-like row (kcal but no protein, fat or carbs) fails the Atwater rule but passes the range rules,
  * so it can be saved by hand but is skipped as an Open Food Facts result.
  */
@@ -49,13 +51,22 @@ export function validateMacros(m: IngredientMacroInput, opts: { atwater?: boolea
   const sum = (m.protein_per_100g ?? 0) + (m.fat_per_100g ?? 0) + (m.carbs_per_100g ?? 0);
   if (sum > MACRO_LIMITS.maxSum) issues.push('macro_sum');
 
-  if (opts.atwater) {
-    const estimate = atwaterKcal(m);
+  if (opts.atwater && m.kcal_per_100g != null) {
     const kcal = m.kcal_per_100g;
-    if (estimate != null && kcal != null) {
+    const estimate = atwaterKcal(m);
+    if (estimate != null) {
       const close = Math.abs(kcal - estimate) <= ATWATER_SLACK_KCAL;
       const ratioOk = estimate > 0 && kcal >= estimate * ATWATER_RATIO.min && kcal <= estimate * ATWATER_RATIO.max;
       if (!close && !ratioOk) issues.push('atwater');
+    } else {
+      // Some macros missing: the present ones still give a lower bound for kcal.
+      const partial = atwaterKcal({
+        ...m,
+        protein_per_100g: m.protein_per_100g ?? 0,
+        fat_per_100g: m.fat_per_100g ?? 0,
+        carbs_per_100g: m.carbs_per_100g ?? 0,
+      });
+      if (partial != null && kcal < partial * ATWATER_RATIO.min - ATWATER_SLACK_KCAL) issues.push('atwater');
     }
   }
   return issues;

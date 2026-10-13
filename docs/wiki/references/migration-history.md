@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5e8ed97
+verified_commit: d219835
 sources:
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
@@ -83,9 +83,9 @@ Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwawa
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
-| `0012` | not yet run (PGlite baseline `FAIL 7 (13 checks)`) | pending |
+| `0012` | not yet run (PGlite baseline `FAIL 8 (14 checks)`) | pending |
 
-The live `0012` baseline should be `FAIL 9 (13 checks)`, not 7: checks 12–13 ("the row, if present, is plausible") fail live on the two bad rows and pass on PGlite, where those rows don't exist.
+The live `0012` baseline should be `FAIL 10 (14 checks)`, not 8: checks 13–14 ("the row, if present, is plausible") fail live on the two bad rows and pass on PGlite, where those rows don't exist.
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions (including `is_app_admin`) by `authenticated`, and `app_admins` has RLS with no policies (INFO) so no client can reach it. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -133,7 +133,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
-- 2026-10-13: Added migration 0012 (ingredient macro range checks, two corrected rows). Expected live baseline `FAIL 9 (13 checks)`: checks 12–13 pass on PGlite only because the two live rows are absent there.
+- 2026-10-13: Added migration 0012 (ingredient macro range checks, two corrected rows). Expected live baseline `FAIL 10 (14 checks)`: checks 13–14 pass on PGlite only because the two live rows are absent there.
 - 2026-10-13: Scoped the "baselined" claims and the uncertainty warning to what was actually run; recorded the hand-applied `0010` migration and rollback during baselining; bumped `verified_commit`.
 - 2026-10-13: Recorded the live 0010 result after deploy (`ALL PASS (12 checks)`); advisors show only the expected `app_admins` (RLS, no policies) and `is_app_admin` notices.
 - 2026-10-13: The Verification table is now parsed by CI (`scripts/migration-record.ts`); added the format note.

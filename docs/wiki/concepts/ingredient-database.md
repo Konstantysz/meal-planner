@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5966c4c
+verified_commit: d219835
 sources:
   - title: "Ingredient data access"
     path: src/lib/db/ingredients.ts
@@ -77,12 +77,12 @@ Recipe macros, the shopping list's `incomplete` flag and import auto-matching al
 | Protein, fat and carbs each 0–100 g per 100 g | Save (`IngredientInputSchema`), Open Food Facts mapping, database CHECK (0012) |
 | Protein + fat + carbs ≤ 101 g (1 g for label rounding) | Save, Open Food Facts mapping, database CHECK |
 | kcal 0–900 per 100 g | Save, Open Food Facts mapping, database CHECK |
-| kcal within 0.6–1.2× the Atwater estimate (4/9/4 kcal per gram of protein/fat/carbs), or within 10 kcal of it | Open Food Facts mapping only (`{ atwater: true }`); skipped when any of the four values is missing |
+| kcal within 0.6–1.2× the Atwater estimate (4/9/4 kcal per gram of protein/fat/carbs), or within 10 kcal of it | Open Food Facts mapping only (`{ atwater: true }`); skipped without kcal. With kcal but a macro missing, the present macros give a lower bound only (kcal < 0.6× their estimate − 10 is rejected) |
 
 - **Save.** `IngredientInputSchema` runs the range rules, so `POST /api/ingredients` answers 400 before the database CHECK would fire.
 - **Open Food Facts.** `mapOffProduct` returns null for a product that breaks any rule, so `searchOff` drops it and the next product becomes the first result (auto-match and the backfill script take `[0]`).
 - **Why Atwater stays out of the database.** Alcohol (kcal with no protein, fat or carbs) and fibre-rich spices (fibre counted in carbs) legitimately miss it. Such a row can be saved by hand; as an Open Food Facts result it is skipped. The 10 kcal slack keeps near-zero products (coffee, broth) from failing on the ratio alone.
-- **Data-quality report.** `supabase/reports/data_quality.sql` is a single read-only SELECT for the SQL editor. It lists ingredients that miss the Atwater rule, macro-less ingredients used in recipes, and recipe ingredients without an amount or with a unit other than `g` / `ml` (the only units that carry a weight, see [[macro-calculation]]). Nothing runs it automatically.
+- **Data-quality report.** `supabase/reports/data_quality.sql` is a single read-only SELECT for the SQL editor. It lists ingredients that miss the Atwater rule, macro-less ingredients used in recipes, and recipe ingredients without an amount or with a unit that cannot be converted to grams (the report's unit list mirrors `GRAMS_PER_UNIT` / `toGrams` in `src/lib/macros.ts` from PR #95: mg, g, gr, dag, dkg, kg, ml, cl, dl, l; see [[macro-calculation]]). Nothing runs it automatically.
 - **Disclaimer.** `OffDisclaimer` („Dane z Open Food Facts — publicznej bazy tworzonej przez społeczność. Mogą zawierać błędy.") shows under the picker's results when any of them has `source = 'off'`, and under „Auto-mapuj składniki" in the import review.
 
 ## Invariants and gotchas

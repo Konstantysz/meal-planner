@@ -10,8 +10,11 @@
 --   macro_less       a macro-less ingredient (all four values null) used in at least one recipe; it counts
 --                    as 0 in recipe macros. detail lists the recipes.
 --   no_amount        a recipe ingredient without an amount.
---   unit_not_grams   a recipe ingredient whose unit cannot be converted to grams. Only g and ml carry a
---                    weight (src/lib/day-macros.ts, recipeMacros), so it adds 0 to the recipe's macros.
+--   unit_not_grams   a recipe ingredient whose unit cannot be converted to grams, so it adds 0 to the
+--                    recipe's macros. Convertible units mirror GRAMS_PER_UNIT / toGrams in
+--                    src/lib/macros.ts (PR #95): mg, g, gr, dag, dkg, kg, ml, cl, dl, l, compared
+--                    trimmed, lowercased and with one trailing dot stripped, plus the inflected forms
+--                    normalizeUnit maps onto g and l ("gram...", "litr..."). Keep this list in step with it.
 -- Optional recipe ingredients are listed too (marked in detail); they never count toward macros.
 
 with ing as (
@@ -80,6 +83,11 @@ from (
   join ing on ing.id = ri.ingredient_id
   where ri.amount is null
      or ri.unit is null
-     or ri.unit not in ('g', 'ml')
+     or not (
+       -- Same key as toGrams: trim, lowercase, strip one trailing dot. Keep in step with GRAMS_PER_UNIT.
+       regexp_replace(lower(trim(ri.unit)), '\.$', '')
+         in ('mg', 'g', 'gr', 'dag', 'dkg', 'kg', 'ml', 'cl', 'dl', 'l')
+       or regexp_replace(lower(trim(ri.unit)), '\.$', '') ~ '(^|\s)(gram|litr)\S*$'
+     )
 ) findings
 order by ord, issue, ingredient, recipe;
