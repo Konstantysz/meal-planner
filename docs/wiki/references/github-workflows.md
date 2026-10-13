@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5966c4c
+verified_commit: 5e8ed97
 sources:
   - title: "Keepalive workflow"
     path: .github/workflows/keepalive.yml
