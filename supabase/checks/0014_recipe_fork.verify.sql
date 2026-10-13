@@ -58,10 +58,11 @@ begin
     (ha, adm, 'member');
   insert into app_admins (user_id) values (adm);
 
+  -- image_url (0011) is set so check 7's column comparison proves fork_recipe copies it.
   insert into recipes (id, household_id, author_id, name, servings_base, prep_time_min, source_url,
-                       visibility, diet_tags, allergens, source_author)
+                       visibility, diet_tags, allergens, source_author, image_url)
   values (rid, ha, a, 'verify original', 2, 25, 'https://verify.test/r', 'household',
-          '{wegetarianska}', '{gluten}', 'Ania');
+          '{wegetarianska}', '{gluten}', 'Ania', 'https://verify.test/r.jpg');
   insert into recipe_ingredients (recipe_id, ingredient_id, amount, unit, raw_text, position, optional) values
     (rid, ing, 100, 'g', 'one', 0, false),
     (rid, ing, null, null, 'two', 1, true);

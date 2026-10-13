@@ -15,8 +15,9 @@
 -- Requires app code that forks before editing someone else's recipe (same PR); old app code
 -- gets a 403 on such an edit instead of saving it.
 -- Columns: fork_recipe copies the recipes columns as of 0011, including image_url (0011, merged
--- before this one). The 0013 PR adds more (recipes.updated_at, nullable author_id); if it merges
--- after this one it must extend fork_recipe in a NEW migration (never edit a deployed file).
+-- before this one). 0013 (merged before this one) adds recipes.updated_at (default now(), set by a
+-- trigger) and makes author_id nullable; fork_recipe copies neither: a fork gets a fresh timestamp
+-- and the caller as author.
 -- Merge only after 0011 (#92), 0012 (#97) and 0013 (#96): this PR (0014, #98) merges last.
 -- Rollback: supabase/rollbacks/0014_recipe_fork.down.sql
 
