@@ -4,11 +4,15 @@
  * so a new version must be above every version on the base branch, a base migration must stay
  * byte-for-byte as it is, and each new migration ships a rollback and a verification script.
  *
- * Usage: pnpm tsx scripts/migration-order-check.ts [base-ref]   (default: origin/main)
+ * With --require-baseline (CI), each new migration also needs its live baseline recorded in the
+ * migration-history wiki page, so a migration PR stays red until a human has run its verification script.
+ *
+ * Usage: pnpm tsx scripts/migration-order-check.ts [base-ref] [--require-baseline]   (default: origin/main)
  */
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { checkBaselinesRecorded, parseVerificationTable, RECORD_PATH } from './migration-record';
 
 const NAME = /^(\d{4})_[a-z0-9_]+\.sql$/;
 
@@ -75,7 +79,9 @@ export function checkNewMigrations(head: string[], base: string[], rollbacks: st
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const baseRef = process.argv[2] ?? 'origin/main';
+  const args = process.argv.slice(2);
+  const requireBaseline = args.includes('--require-baseline');
+  const baseRef = args.find((a) => !a.startsWith('--')) ?? 'origin/main';
   const git = (args: string[]) => execFileSync('git', args, { encoding: 'utf8' });
   const sql = (files: string[]) => files.filter((f) => f.endsWith('.sql'));
   const head = sql(readdirSync('supabase/migrations'));
@@ -87,13 +93,16 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   // Diff the merge base against the working tree, so the pre-commit hook sees uncommitted edits too.
   const mergeBase = git(['merge-base', baseRef, 'HEAD']).trim();
   const changes = parseNameStatus(git(['diff', '--name-status', '-M', mergeBase, '--', 'supabase/migrations']));
+  const added = head.filter((f) => !base.includes(f));
   const errors = [
     ...checkNames(head),
     ...checkAppliedUnchanged(changes),
     ...checkNewMigrations(head, base, readdirSync('supabase/rollbacks'), readdirSync('supabase/checks')),
+    ...(requireBaseline
+      ? checkBaselinesRecorded(added, parseVerificationTable(readFileSync(RECORD_PATH, 'utf8')))
+      : []),
   ];
   for (const e of errors) console.error(e);
   if (errors.length) process.exit(1);
-  const added = head.filter((f) => !base.includes(f)).length;
-  console.log(`migration-order-check: ${added} new migration(s) vs ${baseRef}, all in order`);
+  console.log(`migration-order-check: ${added.length} new migration(s) vs ${baseRef}, all in order`);
 }

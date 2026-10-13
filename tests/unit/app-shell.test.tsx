@@ -14,7 +14,7 @@ describe('AppShell', () => {
     const labels = within(nav)
       .getAllByRole('link')
       .map((a) => a.textContent);
-    expect(labels).toEqual(['Plan', 'Przepisy', 'Zakupy', 'Ustawienia']);
+    expect(labels).toEqual(['Przepisy', 'Plan', 'Zakupy', 'Ustawienia']);
   });
 
   it('marks only the current area with aria-current', () => {
