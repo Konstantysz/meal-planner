@@ -2,17 +2,21 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { weekStartOf } from '@/lib/week';
+import { Button, Input } from '@/components/ui';
 
 export default function SettingsPage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function generateShare() {
     setLoading(true);
+    setError(null);
     // Plan bieżącego tygodnia (poniedziałek, czas lokalny), tak jak na /plan
     const week = weekStartOf(new Date());
     const r = await fetch('/api/plans?week=' + week);
     if (!r.ok) {
+      setError('Nie udało się wygenerować linku. Spróbuj ponownie.');
       setLoading(false);
       return;
     }
@@ -25,6 +29,8 @@ export default function SettingsPage() {
     if (tr.ok) {
       const { token } = await tr.json();
       setShareUrl(`${window.location.origin}/share/${token}`);
+    } else {
+      setError('Nie udało się wygenerować linku. Spróbuj ponownie.');
     }
     setLoading(false);
   }
@@ -35,29 +41,38 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Ustawienia</h1>
-      <section>
-        <h2 className="font-semibold mb-2">Udostępnij plan</h2>
-        <button onClick={generateShare} disabled={loading} className="bg-green-600 text-white rounded px-3 py-2">
-          {loading ? '…' : 'Wygeneruj link'}
-        </button>
+    <div className="mx-auto max-w-2xl space-y-8 px-4 py-6 lg:px-8 lg:py-8">
+      <h1 className="font-display text-3xl font-extrabold tracking-tight">Ustawienia</h1>
+      <section className="space-y-3 border-t border-line pt-4">
+        <h2 className="font-display text-lg font-semibold">Udostępnij plan</h2>
+        <p className="text-sm text-muted">Link pokazuje plan bieżącego tygodnia każdemu, kto go dostanie.</p>
+        <Button variant="primary" onClick={generateShare} disabled={loading}>
+          {loading ? 'Generuję…' : 'Wygeneruj link'}
+        </Button>
+        {error && (
+          <p role="alert" className="text-sm">
+            {error}
+          </p>
+        )}
         {shareUrl && (
-          <div className="mt-2 text-sm break-all bg-gray-100 p-2 rounded">
-            <a href={shareUrl}>{shareUrl}</a>
+          <div className="space-y-1">
+            <label htmlFor="share-url" className="block text-sm font-medium">
+              Link do planu
+            </label>
+            <Input id="share-url" readOnly value={shareUrl} onFocus={(e) => e.currentTarget.select()} />
           </div>
         )}
       </section>
-      <section>
-        <h2 className="font-semibold mb-2">Zaproś do gospodarstwa</h2>
-        <p className="text-sm text-gray-500">
+      <section className="space-y-2 border-t border-line pt-4">
+        <h2 className="font-display text-lg font-semibold">Zaproś do gospodarstwa</h2>
+        <p className="text-sm text-muted">
           Zapraszanie po e-mailu nie jest jeszcze wspierane — zaproszona osoba musi już mieć konto i zostać dodana
           ręcznie (user_id).
         </p>
       </section>
-      <button onClick={logout} className="text-red-600">
-        Wyloguj
-      </button>
+      <section className="border-t border-line pt-4">
+        <Button onClick={logout}>Wyloguj</Button>
+      </section>
     </div>
   );
 }

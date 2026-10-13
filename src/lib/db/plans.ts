@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PlanSlotInputSchema, PlanSlotPatchSchema } from '@/lib/schemas';
 import type { PlannedRecipeIngredient } from '@/lib/day-macros';
+import { weekEndOf } from '@/lib/week';
 import type { Plan, PlanSlot } from '@/lib/types';
 
 export interface WeekPlan extends Plan {
@@ -84,6 +85,9 @@ export class SlotOccupiedError extends Error {}
 /** Thrown by `updateSlot` when no slot with that id exists in the plan (or RLS hides it). */
 export class SlotNotFoundError extends Error {}
 
+/** Thrown by `updateSlot` when the target date lies outside the plan's Monday..Sunday window. */
+export class SlotDateOutOfWeekError extends Error {}
+
 /** Moves a slot and/or changes its servings in one UPDATE; `unique (plan_id, date, position)` rejects an occupied target. */
 export async function updateSlot(
   supabase: SupabaseClient,
@@ -92,6 +96,19 @@ export async function updateSlot(
   input: unknown,
 ): Promise<PlanSlot> {
   const patch = PlanSlotPatchSchema.parse(input);
+  if (patch.date) {
+    const { data: plan, error: planError } = await supabase
+      .from('plans')
+      .select('week_start_date')
+      .eq('id', planId)
+      .maybeSingle();
+    if (planError) throw planError;
+    if (!plan) throw new SlotNotFoundError('slot not found');
+    const start = (plan as { week_start_date: string }).week_start_date;
+    if (patch.date < start || patch.date > weekEndOf(start)) {
+      throw new SlotDateOutOfWeekError('date outside the plan week');
+    }
+  }
   const { data, error } = await supabase
     .from('plan_slots')
     .update(patch)
