@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { IngredientInput } from './schemas';
 import type { IngredientCategory } from './types';
+import { validateMacros } from './macro-validation';
 
 export interface OffProduct {
   product_name?: string;
@@ -25,7 +26,7 @@ export function mapOffProduct(p: OffProduct): IngredientInput | null {
   const fat = n.fat_100g;
   const carbs = n.carbohydrates_100g;
   if (kcal == null && protein == null && fat == null && carbs == null) return null;
-  return {
+  const mapped: IngredientInput = {
     name: p.product_name.trim(),
     category: guessCategory(p.categories_tags ?? []),
     kcal_per_100g: kcal ?? null,
@@ -35,6 +36,10 @@ export function mapOffProduct(p: OffProduct): IngredientInput | null {
     default_unit: 'g',
     source: 'off',
   };
+  // Crowd-sourced values: drop out-of-range rows and rows whose kcal disagrees with the Atwater estimate,
+  // so searchOff falls through to the next product.
+  if (validateMacros(mapped, { atwater: true }).length > 0) return null;
+  return mapped;
 }
 
 export function guessCategory(tags: string[]): IngredientCategory {

@@ -4,6 +4,7 @@ import { Button, Icon, Input } from '@/components/ui';
 import type { ExtractedIngredient, ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
+import { OffDisclaimer } from '@/components/recipes/OffDisclaimer';
 import { StepsEditor, type EditableStep } from '@/components/recipes/StepsEditor';
 import { ExtractedIngredientsEditor } from './ExtractedIngredientsEditor';
 import { isSessionRedirect, saveStatusMessage } from '@/lib/import/errors';
@@ -246,6 +247,7 @@ export function ImportReviewForm({
         <Button onClick={autoMatch} disabled={matching} className="w-full lg:w-auto">
           {matching ? 'Dopasowuję…' : 'Auto-mapuj składniki'}
         </Button>
+        <OffDisclaimer />
         <p role="status" className="text-sm">
           {outcome && counts && (
             <>
