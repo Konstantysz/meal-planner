@@ -99,13 +99,21 @@ export const ExtractedStepSchema = z.object({
 export type ExtractedStep = z.infer<typeof ExtractedStepSchema>;
 
 // Legacy shapes (a string, string[], [{text}] from page JSON-LD, or a model that ignores the new
-// format) become {title: null, text}; a blank title becomes null.
+// format) become {title: null, text}; a blank title, or one over MAX_STEP_TITLE chars (the
+// RecipeInputSchema cap, which would make save_recipe fail), becomes null.
+const MAX_STEP_TITLE = 200;
 function normalizeSteps(v: unknown): unknown {
   if (typeof v === 'string') return [{ title: null, text: v }];
   if (!Array.isArray(v)) return v;
   return v.map((s) => {
     if (typeof s === 'string') return { title: null, text: s };
-    if (s && typeof s === 'object' && 'title' in s && typeof s.title === 'string' && !s.title.trim()) {
+    if (
+      s &&
+      typeof s === 'object' &&
+      'title' in s &&
+      typeof s.title === 'string' &&
+      (!s.title.trim() || s.title.trim().length > MAX_STEP_TITLE)
+    ) {
       return { ...s, title: null };
     }
     return s;

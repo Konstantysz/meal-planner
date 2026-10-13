@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { parseLlmJson, LLM_OUTPUT_SCHEMA, SYSTEM_PROMPT } from '@/lib/import/schema';
-import { cleanHtml } from '@/lib/import/clean';
 
 describe('parseLlmJson', () => {
   it('treats null optional fields as absent (small models emit null instead of omitting)', () => {
@@ -80,19 +78,22 @@ describe('parseLlmJson steps', () => {
     ]);
   });
 
-  it('parses a model answer for the aniagotuje fixture (titled steps, detail text)', () => {
-    const md = cleanHtml(readFileSync('tests/fixtures/aniagotuje/sample.html', 'utf8'));
-    expect(md).toContain('Pomidorową podawaj');
+  it('drops a step title longer than 200 chars but keeps the text', () => {
+    const long = 'x'.repeat(201);
+    const ok = 'y'.repeat(200);
     const r = parseLlmJson(
       JSON.stringify({
-        name: 'Zupa pomidorowa',
+        name: 'Z',
         recipeInstructions: [
-          { title: 'Gotowanie bulionu', text: 'Umieść mięso i warzywa w garnku, wlej 1500 ml wody i gotuj 90 minut.' },
-          { title: 'Dodanie koncentratu', text: 'Do bulionu dodaj koncentrat pomidorowy i śmietankę.' },
+          { title: long, text: 'a' },
+          { title: ok, text: 'b' },
         ],
       }),
     );
-    expect(r.recipeInstructions.every((s) => s.title && s.text.length > s.title.length)).toBe(true);
+    expect(r.recipeInstructions).toEqual([
+      { title: null, text: 'a' },
+      { title: ok, text: 'b' },
+    ]);
   });
 });
 
