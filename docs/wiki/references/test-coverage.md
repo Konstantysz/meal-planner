@@ -65,6 +65,7 @@ sources:
 | `src/app/auth/callback/route.ts` | `tests/unit/auth-callback.test.ts` |
 | `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
 | `src/components/import/ImportReviewForm.tsx` | `tests/unit/import/ImportReviewForm.test.tsx` |
+| `src/lib/import/errors.ts`, `match-outcome.ts` | `tests/unit/import/errors.test.ts` (also `ImportDialog` and `ImportReviewForm` tests) |
 | `src/lib/import/duration.ts` | `tests/unit/import/duration.test.ts` |
 | `src/lib/list-edit.ts` | `tests/unit/list-edit.test.ts` |
 | `src/components/import/ExtractedIngredientsEditor.tsx`, `src/components/recipes/StepsEditor.tsx` | `tests/unit/import/review-editors.test.tsx` (also `ImportReviewForm` editing) |
@@ -123,6 +124,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Added `errors.ts` and `match-outcome.ts` (#40).
 - 2026-10-13: Recipe list/detail redesign (#39): `toListItem`, `recipePerServing` and `recipeFieldErrors` tested; `listRecipes` query still not covered.
 - 2026-10-13: Added `extractImageUrl` and `isAllowedImageUrl` (recipe photos).
 - 2026-10-13: Review Focus #5 also pinned by `recipeMacros` and the recipe-view badge test (#73).

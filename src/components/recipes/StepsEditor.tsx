@@ -35,6 +35,7 @@ export function StepsEditor({ steps, onChange }: { steps: EditableStep[]; onChan
                 aria-label={`Przesuń krok ${i + 1} w górę`}
                 disabled={i === 0}
                 onClick={() => onChange(moveItem(steps, i, -1))}
+                className="w-11 px-0 lg:w-9"
               >
                 ↑
               </Button>
@@ -42,10 +43,15 @@ export function StepsEditor({ steps, onChange }: { steps: EditableStep[]; onChan
                 aria-label={`Przesuń krok ${i + 1} w dół`}
                 disabled={i === steps.length - 1}
                 onClick={() => onChange(moveItem(steps, i, 1))}
+                className="w-11 px-0 lg:w-9"
               >
                 ↓
               </Button>
-              <Button aria-label={`Usuń krok ${i + 1}`} onClick={() => onChange(removeItem(steps, i))}>
+              <Button
+                aria-label={`Usuń krok ${i + 1}`}
+                onClick={() => onChange(removeItem(steps, i))}
+                className="w-11 px-0 lg:w-9"
+              >
                 ×
               </Button>
             </div>
