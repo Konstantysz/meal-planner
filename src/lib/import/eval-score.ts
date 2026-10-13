@@ -1,6 +1,6 @@
 // Scoring for scripts/eval-ingredients.ts: pairs each expected ingredient with one model output entry.
 import { wordsMatch } from './match-ingredient';
-import type { ExtractedIngredient } from './schema';
+import type { ExtractedIngredient, ExtractedStep } from './schema';
 
 export interface ExpectedEntry {
   name: string;
@@ -52,5 +52,22 @@ export function matchEntry(want: ExpectedEntry, pool: readonly ExtractedIngredie
     amount: amountHit(want.amount, hit.amount),
     unit: want.unit === hit.unit,
     rest: pool.filter((g) => g !== hit),
+  };
+}
+
+export interface StepScore {
+  count: number;
+  titled: number;
+  /** Titled steps whose text still starts with the title: the model repeated it instead of splitting. */
+  repeated: number;
+}
+
+/** Step count and title presence of the model's steps (scripts/eval-ingredients.ts, aniagotuje fixture). */
+export function scoreSteps(steps: readonly ExtractedStep[]): StepScore {
+  const titled = steps.filter((s) => s.title);
+  return {
+    count: steps.length,
+    titled: titled.length,
+    repeated: titled.filter((s) => s.text.toLowerCase().startsWith(s.title!.toLowerCase())).length,
   };
 }

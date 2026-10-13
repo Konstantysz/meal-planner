@@ -26,6 +26,7 @@
         "required_status_checks": [
           { "context": "lint" },
           { "context": "wiki" },
+          { "context": "db" },
           { "context": "test" },
           { "context": "build" }
         ]

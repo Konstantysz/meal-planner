@@ -17,6 +17,8 @@
     "prepare": "git config core.hooksPath .githooks",
     "wiki:fix": "markdownlint-cli2 --fix",
     "wiki:stale": "tsx scripts/wiki-stale.ts",
+    "db:verify": "tsx scripts/db-verify.ts",
+    "db:order": "tsx scripts/migration-order-check.ts",
     "coverage:check": "tsx scripts/test-coverage-check.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -38,6 +40,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
