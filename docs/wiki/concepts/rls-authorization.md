@@ -2,17 +2,17 @@
 title: "RLS Authorization"
 summary: "Postgres Row Level Security is the app's authorization boundary: the membership model, what each role can do, and the known permissive spots."
 tags: [rls, security, database]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: a7f8f52
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: 5966c4c
 sources:
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql
@@ -22,6 +22,8 @@ sources:
     path: supabase/migrations/0004_security_hardening.sql
   - title: "Share-link RPC"
     path: supabase/migrations/0005_share_link_rpc.sql
+  - title: "Ingredient ownership and app admins"
+    path: supabase/migrations/0010_ingredient_ownership.sql
   - title: "Agent orientation (RLS convention)"
     path: AGENTS.md
 ---
@@ -29,7 +31,7 @@ sources:
 # RLS Authorization
 
 > [!tldr]
-> Route handlers don't check permissions; Postgres RLS does. Access is "member of the row's household", tested by `is_member_of()`. Ingredients are crowd-sourced (any signed-in user can edit any row). Since migration 0004, member policies apply to `authenticated` only, and invites, member removal and token creation are locked down. Since 0005, anonymous share links go through the `get_shared_plan` RPC, not policies. Still loose: any member can edit any household recipe.
+> Route handlers don't check permissions; Postgres RLS does. Access is "member of the row's household", tested by `is_member_of()`. Ingredients are a shared catalogue: anyone signed in can add one, but only its creator or an app admin can change it (since 0010). Since migration 0004, member policies apply to `authenticated` only, and invites, member removal and token creation are locked down. Since 0005, anonymous share links go through the `get_shared_plan` RPC, not policies. Still loose: any member can edit any household recipe.
 
 ## Context
 
@@ -68,8 +70,9 @@ flowchart TD
 | Policy | Looseness | Impact |
 |---|---|---|
 | `rec_update` | Author **or** any member | Any member can edit any household recipe, including `author_id` (as the plan specified). Since 0004 a recipe can't be moved into a foreign household. |
-| `ing_update` | Any signed-in user, any row | Anyone can change any ingredient's macros (intentional crowd-sourcing) |
 | `rec_select` `visibility = 'public_link'` | Readable by any signed-in user without membership | No UI sets `public_link`, so this is latent. Since 0004 `anon` can't read it. |
+
+Fixed in 0010: `ing_update` (any signed-in user could change any ingredient's macros) and `ing_insert` (any `created_by`). Updates now need the creator or an app admin (`is_app_admin()`, backed by `app_admins`, which no client can read or write). See [[0013-ingredient-ownership-and-app-admins]].
 
 Fixed in 0005: `st_select using (true)` and the `*_select_via_share_token` policies (token and plan enumeration).
 
@@ -93,14 +96,16 @@ select get_shared_plan('<token>');     -- the plan that token unlocks, or null
 - [[0001-rls-is-the-authz-boundary]]
 - [[0003-share-token-rls]]
 - [[0008-share-link-rpc]]
+- [[0013-ingredient-ownership-and-app-admins]]
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0010_ingredient_ownership.sql`
 - `AGENTS.md`: "RLS is the authorization boundary"
 
 ## Changelog
 
+- 2026-10-13: Updated for migration 0010: ingredient updates limited to the creator or an app admin; removed the `ing_update` gap.
 - 2026-10-09: UI string for an RLS-hidden recipe changed from „przepis usunięty" to „przepis niedostępny" (issue #16).
 - 2026-10-09: Re-verified against a7f8f52 against migrations 0001, 0002, 0004, 0005 and the policy text. Corrected the route list (`/api/plans` and `/api/shopping` are GET). 0006 and 0007 add no policies.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
