@@ -95,7 +95,7 @@ Each migration from `0004` on has a script in `supabase/checks/` that creates th
 | `0011` | `FAIL 7 (9 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (9 checks)` (2026-10-13) |
 | `0012` | `FAIL 10 (14 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (14 checks)` (2026-10-13; checks 13–14 report „row corrected”) |
 | `0013` | `FAIL 16 (20 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (20 checks)` (2026-10-13) |
-| `0014` | `FAIL 16 (21 checks)` (live, SQL editor, 2026-10-13) | pending |
+| `0014` | `FAIL 16 (21 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (21 checks)` (2026-10-13) |
 
 The live `0012` baseline is `FAIL 10 (14 checks)`, while PGlite (`pnpm db:verify`) gives `FAIL 8 (14 checks)`: checks 13–14 ("the row, if present, is plausible") fail live on the two bad rows and pass on PGlite, where those rows don't exist.
 
@@ -148,6 +148,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 ## Changelog
 
 - 2026-10-13: Recorded the live 0011 result after deploy (`ALL PASS (9 checks)`).
+- 2026-10-13: Recorded the live 0014 result after deploy (`ALL PASS (21 checks)`).
 - 2026-10-13: Recorded the live 0013 result after deploy (`ALL PASS (20 checks)`).
 - 2026-10-13: Recorded the live 0012 result after deploy (`ALL PASS (14 checks)`, both bad rows corrected).
 - 2026-10-13: Recorded the live 0012 baseline from the SQL editor run on 2026-10-13.
