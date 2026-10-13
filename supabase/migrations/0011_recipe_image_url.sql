@@ -6,6 +6,7 @@
 -- save_recipe and update_recipe read it from p_recipe.image_url; missing or blank = null, so callers
 --   that omit it keep working (but update_recipe then clears the photo: send the stored value on edit).
 -- Depends on 0008 (save_recipe) and 0009 (update_recipe). Requires app code that sends image_url.
+-- Merge first: 0012 (#97), 0013 (#96) and 0014 (#98) follow this one; if 0011 lands later it must be renumbered above them and its live baseline retaken.
 -- Rollback: supabase/rollbacks/0011_recipe_image_url.down.sql
 
 alter table public.recipes add column image_url text;
