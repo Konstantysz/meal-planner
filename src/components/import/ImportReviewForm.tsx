@@ -13,16 +13,19 @@ import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 export function ImportReviewForm({
   extracted,
   sourceUrl,
+  imageUrl,
   onCancel,
   onSaved,
 }: {
   extracted: ExtractedRecipe;
   sourceUrl: string;
+  imageUrl?: string | null;
   onCancel: () => void;
   onSaved: (id: string) => void;
 }) {
   const [name, setName] = useState(extracted.name);
   const [servings, setServings] = useState(parseYield(extracted.recipeYield));
+  const [photoUrl, setPhotoUrl] = useState(imageUrl ?? '');
   const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
@@ -110,6 +113,7 @@ export function ImportReviewForm({
         servings_base: servings,
         prep_time_min: prepTime,
         source_url: sourceUrl || null,
+        image_url: photoUrl.trim() || null,
         source_author: sourceAuthor.trim() || null,
         visibility: 'household',
         diet_tags: [],
@@ -127,8 +131,11 @@ export function ImportReviewForm({
     });
     if (!res.ok) {
       const body: unknown = await res.json().catch(() => null);
-      const msg = (body as { error?: unknown } | null)?.error;
-      setError(typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.');
+      const { error: msg, fields } = (body ?? {}) as { error?: unknown; fields?: Record<string, unknown> };
+      const detail = Object.values(fields ?? {}).filter((m): m is string => typeof m === 'string');
+      setError(
+        detail.length > 0 ? detail.join('. ') : typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.',
+      );
       return;
     }
     const r = await res.json();
@@ -141,6 +148,17 @@ export function ImportReviewForm({
         Sprawdź i uzupełnij dane z importu. Lista składników wymaga mapowania na bazę.
       </p>
       <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border rounded px-3 py-2" />
+      <label className="block text-sm">
+        Zdjęcie (adres URL)
+        <input
+          type="url"
+          value={photoUrl}
+          onChange={(e) => setPhotoUrl(e.target.value)}
+          placeholder="https://…"
+          maxLength={2048}
+          className="w-full border rounded px-3 py-2 mt-1"
+        />
+      </label>
       <div className="flex items-center gap-3">
         <input
           type="number"

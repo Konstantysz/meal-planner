@@ -44,6 +44,10 @@ async function renderRecipe(ingredients: ReturnType<typeof row>[]) {
     servings_base: 2,
     prep_time_min: null,
     source_url: null,
+    source_author: null,
+    image_url: null,
+    diet_tags: [],
+    allergens: [],
     ingredients,
     steps: [],
   } as unknown as RecipeWithDetails;

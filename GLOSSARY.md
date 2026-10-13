@@ -44,6 +44,10 @@ _Avoid_: dish, meal (a meal is what a slot holds), przepis (code and UI only)
 One ordered instruction of a recipe: an optional title and its details. A source page may give only a general title (a heading) with the real detail in the text beneath it.
 _Avoid_: instruction, direction, krok (UI label only)
 
+**Recipe photo**:
+The optional picture of a recipe: a hotlinked URL from a supported source site, not a stored file. Without one, a recipe cover shows its slot colour.
+_Avoid_: image upload (photos are not uploaded), thumbnail
+
 **Source author**:
 The person or site credited with a recipe's original authorship: the name from an imported page, or a household member who wrote the recipe themselves. Not the same as who saved it.
 _Avoid_: author (alone, it is ambiguous with the member who saved the recipe), creator, owner

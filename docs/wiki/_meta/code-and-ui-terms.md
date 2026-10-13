@@ -53,7 +53,7 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 | String | Where | Meaning |
 |---|---|---|
 | „przepis niedostępny" | Plan slot | Slot has a `recipe_id`, but the recipe could not be read. |
-| „brak danych makro" | `MacroSummary`, `DayTotals` | No macro total available: nothing in the recipe or day could be counted. |
+| „brak danych makro" | `MacroSummary`, `DayTotals` | No macro total available: nothing in the recipe or day could be counted; on recipe list cards also an incomplete total. |
 | „(brak makro)" | Shopping item | The line's `incomplete` flag is set. |
 | „makra niepełne" | `RecipeMacroPanel`, `DayTotals` | An incomplete macro total: some ingredients were left out. The recipe page lists them under „Nie wliczono:"; the day total gets a „≥" prefix. |
 | „puste" | Plan slot | Slot with no recipe. |

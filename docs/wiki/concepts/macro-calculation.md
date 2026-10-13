@@ -18,6 +18,8 @@ sources:
     path: src/lib/macros.ts
   - title: "Recipe detail page"
     path: src/app/(app)/recipes/[id]/page.tsx
+  - title: "Recipe detail body"
+    path: src/components/recipes/RecipeDetail.tsx
   - title: "Macro summary component"
     path: src/components/recipes/MacroSummary.tsx
   - title: "Recipe macro panel"
@@ -52,6 +54,8 @@ All functions are in `src/lib/macros.ts` and are pure:
 | `toGrams(amount, unit)` | Grams for a mass or volume multiple, `null` for any other unit (see the table below). Case, surrounding spaces and one trailing dot (`kg.`) are ignored; inflected forms fall back to `normalizeUnit` (`gramów` → `g`, `litra` → `l`). |
 | `recipeMacros(ingredients, servings)` | `{ total, perServing, complete, leftOut }` for a recipe (see below). |
 
+The recipe detail page calls `recipeMacros(ingredients, servings_base)` and shows the result in `RecipeMacroPanel` (partial total plus the „makra niepełne" list). The recipe list cards call `recipePerServing` (`src/lib/day-macros.ts`), which returns `recipeMacros(...).perServing` only when the total is complete, else `null` („brak danych makro"): a card has no room for the left-out list.
+
 `toGrams` factors:
 
 | Unit | mg | g, gr | dag, dkg | kg | ml | cl | dl | l |
@@ -81,9 +85,9 @@ A total with `complete: false` is an **incomplete macro total**: a lower bound, 
 
 ### Where it is shown
 
-- **Recipe page** (`src/app/(app)/recipes/[id]/page.tsx`): `RecipeMacroPanel` shows the per-serving `MacroSummary`. When anything was left out, the heading reads „Makro per porcja (co najmniej):", and a „makra niepełne" badge lists „Nie wliczono:" with each name and its reason („brak makro składnika", „jednostki nie da się przeliczyć na gramy", „brak ilości").
+- **Recipe page** (`RecipeDetail`, `src/components/recipes/RecipeDetail.tsx`): `RecipeMacroPanel` shows the per-serving `MacroSummary`. When anything was left out, the heading reads „Makro per porcja (co najmniej):", and a „makra niepełne" badge lists „Nie wliczono:" with each name and its reason („brak makro składnika", „jednostki nie da się przeliczyć na gramy", „brak ilości").
 - **Plan day totals** (`computeDayMacros`, `src/lib/day-macros.ts`): per-serving macros from `recipeMacros` times planned servings, summed per day. An incomplete day shows „≥" before the kcal and „makra niepełne" (see [[week-plan#Day macro totals]]).
-- `MacroSummary` renders `null` as „brak danych makro", which now happens when nothing in the recipe could be counted. Otherwise it shows `kcal · B · T · W`.
+- `MacroSummary` renders `null` as „brak danych makro", which happens when nothing in the recipe could be counted, and on list cards also when the total is incomplete. Otherwise it shows `kcal · B · T · W`.
 
 ## Invariants and gotchas
 
@@ -98,7 +102,7 @@ A total with `complete: false` is an **incomplete macro total**: a lower bound, 
 
 - No conversion for household units (łyżka, łyżeczka, szklanka, szt → grams); those ingredients are left out and reported. Per-ingredient density for volume is #74.
 - Day totals don't name the left-out ingredients or recipes; only the recipe page does.
-- PR #93 (recipe detail redesign, not merged) adds its own all-or-nothing `recipePerServing`; it should adopt `recipeMacros` instead.
+- Recipe list cards stay all-or-nothing: an incomplete recipe shows „brak danych makro" on its card, the detail page shows the partial total and what was left out.
 
 ## Examples
 
@@ -134,6 +138,7 @@ recipeMacros(
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail use all-or-nothing `recipePerServing` (#39).
 - 2026-10-13: Unknown is not zero (#73): `toGrams` (mg, g/gr, dag/dkg, kg, ml, cl, dl, l, trailing dot, `normalizeUnit` fallback), `recipeMacros` with `complete` and `leftOut`, the „makra niepełne" badge on the recipe page and labelled partial day totals. Removed the "non-gram units count as 0" and "0 kcal instead of no data" gotchas.
 - 2026-10-13: Documented per-day totals in the plan (#44).
 - 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.

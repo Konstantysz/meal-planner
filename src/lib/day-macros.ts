@@ -21,6 +21,15 @@ export interface DayMacros {
 }
 
 /**
+ * Per-serving macros of a recipe for the list cards: `recipeMacros(...).perServing`, but null (UI: „brak danych
+ * makro") unless the total is complete. A card has no room for the left-out list, so it never shows a partial sum.
+ */
+export function recipePerServing(ingredients: PlannedRecipeIngredient[], servingsBase: number): Macros | null {
+  const m = recipeMacros(ingredients, servingsBase);
+  return m.complete ? m.perServing : null;
+}
+
+/**
  * Per-day macro totals for a week: for each slot with a recipe, the recipe's per-serving macros (`recipeMacros`)
  * times the planned servings. Works on rows already fetched in one query, so it adds no per-slot requests.
  * Only dates that have a slot with a recipe appear in the result.

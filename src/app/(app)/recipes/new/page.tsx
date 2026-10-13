@@ -9,13 +9,16 @@ import type { ExtractedRecipe } from '@/lib/import/schema';
 export default function NewRecipePage() {
   const router = useRouter();
   const [showImport, setShowImport] = useState(false);
-  const [extracted, setExtracted] = useState<{ data: ExtractedRecipe; url: string } | null>(null);
+  const [extracted, setExtracted] = useState<{ data: ExtractedRecipe; url: string; imageUrl: string | null } | null>(
+    null,
+  );
 
   if (extracted) {
     return (
       <ImportReviewForm
         extracted={extracted.data}
         sourceUrl={extracted.url}
+        imageUrl={extracted.imageUrl}
         onCancel={() => setExtracted(null)}
         onSaved={(id) => router.push(`/recipes/${id}`)}
       />
@@ -37,8 +40,8 @@ export default function NewRecipePage() {
       {showImport && (
         <ImportDialog
           onClose={() => setShowImport(false)}
-          onExtracted={(data, url) => {
-            setExtracted({ data, url });
+          onExtracted={(data, url, imageUrl) => {
+            setExtracted({ data, url, imageUrl });
             setShowImport(false);
           }}
         />
