@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
+import { StepsEditor, type RecipeFormStep } from '@/components/recipes/StepsEditor';
+import { Input } from '@/components/ui';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
@@ -23,7 +25,10 @@ export function ImportReviewForm({
   const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
-  const [steps, setSteps] = useState<{ title: string | null; text: string }[]>(extracted.recipeInstructions);
+  const [steps, setSteps] = useState<RecipeFormStep[]>(
+    extracted.recipeInstructions.map((s) => ({ title: s.title ?? '', text: s.text })),
+  );
+  const [sourceAuthor, setSourceAuthor] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [matching, setMatching] = useState(false);
@@ -96,20 +101,21 @@ export function ImportReviewForm({
         servings_base: servings,
         prep_time_min: prepTime,
         source_url: sourceUrl || null,
+        source_author: sourceAuthor.trim() || null,
         visibility: 'household',
         diet_tags: [],
         allergens: [],
-        ingredients: ingredients.map((i) => ({
+        ingredients: ingredients.map((i, position) => ({
           ingredient_id: i.ingredient_id,
           amount: i.amount,
           unit: i.unit,
           raw_text: i.raw_text,
-          position: i.position,
+          position,
           optional: i.optional,
         })),
         steps: steps
           .filter((s) => s.text.trim())
-          .map((s, i) => ({ position: i, title: s.title?.trim() || null, text: s.text })),
+          .map((s, position) => ({ position, title: s.title.trim() || null, text: s.text })),
       }),
     });
     if (!res.ok) {
@@ -125,7 +131,16 @@ export function ImportReviewForm({
       <p className="text-sm bg-amber-50 text-amber-900 p-2 rounded">
         Sprawdź i uzupełnij dane z importu. Lista składników wymaga mapowania na bazę.
       </p>
-      <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border rounded px-3 py-2" />
+      <Input aria-label="Nazwa przepisu" value={name} onChange={(e) => setName(e.target.value)} />
+      <label className="block">
+        <span className="font-semibold">Autor przepisu</span>
+        <Input
+          value={sourceAuthor}
+          onChange={(e) => setSourceAuthor(e.target.value)}
+          placeholder="np. Ania Gotuje"
+          maxLength={200}
+        />
+      </label>
       <div className="flex items-center gap-3">
         <input
           type="number"
@@ -171,19 +186,8 @@ export function ImportReviewForm({
         <IngredientPicker value={ingredients} onChange={setIngredients} />
       </div>
       <div>
-        <h3 className="font-semibold">Kroki</h3>
-        {steps.map((s, i) => (
-          <textarea
-            key={i}
-            value={s.text}
-            onChange={(e) => {
-              const n = [...steps];
-              n[i] = { ...s, text: e.target.value };
-              setSteps(n);
-            }}
-            className="w-full border rounded px-2 py-1 my-1"
-          />
-        ))}
+        <h3 className="mb-2 font-semibold">Kroki</h3>
+        <StepsEditor value={steps} onChange={setSteps} />
       </div>
       {notice && <p className="text-sm bg-blue-50 text-blue-900 p-2 rounded">{notice}</p>}
       {error && <p className="text-red-600">{error}</p>}
