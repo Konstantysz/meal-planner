@@ -1,11 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PlanSlotInputSchema, PlanSlotPatchSchema } from '@/lib/schemas';
+import type { PlannedRecipeIngredient } from '@/lib/day-macros';
 import type { Plan, PlanSlot } from '@/lib/types';
 
 export interface PlanWithSlots extends Plan {
   slots: Array<
     PlanSlot & {
-      recipe: { id: string; name: string; servings_base: number } | null;
+      recipe: { id: string; name: string; servings_base: number; ingredients: PlannedRecipeIngredient[] } | null;
     }
   >;
 }
@@ -30,7 +31,9 @@ export async function getOrCreatePlan(supabase: SupabaseClient, householdId: str
 export async function getWeekPlan(supabase: SupabaseClient, planId: string): Promise<PlanWithSlots> {
   const { data, error } = await supabase
     .from('plans')
-    .select('*, slots:plan_slots(*, recipe:recipes(id, name, servings_base))')
+    .select(
+      '*, slots:plan_slots(*, recipe:recipes(id, name, servings_base, ingredients:recipe_ingredients(amount, unit, optional, ingredients(kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g))))',
+    )
     .eq('id', planId)
     .single();
   if (error) throw error;

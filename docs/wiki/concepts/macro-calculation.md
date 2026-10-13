@@ -20,6 +20,8 @@ sources:
     path: src/app/(app)/recipes/[id]/page.tsx
   - title: "Macro summary component"
     path: src/components/recipes/MacroSummary.tsx
+  - title: "Day totals"
+    path: src/lib/day-macros.ts
   - title: "Macro tests"
     path: tests/unit/macros.test.ts
 ---
@@ -54,6 +56,8 @@ const total = sumMacros(recipe.ingredients.map((ri) => {
 const per = perServing(total, recipe.servings_base);
 ```
 
+The plan's day totals (`computeDayMacros`, `src/lib/day-macros.ts`) apply the same rules per slot: per-serving macros times planned servings, summed per day, flagged incomplete instead of silently low.
+
 Optional ingredients (`ri.optional`) are skipped, so the totals describe the base recipe. See [[recipe-management]].
 
 `MacroSummary` renders `null` as „brak danych makro". Otherwise it shows `kcal · B · T · W`.
@@ -71,7 +75,7 @@ Optional ingredients (`ri.optional`) are skipped, so the totals describe the bas
 
 - No unit conversion (łyżka, szklanka, szt → grams). Recipes that use those units count as 0, so their totals come out low. The import parser recognises these units (`src/lib/import/parse-ingredient.ts`), but nothing converts them.
 - No "incomplete" flag at the recipe level. The plan's Review Focus #5 marking exists only on the shopping list (see [[shopping-list-aggregation]]).
-- Per-day totals in the plan are not implemented (see [[week-plan#Known gaps]]).
+- Plan day totals reuse these rules but are all-or-nothing: any ingredient counted as 0 makes the day „brak danych makro" (see [[week-plan#Day macro totals]]).
 
 ## Examples
 
@@ -97,6 +101,7 @@ perServing({ kcal: 800, protein: 40, fat: 30, carbs: 90 }, 0); // → null
 
 ## Changelog
 
+- 2026-10-13: Documented per-day totals in the plan (#44).
 - 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.
 - 2026-10-05: Optional ingredients are excluded from recipe macros.
 - 2026-10-04: Created from the macros section of legacy `recipes.md`. Added the "0 kcal instead of no data" gotcha.
