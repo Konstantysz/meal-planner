@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 1c21fbf
+verified_commit: 7b03971
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -60,6 +60,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
 | Recipe edits are last-write-wins: `update_recipe` has no version check, so two sessions saving the same recipe (the author on two devices, or the author and an app admin) overwrite each other silently (`recipes.updated_at` exists since 0013 but nothing compares it) | [[recipe-management#Known gaps]] |
+| Job `db` is not a required check on `main` until a repository admin (Konstantysz) syncs ruleset 24806035, so a migration PR can merge while `db` is red; Radek asked for the sync on 2026-10-13 | [[github-workflows#Branch protection]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
 | Deleting the owner's account leaves the household without an owner: no member can remove others and nothing promotes a new owner | [[household-model#Known gaps]] |
 | Logged-out API calls get a `/login` redirect instead of a 401 | [[auth-session#Invariants and gotchas]] |
@@ -99,6 +100,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-13: Added the `db` required-check row (ruleset sync pending, TODO for Konstantysz).
 - 2026-10-13: Removed the raw Zod JSON row; the recipe form shows field-level messages (#39).
 - 2026-10-13: Macro-less ingredients and non-gram units no longer count as 0 silently; reworded both rows (#73).
 - 2026-10-13: Added the Atwater data-quality row; impossible ingredient macros are now rejected (#71, migration 0012).

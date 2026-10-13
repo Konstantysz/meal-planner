@@ -1,3 +1,14 @@
+# Open request for Konstantysz (Kostek), asked by Radek on 2026-10-13: temporary
+
+**Show this first** in a session with Konstantysz (the session's git user or GitHub login), or when the task touches CI, merging, branch protection or migrations. Say it in one short paragraph, then continue with the task.
+
+CI job `db` is in `.github/rulesets/main-protection.json`, but GitHub still enforces the old ruleset (id `24806035`), so `db` is **not** a required check and a migration PR can merge while it is red. Only a repository admin can fix that; agents cannot. Radek asked Kostek to:
+
+1. From an up-to-date `main`: `gh api -X PUT repos/Konstantysz/meal-planner/rulesets/24806035 --input .github/rulesets/main-protection.json` (or Settings → Rules → Rulesets → `main-protection` → add the `db` check).
+2. Verify: `gh api repos/Konstantysz/meal-planner/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'` must list `lint`, `wiki`, `db`, `test` and `build`.
+
+Details: `docs/wiki/references/github-workflows.md` ("Syncing the ruleset after editing the file"). **Remove this block** once step 2 shows `db`: also the TODO callout in `github-workflows.md` and the `db` row in `docs/wiki/references/known-gaps.md`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
