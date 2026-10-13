@@ -56,7 +56,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
-| Per-day macro totals are not implemented (#44) | [[week-plan#Known gaps]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
@@ -97,6 +96,7 @@ git grep -n "ponytail:" -- src scripts
 
 ## Changelog
 
+- 2026-10-13: Removed the per-day macro totals row (#44).
 - 2026-10-13: Removed the static pre-render, always-1-serving, dark-mode slot name and unused `@dnd-kit` rows (#38); the per-day macros row now says not implemented.
 - 2026-10-13: Removed the login-without-signup-link row and reworded the have-marks row: the banner no longer promises a sync (#41).
 - 2026-10-11: Closed the inflected-name gap („czosnku") and the model-output row for auto-match (the model returns base-form names now); added the model-quality row.

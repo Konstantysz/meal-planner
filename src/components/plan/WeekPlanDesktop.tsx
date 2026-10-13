@@ -16,6 +16,8 @@ import {
 } from '@dnd-kit/core';
 import type { PlanWithSlots } from '@/lib/db/plans';
 import { Icon, Input } from '@/components/ui';
+import { computeDayMacros } from '@/lib/day-macros';
+import { DayTotals } from './DayTotals';
 import { PlanSlot } from './PlanSlot';
 import { POSITIONS, POSITION_LABELS as LABELS, type SlotHandlers } from './plan-handlers';
 
@@ -42,6 +44,7 @@ export function WeekPlanDesktop({
 }: { plan: PlanWithSlots; recipes?: Array<{ id: string; name: string }> } & SlotHandlers) {
   const start = new Date(plan.week_start_date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  const dayMacros = computeDayMacros(plan.slots);
   // distance: a click on the handle or a step button is not a drag.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -119,6 +122,21 @@ export function WeekPlanDesktop({
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" className="border border-line p-2 text-left text-xs font-normal text-muted">
+                  Razem
+                </th>
+                {days.map((d) => {
+                  const dateStr = format(d, 'yyyy-MM-dd');
+                  return (
+                    <td key={dateStr} className="border border-line p-2 align-top">
+                      <DayTotals day={dayMacros[dateStr]} />
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

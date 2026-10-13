@@ -38,6 +38,7 @@ sources:
 | Module | Test file |
 |---|---|
 | `src/lib/macros.ts` | `tests/unit/macros.test.ts` |
+| `src/lib/day-macros.ts` | `tests/unit/day-macros.test.tsx` (also `DayTotals`) |
 | `src/lib/scaling.ts` | `tests/unit/scaling.test.ts` |
 | `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` |
 | `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` |
