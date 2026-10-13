@@ -21,6 +21,12 @@ const ITEM_MESSAGES: Record<string, (n: number) => string> = {
   steps: (n) => `Popraw krok nr ${n}`,
 };
 
+/** A refinement on the whole list (`uniquePositions` in `RecipeInputSchema`), as opposed to it being too short. */
+const LIST_MESSAGES: Record<string, string> = {
+  ingredients: 'Składniki mają powtórzone pozycje',
+  steps: 'Kroki mają powtórzone pozycje',
+};
+
 /**
  * Turns a Zod error for `RecipeInputSchema` into one Polish message per form field, so the form shows
  * "Dodaj co najmniej jeden krok" next to the steps instead of raw issue JSON. A problem inside an item
@@ -31,7 +37,12 @@ export function recipeFieldErrors(error: ZodError): RecipeFieldErrors {
   for (const issue of error.issues) {
     const root = String(issue.path[0] ?? '_form');
     const n = typeof issue.path[1] === 'number' ? issue.path[1] + 1 : null;
-    const message = issue.path.length > 1 && n ? ITEM_MESSAGES[root]?.(n) : MESSAGES[root];
+    const message =
+      issue.path.length > 1 && n
+        ? ITEM_MESSAGES[root]?.(n)
+        : issue.code === 'custom'
+          ? (LIST_MESSAGES[root] ?? MESSAGES[root])
+          : MESSAGES[root];
     const key = MESSAGES[root] ? root : '_form';
     out[key] ??= message ?? 'Nieprawidłowe dane przepisu';
   }

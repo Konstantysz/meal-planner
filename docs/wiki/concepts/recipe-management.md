@@ -120,7 +120,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Validation messages
 
-`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. `ImportReviewForm` reads only `error`, so it shows the short Polish sentence instead of JSON.
+`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. Duplicate positions (the 0013 row rules, only reachable from a direct API call) report „Składniki mają powtórzone pozycje" / „Kroki mają powtórzone pozycje"; an amount of 0 or less reports its row („Popraw składnik nr N"). `ImportReviewForm` joins the `fields` messages into one line, or shows a status message when there are none.
 
 ## Examples
 
@@ -153,6 +153,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: `recipeFieldErrors` reports duplicate positions as such instead of „Dodaj co najmniej jeden …".
 - 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
 - 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
 - 2026-10-13: Import and the forms now send an amount of 0 or less as null instead of failing the save.
