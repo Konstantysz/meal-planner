@@ -56,6 +56,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
 | Household units (łyżka, szklanka, szt) have no gram conversion, so those ingredients are left out of recipe macros (reported as an incomplete macro total) | [[macro-calculation#Known gaps]] |
+| Ingredient macros that pass the range checks but miss the Atwater estimate (e.g. „vEGGs roślinny zamiennik jajek", 1.23×) are only listed by the data-quality report, which a human must run and act on | [[ingredient-database#Known gaps]] |
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
@@ -101,6 +102,7 @@ git grep -n "ponytail:" -- src scripts
 
 - 2026-10-13: Removed the raw Zod JSON row; the recipe form shows field-level messages (#39).
 - 2026-10-13: Macro-less ingredients and non-gram units no longer count as 0 silently; reworded both rows (#73).
+- 2026-10-13: Added the Atwater data-quality row; impossible ingredient macros are now rejected (#71, migration 0012).
 - 2026-10-13: Added the owner-less household, member-less household and null-`author_id` rows created by account deletion (migration 0013).
 - 2026-10-13: Migration 0013 (#72) added `recipes.updated_at` (the last-write-wins row now only lacks the version check) and account deletion; added the author-less recipe delete row.
 - 2026-10-13: Removed the per-day macro totals row (#44).

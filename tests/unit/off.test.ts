@@ -24,6 +24,29 @@ describe('mapOffProduct', () => {
   it('returns null when all macros missing', () => {
     expect(mapOffProduct({ product_name: 'X', nutriments: {} })).toBeNull();
   });
+
+  it('rejects the known bad peanut butter product (macros ×3.125, out of range)', () => {
+    expect(
+      mapOffProduct({
+        product_name: 'Peanut Butter Crunchy',
+        nutriments: { 'energy-kcal_100g': 593.75, proteins_100g: 75, fat_100g: 156.25, carbohydrates_100g: 43.75 },
+      }),
+    ).toBeNull();
+  });
+
+  it('rejects the known bad skyr product (kcal ÷3.5, fails Atwater)', () => {
+    expect(
+      mapOffProduct({
+        product_name: 'Skyr Wanilia',
+        nutriments: {
+          'energy-kcal_100g': 22.2857142857143,
+          proteins_100g: 6.5,
+          fat_100g: 1.5,
+          carbohydrates_100g: 9.5,
+        },
+      }),
+    ).toBeNull();
+  });
 });
 
 describe('guessCategory', () => {
@@ -87,6 +110,27 @@ describe('searchOff', () => {
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe('Mąka pszenna');
     expect(result[1].name).toBe('Cukier');
+  });
+
+  it('skips an implausible product so the next result comes first', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        products: [
+          {
+            product_name: 'Skyr Wanilia',
+            nutriments: { 'energy-kcal_100g': 22.29, proteins_100g: 6.5, fat_100g: 1.5, carbohydrates_100g: 9.5 },
+          },
+          {
+            product_name: 'Skyr naturalny',
+            nutriments: { 'energy-kcal_100g': 63, proteins_100g: 11, fat_100g: 0, carbohydrates_100g: 4 },
+          },
+        ],
+      }),
+    } as unknown as Response);
+
+    const result = await searchOff('skyr');
+    expect(result.map((r) => r.name)).toEqual(['Skyr naturalny']);
   });
 
   it('returns empty array on non-ok response', async () => {

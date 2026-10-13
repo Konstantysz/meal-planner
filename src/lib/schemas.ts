@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normalizeWeekStart } from '@/lib/week';
 import { isAllowedImageUrl } from '@/lib/image-hosts';
+import { MACRO_LIMITS, validateMacros, type MacroIssue } from '@/lib/macro-validation';
 
 export const RecipeJsonLdSchema = z.object({
   name: z.string().min(1),
@@ -13,28 +14,58 @@ export const RecipeJsonLdSchema = z.object({
   image: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
-export const IngredientInputSchema = z.object({
-  name: z.string().min(1).max(200),
-  category: z.enum([
-    'warzywa',
-    'owoce',
-    'mieso',
-    'ryby',
-    'nabial',
-    'pieczywo',
-    'makarony',
-    'przyprawy',
-    'tluszcze',
-    'napoje',
-    'inne',
-  ]),
-  kcal_per_100g: z.number().nonnegative().nullable(),
-  protein_per_100g: z.number().nonnegative().nullable(),
-  fat_per_100g: z.number().nonnegative().nullable(),
-  carbs_per_100g: z.number().nonnegative().nullable(),
-  default_unit: z.string().nullable(),
-  source: z.enum(['off', 'manual', 'ai_estimate']),
-});
+/** Field and English message for each range rule; `macro_sum` spans three fields, so it has no path. */
+const MACRO_ISSUE_DETAILS: Record<Exclude<MacroIssue, 'atwater'>, { path: string[]; message: string }> = {
+  kcal_range: {
+    path: ['kcal_per_100g'],
+    message: `kcal_per_100g must be between 0 and ${MACRO_LIMITS.maxKcal}`,
+  },
+  protein_range: {
+    path: ['protein_per_100g'],
+    message: `protein_per_100g must be between 0 and ${MACRO_LIMITS.maxGrams}`,
+  },
+  fat_range: { path: ['fat_per_100g'], message: `fat_per_100g must be between 0 and ${MACRO_LIMITS.maxGrams}` },
+  carbs_range: {
+    path: ['carbs_per_100g'],
+    message: `carbs_per_100g must be between 0 and ${MACRO_LIMITS.maxGrams}`,
+  },
+  macro_sum: {
+    path: [],
+    message: `protein_per_100g + fat_per_100g + carbs_per_100g must be at most ${MACRO_LIMITS.maxSum}`,
+  },
+};
+
+export const IngredientInputSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    category: z.enum([
+      'warzywa',
+      'owoce',
+      'mieso',
+      'ryby',
+      'nabial',
+      'pieczywo',
+      'makarony',
+      'przyprawy',
+      'tluszcze',
+      'napoje',
+      'inne',
+    ]),
+    kcal_per_100g: z.number().nonnegative().nullable(),
+    protein_per_100g: z.number().nonnegative().nullable(),
+    fat_per_100g: z.number().nonnegative().nullable(),
+    carbs_per_100g: z.number().nonnegative().nullable(),
+    default_unit: z.string().nullable(),
+    source: z.enum(['off', 'manual', 'ai_estimate']),
+  })
+  // Range rules shared with the DB CHECK constraints (migration 0012). Atwater is not applied here.
+  .superRefine((v, ctx) => {
+    for (const issue of validateMacros(v)) {
+      if (issue === 'atwater') continue; // not requested above; kept for exhaustiveness
+      const { path, message } = MACRO_ISSUE_DETAILS[issue];
+      ctx.addIssue({ code: 'custom', path, message });
+    }
+  });
 
 // Positions, amounts and step text mirror the database rules (migration 0013), so a bad body is a 400, not a failed RPC.
 export const RecipeIngredientInputSchema = z.object({
