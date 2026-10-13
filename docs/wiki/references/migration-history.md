@@ -83,7 +83,7 @@ Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwawa
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
-| `0012` | not yet run (PGlite baseline `FAIL 8 (14 checks)`) | pending |
+| `0012` | `FAIL 10 (14 checks)` (2026-10-13; PGlite `FAIL 8 (14 checks)`) | pending |
 
 The live `0012` baseline should be `FAIL 10 (14 checks)`, not 8: checks 13–14 ("the row, if present, is plausible") fail live on the two bad rows and pass on PGlite, where those rows don't exist.
 
@@ -133,6 +133,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Recorded the live 0012 baseline (`FAIL 10 (14 checks)`).
 - 2026-10-13: Added migration 0012 (ingredient macro range checks, two corrected rows). Expected live baseline `FAIL 10 (14 checks)`: checks 13–14 pass on PGlite only because the two live rows are absent there.
 - 2026-10-13: Scoped the "baselined" claims and the uncertainty warning to what was actually run; recorded the hand-applied `0010` migration and rollback during baselining; bumped `verified_commit`.
 - 2026-10-13: Recorded the live 0010 result after deploy (`ALL PASS (12 checks)`); advisors show only the expected `app_admins` (RLS, no policies) and `is_app_admin` notices.
