@@ -40,6 +40,8 @@ sources:
     path: src/components/recipes/RecipeForm.tsx
   - title: "Ingredient picker"
     path: src/components/recipes/IngredientPicker.tsx
+  - title: "Step list editor"
+    path: src/components/recipes/StepsEditor.tsx
   - title: "Recipe list and filters"
     path: src/components/recipes/RecipeList.tsx
   - title: "Detail page"
@@ -87,7 +89,7 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 
 ### Edit form
 
-The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title). Positions are renumbered from list order on submit; steps with blank text are dropped. `source_url` and `visibility` are carried through unchanged (no field edits them).
+The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title; the step list is the `StepsEditor` component, shared with the import review form, see [[import-pipeline]]). Positions are renumbered from list order on submit; steps with blank text are dropped. `source_url` and `visibility` are carried through unchanged (no field edits them).
 
 Filtering:
 
@@ -147,6 +149,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 - 2026-10-13: A repeated fork reuses the caller's fork; forks are named „… (kopia)"; `22023` for an empty copy; the original link shows only when readable.
 - 2026-10-13: Recipe forks (migration 0014, issue #75): only the author or an app admin edits or deletes in place; others fork via `POST /api/recipes/[id]/fork`. A refused delete now answers 403; removed the silent-delete gap. Live results pending.
+- 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
 - 2026-10-05: Documented the `optional` ingredient flag (0007).
