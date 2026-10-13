@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5ddfe28
+verified_commit: 1c21fbf
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -45,7 +45,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Gap | Details |
 |---|---|
 | `/api/import/fetch` fetches any URL for any signed-in user (SSRF) | [[api-routes#Routes]] |
-| A non-author recipe delete returns 204 and deletes nothing | [[recipe-management#Known gaps]] |
 | An RLS-hidden recipe in a slot makes `/api/shopping` throw | [[shopping-list-aggregation#Invariants and gotchas]] |
 
 ## Medium
@@ -60,7 +59,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
-| Recipe edits are last-write-wins: `update_recipe` has no version check, so two household members saving the same recipe overwrite each other silently (`recipes.updated_at` exists since 0013 but nothing compares it) | [[recipe-management#Known gaps]] |
+| Recipe edits are last-write-wins: `update_recipe` has no version check, so two sessions saving the same recipe (the author on two devices, or the author and an app admin) overwrite each other silently (`recipes.updated_at` exists since 0013 but nothing compares it) | [[recipe-management#Known gaps]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
 | Deleting the owner's account leaves the household without an owner: no member can remove others and nothing promotes a new owner | [[household-model#Known gaps]] |
 | Logged-out API calls get a `/login` redirect instead of a 401 | [[auth-session#Invariants and gotchas]] |
@@ -105,6 +104,7 @@ git grep -n "ponytail:" -- src scripts
 - 2026-10-13: Added the Atwater data-quality row; impossible ingredient macros are now rejected (#71, migration 0012).
 - 2026-10-13: Added the owner-less household, member-less household and null-`author_id` rows created by account deletion (migration 0013).
 - 2026-10-13: Migration 0013 (#72) added `recipes.updated_at` (the last-write-wins row now only lacks the version check) and account deletion; added the author-less recipe delete row.
+- 2026-10-13: Removed the silent non-author recipe delete row (#75: the route now answers 403); the last-write-wins row now names who can still collide, since only the author or an app admin edits.
 - 2026-10-13: Removed the per-day macro totals row (#44).
 - 2026-10-13: Removed the static pre-render, always-1-serving, dark-mode slot name and unused `@dnd-kit` rows (#38); the per-day macros row now says not implemented.
 - 2026-10-13: Removed the login-without-signup-link row and reworded the have-marks row: the banner no longer promises a sync (#41).

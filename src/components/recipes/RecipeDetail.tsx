@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { recipeMacros } from '@/lib/macros';
 import type { RecipeWithDetails } from '@/lib/db/recipes';
 import { Icon } from '@/components/ui';
@@ -10,8 +11,20 @@ import { RecipeSteps } from './RecipeSteps';
 import { RecipeTag } from './RecipeTag';
 import { ALLERGEN_LABELS, DIET_LABELS } from './labels';
 
-/** Detail page body: cover band, facts, scaled ingredients beside collapsible steps. */
-export function RecipeDetail({ recipe }: { recipe: RecipeWithDetails }) {
+/**
+ * Detail page body: cover band, facts, scaled ingredients beside collapsible steps.
+ * `canEdit` (see `canEditRecipe`) picks in-place edit + delete or fork-to-edit; `originalName` is the
+ * readable original's name for a fork (null when not a fork or the original is gone/hidden).
+ */
+export function RecipeDetail({
+  recipe,
+  canEdit,
+  originalName = null,
+}: {
+  recipe: RecipeWithDetails;
+  canEdit: boolean;
+  originalName?: string | null;
+}) {
   const ingredients = recipe.ingredients.slice().sort((a, b) => a.position - b.position);
   const macros = recipeMacros(ingredients, recipe.servings_base);
   const steps = recipe.steps.slice().sort((a, b) => a.position - b.position);
@@ -27,8 +40,16 @@ export function RecipeDetail({ recipe }: { recipe: RecipeWithDetails }) {
         <h1 className="font-display text-3xl font-extrabold leading-tight [hyphens:auto] [text-wrap:balance] lg:text-4xl">
           {recipe.name}
         </h1>
-        <RecipeActions recipeId={recipe.id} />
+        <RecipeActions recipeId={recipe.id} canEdit={canEdit} />
       </div>
+      {recipe.forked_from_id && originalName !== null && (
+        <p className="text-sm text-muted">
+          Kopia przepisu{' '}
+          <Link href={`/recipes/${recipe.forked_from_id}`} className="underline underline-offset-2 hover:text-brand">
+            „{originalName}”
+          </Link>
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         <RecipeTag strong>
           <Icon name="servings" width={18} height={18} />

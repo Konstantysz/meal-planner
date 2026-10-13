@@ -5,6 +5,8 @@
 --   "VERIFY 0009: ALL PASS (n checks)"  or  "VERIFY 0009: FAIL ..." with the list.
 -- Before 0009 is applied every check is expected to FAIL (the function doesn't exist).
 -- Needs migration 0008 and at least one row in ingredients (the seed provides 40).
+-- Once 0014 (recipe forks) is applied, check 3 fails by design: only the author or an app admin
+-- edits a recipe. Use supabase/checks/0014_recipe_fork.verify.sql for the current rules.
 
 do $verify$
 declare
