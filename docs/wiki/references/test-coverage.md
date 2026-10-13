@@ -10,9 +10,9 @@ last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
+llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1933f3c
 sources:
   - title: "Unit tests"
     path: tests/unit
@@ -100,7 +100,7 @@ These are the five edge cases the original spec singled out as able to break the
 | 2 | Same ingredient in two units | `shopping-list.test.ts` | covered |
 | 3 | Import of a page with no recipe | `extract.test.ts` (garbage, missing `name`) | covered |
 | 4 | Slot pointing at an unavailable recipe | `tests/unit/plan-unavailable-recipe.test.tsx` (UI text only; no SQL FK test) | covered |
-| 5 | Ingredient without macros | `macros.test.ts` (null), `shopping-list.test.ts` (`incomplete`) | covered |
+| 5 | Ingredient without macros | `macros.test.ts` (null, `recipeMacros` `no_macros`), `recipe-macros-view.test.tsx` (badge), `shopping-list.test.ts` (`incomplete`) | covered |
 
 ## Examples
 
@@ -127,6 +127,7 @@ pnpm vitest run -t "different units"        # by test name
 - 2026-10-13: Added `errors.ts` and `match-outcome.ts` (#40).
 - 2026-10-13: Recipe list/detail redesign (#39): `toListItem`, `recipePerServing` and `recipeFieldErrors` tested; `listRecipes` query still not covered.
 - 2026-10-13: Added `extractImageUrl` and `isAllowedImageUrl` (recipe photos).
+- 2026-10-13: Review Focus #5 also pinned by `recipeMacros` and the recipe-view badge test (#73).
 - 2026-10-13: Added `list-edit.ts` and the review editors (#35).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.

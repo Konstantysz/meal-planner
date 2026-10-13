@@ -1,9 +1,9 @@
-import { recipePerServing } from '@/lib/day-macros';
+import { recipeMacros } from '@/lib/macros';
 import type { RecipeWithDetails } from '@/lib/db/recipes';
 import { Icon } from '@/components/ui';
-import { MacroSummary } from './MacroSummary';
 import { RecipeActions } from './RecipeActions';
 import { RecipeCover } from './RecipeCover';
+import { RecipeMacroPanel } from './RecipeMacroPanel';
 import { RecipePhotoBand } from './RecipePhoto';
 import { RecipeIngredients } from './RecipeIngredients';
 import { RecipeSteps } from './RecipeSteps';
@@ -12,8 +12,8 @@ import { ALLERGEN_LABELS, DIET_LABELS } from './labels';
 
 /** Detail page body: cover band, facts, scaled ingredients beside collapsible steps. */
 export function RecipeDetail({ recipe }: { recipe: RecipeWithDetails }) {
-  const per = recipePerServing(recipe.ingredients, recipe.servings_base);
   const ingredients = recipe.ingredients.slice().sort((a, b) => a.position - b.position);
+  const macros = recipeMacros(ingredients, recipe.servings_base);
   const steps = recipe.steps.slice().sort((a, b) => a.position - b.position);
 
   return (
@@ -51,7 +51,7 @@ export function RecipeDetail({ recipe }: { recipe: RecipeWithDetails }) {
         <div className="flex gap-2">
           <dt className="w-24 shrink-0 text-muted">Na porcję</dt>
           <dd>
-            <MacroSummary macros={per} />
+            <RecipeMacroPanel macros={macros} />
           </dd>
         </div>
         {(recipe.source_url || recipe.source_author) && (

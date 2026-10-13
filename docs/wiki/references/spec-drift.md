@@ -42,7 +42,7 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 | `src/lib/db/pantry.ts` and server-side pantry | Doesn't exist. The `pantry_items` table is unused. The Have mark (UI „mam to”) lives only in IndexedDB on each device. |
 | `src/hooks/useRecipes.ts` | Doesn't exist. `RecipeList` fetches directly. |
 | Task 9 SQL test for `ON DELETE SET NULL` | No SQL tests exist. |
-| Review Focus #5 label „dane niepełne" and per-day macro sums | The shopping list shows „(brak makro)". Per-day sums are not implemented. |
+| Review Focus #5 label „dane niepełne" and per-day macro sums | The recipe page and day totals say „makra niepełne"; the shopping list shows „(brak makro)". |
 | `pnpm build` produces a PWA | A manifest only, with no service worker. |
 | Zero-cost Gemini Flash fallback | Paused. `callGemini` exists but no route calls it. |
 
@@ -97,6 +97,7 @@ git ls-files src/lib/ics.ts src/lib/db/pantry.ts src/hooks/useRecipes.ts src/com
 
 ## Changelog
 
+- 2026-10-13: Review Focus #5 label is „makra niepełne" on recipe and day totals (#44, #73).
 - 2026-10-13: Signup row: `create_household_with_owner` is no longer executable by clients (migration 0013).
 - 2026-10-09: Re-verified against a7f8f52 and corrected: signup now goes through the `on_auth_user_created` trigger (no client RPC call), the root `README.md` is no longer boilerplate, the build ledger is not "gitignored" (no ignore rule exists), HTML cleaning keeps link text, and the `/` scaffold claim is marked uncertain. Terminology aligned with GLOSSARY.md (Have mark, LLM mode, Open Food Facts, auto-match).
 - 2026-10-09: Terminology aligned with GLOSSARY.md.

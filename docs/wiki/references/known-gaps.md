@@ -53,9 +53,9 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Gap | Details |
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
-| Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
+| Picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
-| Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
+| Household units (łyżka, szklanka, szt) have no gram conversion, so those ingredients are left out of recipe macros (reported as an incomplete macro total) | [[macro-calculation#Known gaps]] |
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
@@ -100,6 +100,7 @@ git grep -n "ponytail:" -- src scripts
 ## Changelog
 
 - 2026-10-13: Removed the raw Zod JSON row; the recipe form shows field-level messages (#39).
+- 2026-10-13: Macro-less ingredients and non-gram units no longer count as 0 silently; reworded both rows (#73).
 - 2026-10-13: Added the owner-less household, member-less household and null-`author_id` rows created by account deletion (migration 0013).
 - 2026-10-13: Migration 0013 (#72) added `recipes.updated_at` (the last-write-wins row now only lacks the version check) and account deletion; added the author-less recipe delete row.
 - 2026-10-13: Removed the per-day macro totals row (#44).
