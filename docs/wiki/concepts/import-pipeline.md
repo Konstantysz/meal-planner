@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: 5e8ed97
+verified_commit: 381ad02
 sources:
   - title: "Import dialog"
     path: src/components/import/ImportDialog.tsx
