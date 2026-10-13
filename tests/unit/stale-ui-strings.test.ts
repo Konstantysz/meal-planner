@@ -7,6 +7,7 @@ const RETIRED = ['przepis usunięty'];
 // No shell: the search string reaches git as one argument, so its encoding survives any console (#81).
 function gitGrep(s: string): string {
   const r = spawnSync('git', ['grep', '-l', '-F', s, '--', 'src', 'GLOSSARY.md'], { encoding: 'utf8' });
+  if (r.error) throw r.error; // spawn failure (e.g. ENOENT): status is null and stderr undefined
   if (r.status === 1) return ''; // git grep: 1 = no match
   if (r.status !== 0) throw new Error(`git grep failed (${r.status}): ${r.stderr}`);
   return r.stdout.trim();
