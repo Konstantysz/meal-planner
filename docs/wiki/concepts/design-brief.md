@@ -132,6 +132,8 @@ Subtle, and only in response to an action (interview). Opening a dialog or sheet
 
 A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, about 21 px) on its slot colour, with the cooking time at the top. With a photo (interview Q7) the photo fills the cover and the name sits on a bottom gradient for legibility. On the recipe page the photo replaces the colour band. The layout does not change between the two cases, so adding photo upload later changes no layout.
 
+The photo is `recipes.image_url`, a hotlinked URL ([[0014-recipe-photos-hotlinked]]). `RecipePhoto` (`src/components/recipes/RecipePhoto.tsx`) is the photo layer: it fills its positioned parent, takes `scrim` for the bottom gradient (token `from-scrim`), and renders nothing when there is no URL or it fails to load, so the parent's slot colour is the fallback.
+
 ## Examples
 
 ```css
@@ -158,6 +160,7 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 
 ## Changelog
 
+- 2026-10-13: Described the photo layer (`RecipePhoto`) and `image_url`.
 - 2026-10-13: Review follow-up: brand focus ring measured (6.8–7.3:1 dark, 6.0–6.5:1 light); spacing steps map to Tailwind's scale.
 - 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.

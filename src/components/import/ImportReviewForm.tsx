@@ -10,16 +10,19 @@ import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 export function ImportReviewForm({
   extracted,
   sourceUrl,
+  imageUrl,
   onCancel,
   onSaved,
 }: {
   extracted: ExtractedRecipe;
   sourceUrl: string;
+  imageUrl?: string | null;
   onCancel: () => void;
   onSaved: (id: string) => void;
 }) {
   const [name, setName] = useState(extracted.name);
   const [servings, setServings] = useState(parseYield(extracted.recipeYield));
+  const [photoUrl, setPhotoUrl] = useState(imageUrl ?? '');
   const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
@@ -96,6 +99,7 @@ export function ImportReviewForm({
         servings_base: servings,
         prep_time_min: prepTime,
         source_url: sourceUrl || null,
+        image_url: photoUrl.trim() || null,
         visibility: 'household',
         diet_tags: [],
         allergens: [],
@@ -128,6 +132,17 @@ export function ImportReviewForm({
         Sprawdź i uzupełnij dane z importu. Lista składników wymaga mapowania na bazę.
       </p>
       <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border rounded px-3 py-2" />
+      <label className="block text-sm">
+        Zdjęcie (adres URL)
+        <input
+          type="url"
+          value={photoUrl}
+          onChange={(e) => setPhotoUrl(e.target.value)}
+          placeholder="https://…"
+          maxLength={2048}
+          className="w-full border rounded px-3 py-2 mt-1"
+        />
+      </label>
       <div className="flex items-center gap-3">
         <input
           type="number"

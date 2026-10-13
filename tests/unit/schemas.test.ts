@@ -70,3 +70,36 @@ describe('RecipeInputSchema source_author and step title', () => {
     expect(parsed.steps[0].title).toBeNull();
   });
 });
+
+describe('RecipeInputSchema image_url', () => {
+  const base = {
+    name: 'Zupa',
+    servings_base: 2,
+    prep_time_min: null,
+    source_url: null,
+    ingredients: [
+      { ingredient_id: '3422d8ca-8907-49c2-8c83-da5fc298948f', amount: 1, unit: 'g', raw_text: 'x', position: 0 },
+    ],
+    steps: [{ position: 0, text: 'Gotuj' }],
+  };
+
+  it('defaults to null when omitted', () => {
+    expect(RecipeInputSchema.parse(base).image_url).toBeNull();
+  });
+
+  it('accepts a trimmed https URL on an allowed host', () => {
+    const parsed = RecipeInputSchema.parse({ ...base, image_url: ' https://cdn.aniagotuje.com/a.jpg ' });
+    expect(parsed.image_url).toBe('https://cdn.aniagotuje.com/a.jpg');
+  });
+
+  it('turns a blank string into null', () => {
+    expect(RecipeInputSchema.parse({ ...base, image_url: '  ' }).image_url).toBeNull();
+  });
+
+  it.each(['https://evil.example/a.jpg', 'http://cdn.aniagotuje.com/a.jpg', 'javascript:alert(1)', 'not a url'])(
+    'rejects %s',
+    (image_url) => {
+      expect(() => RecipeInputSchema.parse({ ...base, image_url })).toThrow();
+    },
+  );
+});

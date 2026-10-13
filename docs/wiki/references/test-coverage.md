@@ -2,16 +2,16 @@
 title: "Test Coverage Map"
 summary: "Which modules have unit tests, which do not, and which Review Focus edge cases are pinned by which test file."
 tags: [testing]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
-human_reviewed: true
+human_reviewed: false
 verified_commit: a7f8f52
 sources:
   - title: "Unit tests"
@@ -52,6 +52,7 @@ sources:
 | `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`; `getRecipe` and `listRecipes` not covered) |
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
 | `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
+| `src/lib/import/image.ts`, `src/lib/image-hosts.ts` | `tests/unit/import/image.test.ts` (`extractImageUrl`, `isAllowedImageUrl`) |
 | `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` |
 | `src/lib/import/schema.ts`, `unit.ts` | `tests/unit/import/schema.test.ts` (structured ingredients, `normalizeUnit`) |
 | `src/lib/import/engine.ts` | `tests/unit/import/engine.test.ts` (web-llm and `Worker` mocked) |
@@ -119,6 +120,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Added `extractImageUrl` and `isAllowedImageUrl` (recipe photos).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.
