@@ -4,6 +4,7 @@ import { Button, Icon, Input } from '@/components/ui';
 import type { ExtractedIngredient, ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
+import { OffDisclaimer } from '@/components/recipes/OffDisclaimer';
 import { StepsEditor, type EditableStep } from '@/components/recipes/StepsEditor';
 import { ExtractedIngredientsEditor } from './ExtractedIngredientsEditor';
 import { isSessionRedirect, saveStatusMessage } from '@/lib/import/errors';
@@ -17,6 +18,7 @@ import {
 } from '@/lib/import/match-outcome';
 import { normalizeUnit } from '@/lib/import/unit';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
+import { positiveAmountOrNull } from '@/lib/scaling';
 
 export function ImportReviewForm({
   extracted,
@@ -139,7 +141,7 @@ export function ImportReviewForm({
         allergens: [],
         ingredients: ingredients.map((i) => ({
           ingredient_id: i.ingredient_id,
-          amount: i.amount,
+          amount: positiveAmountOrNull(i.amount),
           unit: i.unit,
           raw_text: i.raw_text,
           position: i.position,
@@ -246,6 +248,7 @@ export function ImportReviewForm({
         <Button onClick={autoMatch} disabled={matching} className="w-full lg:w-auto">
           {matching ? 'Dopasowuję…' : 'Auto-mapuj składniki'}
         </Button>
+        <OffDisclaimer />
         <p role="status" className="text-sm">
           {outcome && counts && (
             <>

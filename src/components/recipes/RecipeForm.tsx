@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import type { RecipeFieldErrors } from '@/lib/recipe-errors';
 import { IngredientPicker, type PickedIngredient } from './IngredientPicker';
+import { positiveAmountOrNull } from '@/lib/scaling';
 import { StepsEditor, type EditableStep } from './StepsEditor';
 
 const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'] as const;
@@ -80,7 +81,7 @@ export function RecipeForm({
         allergens,
         ingredients: ingredients.map((i, position) => ({
           ingredient_id: i.ingredient_id,
-          amount: i.amount,
+          amount: positiveAmountOrNull(i.amount),
           unit: i.unit,
           raw_text: i.raw_text,
           position,

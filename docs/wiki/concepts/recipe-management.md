@@ -36,6 +36,8 @@ sources:
     path: src/components/recipes/RecipePhoto.tsx
   - title: "Allowed image hosts"
     path: src/lib/image-hosts.ts
+  - title: "Schema integrity (row rules, account deletion, updated_at)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -112,16 +114,19 @@ Filtering:
 - `diet`: `contains('diet_tags', diet)`. A recipe must have **all** the selected diets.
 - `exclude`: rows are fetched first and then filtered in JS (`!r.allergens.some(...)`).
 
-Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
+Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Until its macros are filled in, it is left out of the recipe totals and listed under „makra niepełne" on the detail page (see [[macro-calculation]]). Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
 
 ## Invariants and gotchas
 
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
+- **Row rules (migration 0013).** Ingredient and step positions are unique per recipe and `>= 0`, an ingredient `amount` is null or `> 0`, and step text must contain a non-space character. The database enforces them (unique and check constraints) and `RecipeInputSchema` mirrors them, so a bad body is a 400 before the RPC runs. The forms renumber positions from list order and drop blank steps. An amount of 0 or less is sent as null („no amount", `positiveAmountOrNull` in `src/lib/scaling.ts`): auto-match maps the import model's amount that way, and `RecipeForm` and `ImportReviewForm` map a typed amount on submit. Only a direct API caller sending 0 gets a 400.
+- **`updated_at`** is set to `now()` by a database trigger on every update of the recipe row, whatever the client sends. `update_recipe` always updates that row, so every edit moves it; a direct write to `recipe_ingredients` or `recipe_steps` alone does not.
+- **Deleting the account that saved a recipe** keeps the recipe in its household with `author_id` null (migration 0013). Members still see and edit it (`rec_select`, `rec_update` pass on membership).
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
 - **List cards** (`RecipeCard`): a 3:4 `RecipeCover` (name set large, prep time on top), then source author (when set), servings, per-serving macros, and diet and allergen tags. The cover has a `photo` slot, so a future image fills it without a layout change; its tint is `hover` until covers take the colour of the most-planned slot position (see [[design-brief]]). The grid is 2 columns on mobile and up to 5 on wide screens (the brief's horizontal shelves are not built). The filters are `Chip` toggles. States: skeleton covers while loading, „Brak przepisów. Dodaj pierwszy." with one action, a message for no filter match, for no search match and for a failed fetch.
 - `listRecipes` also selects each recipe's ingredient macro columns and returns `RecipeListItem` (`Recipe` plus `macros_per_serving`, from `toListItem` and `recipePerServing`). `WeekPlan` reads the same endpoint and ignores the extra field.
-- **Per-serving macros** use the rule of the day totals ([[week-plan]]): when any counted ingredient lacks data (a non-gram unit, no macros, or none counted) the value is null and the UI shows „brak danych makro". The detail page used to show a partial sum.
+- **Per-serving macros** ([[macro-calculation]]): the detail page (`RecipeDetail`) shows `RecipeMacroPanel`, a partial total labelled „co najmniej" with the „makra niepełne" list when an ingredient was left out (no macros, no amount, or a unit `toGrams` can't convert). List cards stay all-or-nothing: `recipePerServing` is null („brak danych makro") unless the total is complete.
 - **Detail page**: `page.tsx` loads the recipe and computes `canEdit` and the original's name for a fork, then renders `RecipeDetail`: cover band, title with `RecipeActions`, the fork's „Kopia przepisu" link when set, servings and prep time as large tags (plain `RecipeTag`, not the interactive `Chip`), diet and allergen tags, a property list („Na porcję"; „Autor" with the „Źródło" link next to it), then ingredients beside steps on wide screens (one column on mobile).
 - `RecipeIngredients` shows `formatAmount(amount, unit)` followed by `raw_text`, with a servings stepper that scales amounts from `servings_base` through `scaleAmount`. Macros per serving do not change with it. Manual entries set `raw_text` to the ingredient name.
 - `RecipeSteps` renders each step as a `<details>` card. A step with a title shows it in the summary and its text when open; a step without one is a numbered card whose text is the summary (two lines closed). The first step starts open; „Rozwiń wszystkie" / „Zwiń wszystkie" toggles all (hidden for a single step).
@@ -129,7 +134,8 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Known gaps
 
-- **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition and `recipes` has no `updated_at`, so two sessions editing the same recipe (the author on two devices, or the author and an app admin) silently overwrite each other. Accepted for now; a fix needs an `updated_at` column plus a mismatch error mapped to 409.
+- **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition, so two sessions editing the same recipe (the author on two devices, or the author and an app admin) silently overwrite each other. `recipes.updated_at` exists since migration 0013; the fix still needs `update_recipe` to compare it and a mismatch error mapped to 409.
+- **A recipe whose author's account was deleted can be deleted through the API only by an app admin**: `rec_delete` allows the author or an app admin, and `author_id` is null. Otherwise only the SQL editor can remove it.
 - An author who has left the household cannot edit their old recipe: `rec_update` USING passes but WITH CHECK (`is_member_of`) fails, so the RPC raises `42501` (403). Covered by check 9 in the 0009 verify script.
 - A fork does not follow later changes to its original, and nothing merges a fork back. Forks of forks point at their direct source.
 - An app admin edits only recipes they can read (a household they belong to): `rec_select` is unchanged.
@@ -137,7 +143,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Validation messages
 
-`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. `ImportReviewForm` reads only `error`, so it shows the short Polish sentence instead of JSON.
+`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. Duplicate positions (the 0013 row rules, only reachable from a direct API call) report „Składniki mają powtórzone pozycje" / „Kroki mają powtórzone pozycje"; an amount of 0 or less reports its row („Popraw składnik nr N"). `ImportReviewForm` joins the `fields` messages into one line, or shows a status message when there are none.
 
 ## Examples
 
@@ -173,9 +179,13 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
-- 2026-10-13: `fork_recipe` (0014) now also copies `image_url` (0011, merged first); it copies the `recipes` columns as of 0011.
+- 2026-10-13: `recipeFieldErrors` reports duplicate positions as such instead of „Dodaj co najmniej jeden …".
 - 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
 - 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
+- 2026-10-13: Placeholder ingredients are reported under „makra niepełne" instead of counting as 0 (#73).
+- 2026-10-13: Import and the forms now send an amount of 0 or less as null instead of failing the save.
+- 2026-10-13: Documented the row rules, `updated_at` and account-deletion behaviour from migration 0013 (#72), and the matching `RecipeInputSchema` checks; the last-write-wins gap now only lacks the version check; added the author-less recipe delete gap.
+- 2026-10-13: `fork_recipe` (0014) now also copies `image_url` (0011, merged first); it copies the `recipes` columns as of 0011.
 - 2026-10-13: A repeated fork reuses the caller's fork; forks are named „… (kopia)"; `22023` for an empty copy; the original link shows only when readable.
 - 2026-10-13: Recipe forks (migration 0014, issue #75): only the author or an app admin edits or deletes in place; others fork via `POST /api/recipes/[id]/fork`. A refused delete now answers 403; removed the silent-delete gap. Live results pending.
 - 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).

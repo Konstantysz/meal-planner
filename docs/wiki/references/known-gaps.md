@@ -52,14 +52,16 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Gap | Details |
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
-| Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
+| Picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
-| Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
+| Household units (łyżka, szklanka, szt) have no gram conversion, so those ingredients are left out of recipe macros (reported as an incomplete macro total) | [[macro-calculation#Known gaps]] |
+| Ingredient macros that pass the range checks but miss the Atwater estimate (e.g. „vEGGs roślinny zamiennik jajek", 1.23×) are only listed by the data-quality report, which a human must run and act on | [[ingredient-database#Known gaps]] |
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
-| Recipe edits are last-write-wins: `update_recipe` has no version check, so two sessions saving the same recipe (the author on two devices, or the author and an app admin) overwrite each other silently (`recipes` has no `updated_at`) | [[recipe-management#Known gaps]] |
+| Recipe edits are last-write-wins: `update_recipe` has no version check, so two sessions saving the same recipe (the author on two devices, or the author and an app admin) overwrite each other silently (`recipes.updated_at` exists since 0013 but nothing compares it) | [[recipe-management#Known gaps]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
+| Deleting the owner's account leaves the household without an owner: no member can remove others and nothing promotes a new owner | [[household-model#Known gaps]] |
 | Logged-out API calls get a `/login` redirect instead of a 401 | [[auth-session#Invariants and gotchas]] |
 | Most routes and UI, the offline store, `src/lib/db/households.ts` and `src/lib/db/plans.ts` have no tests; there are no RLS tests | [[test-coverage#Not covered]] |
 
@@ -72,6 +74,9 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Plan columns shift by a day in timezones west of UTC | [[week-plan#Invariants and gotchas]] |
 | `useShoppingList` reads `navigator` during render. It works on Node 22.23.2, where the global exists, but it is fragile. | [[offline-shopping-store#Invariants and gotchas]] |
 | The seed isn't idempotent | [[database-schema#Seed]] |
+| A recipe whose author's account was deleted can't be deleted through the API (`rec_delete` is author-only) | [[recipe-management#Known gaps]] |
+| Any member can set a recipe's `author_id` to null through `rec_update`, with the same effect (#75 tightens `rec_update`) | [[rls-authorization#Known gaps]] |
+| Deleting a household's only member leaves the household, its recipes and plans unreachable | [[household-model#Known gaps]] |
 
 ## Examples
 
@@ -95,6 +100,10 @@ git grep -n "ponytail:" -- src scripts
 ## Changelog
 
 - 2026-10-13: Removed the raw Zod JSON row; the recipe form shows field-level messages (#39).
+- 2026-10-13: Macro-less ingredients and non-gram units no longer count as 0 silently; reworded both rows (#73).
+- 2026-10-13: Added the Atwater data-quality row; impossible ingredient macros are now rejected (#71, migration 0012).
+- 2026-10-13: Added the owner-less household, member-less household and null-`author_id` rows created by account deletion (migration 0013).
+- 2026-10-13: Migration 0013 (#72) added `recipes.updated_at` (the last-write-wins row now only lacks the version check) and account deletion; added the author-less recipe delete row.
 - 2026-10-13: Removed the silent non-author recipe delete row (#75: the route now answers 403); the last-write-wins row now names who can still collide, since only the author or an app admin edits.
 - 2026-10-13: Removed the per-day macro totals row (#44).
 - 2026-10-13: Removed the static pre-render, always-1-serving, dark-mode slot name and unused `@dnd-kit` rows (#38); the per-day macros row now says not implemented.

@@ -14,6 +14,8 @@ llm_model: "claude-opus-5-5"
 human_reviewed: false
 verified_commit: 1c21fbf
 sources:
+  - title: "Schema integrity (migration 0013)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Initial RLS policies"
     path: supabase/migrations/0001_initial.sql
   - title: "Share-token policies"
@@ -114,6 +116,7 @@ select get_shared_plan('<token>');     -- the plan that token unlocks, or null
 
 ## Changelog
 
+- 2026-10-13: `rec_update` gap: since migration 0013 a member can set `author_id` to null.
 - 2026-10-13: Updated for migration 0014: recipe and recipe-child writes limited to the author or an app admin, `fork_recipe`, and the delete route's 403. Removed the `rec_update` gap and the silent-delete gotcha.
 - 2026-10-13: Updated for migration 0010: ingredient updates limited to the creator or an app admin; removed the `ing_update` gap.
 - 2026-10-09: UI string for an RLS-hidden recipe changed from „przepis usunięty" to „przepis niedostępny" (issue #16).

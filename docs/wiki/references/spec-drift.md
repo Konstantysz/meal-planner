@@ -2,7 +2,7 @@
 title: "Spec Drift"
 summary: "Where the code differs from the original spec (docs/plans/architecture_plan_document.md): planned but not built, built differently, and built but not planned."
 tags: [spec]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -10,9 +10,9 @@ last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: 8632fa0
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: 5ddfe28
 sources:
   - title: "Architecture plan"
     path: docs/plans/architecture_plan_document.md
@@ -42,7 +42,7 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 | `src/lib/db/pantry.ts` and server-side pantry | Doesn't exist. The `pantry_items` table is unused. The Have mark (UI „mam to”) lives only in IndexedDB on each device. |
 | `src/hooks/useRecipes.ts` | Doesn't exist. `RecipeList` fetches directly. |
 | Task 9 SQL test for `ON DELETE SET NULL` | No SQL tests exist. |
-| Review Focus #5 label „dane niepełne" and per-day macro sums | The shopping list shows „(brak makro)". Per-day sums are not implemented. |
+| Review Focus #5 label „dane niepełne" and per-day macro sums | The recipe page and day totals say „makra niepełne"; the shopping list shows „(brak makro)". |
 | `pnpm build` produces a PWA | A manifest only, with no service worker. |
 | Zero-cost Gemini Flash fallback | Paused. `callGemini` exists but no route calls it. |
 
@@ -53,7 +53,7 @@ The app was built task by task from the original spec (`docs/plans/architecture_
 | Framework | Next.js 15 | Next.js `16.3.5`, React 19.2. Middleware is now `src/proxy.ts` (Next 16 renamed Middleware to Proxy). The helper file is still called `src/lib/supabase/middleware.ts`. |
 | Tailwind | `tailwind.config.ts` | Tailwind 4 through `@tailwindcss/postcss`, with no config file |
 | Next config | `next.config.js` | `next.config.ts` (empty) |
-| Signup | `signUp()` only | The household is created by the `on_auth_user_created` trigger (migration 0006). `create_household_with_owner` (migration 0003) is kept, but no client code calls it. |
+| Signup | `signUp()` only | The household is created by the `on_auth_user_created` trigger (migration 0006). `create_household_with_owner` (migration 0003) still exists, but no client code calls it and since migration 0013 no client role can execute it. |
 | Share links for anonymous visitors | Relied on the `share_tokens` select policy | Needed migration 0002's token-scoped select policies |
 | Household invite | `inviteMember(email)` | `inviteMember(householdId, userId, callerId)`, with no email lookup |
 | Import review | Manual ingredient mapping | An „Auto-mapuj składniki" button: parse the line, auto-match locally, then fall back to Open Food Facts, then create a placeholder ingredient. Servings come from `parseYield`. |
@@ -97,6 +97,8 @@ git ls-files src/lib/ics.ts src/lib/db/pantry.ts src/hooks/useRecipes.ts src/com
 
 ## Changelog
 
+- 2026-10-13: Review Focus #5 label is „makra niepełne" on recipe and day totals (#44, #73).
+- 2026-10-13: Signup row: `create_household_with_owner` is no longer executable by clients (migration 0013).
 - 2026-10-09: Re-verified against a7f8f52 and corrected: signup now goes through the `on_auth_user_created` trigger (no client RPC call), the root `README.md` is no longer boilerplate, the build ledger is not "gitignored" (no ignore rule exists), HTML cleaning keeps link text, and the `/` scaffold claim is marked uncertain. Terminology aligned with GLOSSARY.md (Have mark, LLM mode, Open Food Facts, auto-match).
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Created.

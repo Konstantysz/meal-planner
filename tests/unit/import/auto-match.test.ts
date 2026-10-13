@@ -40,6 +40,16 @@ describe('autoMatchIngredients', () => {
     expect(searchOff).not.toHaveBeenCalled();
   });
 
+  it('turns a zero or negative model amount into null (DB stores amounts > 0 only)', async () => {
+    const searchOff = vi.fn().mockResolvedValue([]);
+    const results = await autoMatchIngredients(
+      [line('cebula', 0, 'g'), line('sól', -1, 'szczypta')],
+      [ing('cebula', true), ing('sól', true)],
+      { searchOff },
+    );
+    expect(results.map((r) => r.amount)).toEqual([null, null]);
+  });
+
   it('falls through to OFF when local match has no macro data', async () => {
     const searchOff = vi.fn().mockResolvedValue([offResult]);
     const results = await autoMatchIngredients([line('cebula', 300, 'g')], [ing('cebula', false)], { searchOff });

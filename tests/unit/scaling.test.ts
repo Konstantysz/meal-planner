@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scaleAmount, formatAmount, roundForUnit } from '@/lib/scaling';
+import { scaleAmount, formatAmount, roundForUnit, positiveAmountOrNull } from '@/lib/scaling';
 
 describe('scaleAmount', () => {
   it('multiplies structured amount', () => {
@@ -31,5 +31,18 @@ describe('roundForUnit', () => {
   it('integers for g/ml', () => {
     expect(roundForUnit(133.7, 'g')).toBe(134);
     expect(roundForUnit(50.4, 'ml')).toBe(50);
+  });
+});
+
+describe('positiveAmountOrNull', () => {
+  it('keeps positive amounts', () => {
+    expect(positiveAmountOrNull(0.5)).toBe(0.5);
+  });
+  it('turns 0, negatives, NaN and missing into null', () => {
+    expect(positiveAmountOrNull(0)).toBeNull();
+    expect(positiveAmountOrNull(-1)).toBeNull();
+    expect(positiveAmountOrNull(Number.NaN)).toBeNull();
+    expect(positiveAmountOrNull(null)).toBeNull();
+    expect(positiveAmountOrNull(undefined)).toBeNull();
   });
 });
