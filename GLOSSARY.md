@@ -44,6 +44,10 @@ _Avoid_: dish, meal (a meal is what a slot holds), przepis (code and UI only)
 One ordered instruction of a recipe: an optional title and its details. A source page may give only a general title (a heading) with the real detail in the text beneath it.
 _Avoid_: instruction, direction, krok (UI label only)
 
+**Fork**:
+A member's own copy of a recipe another member saved, made when they edit it, with its recipe ingredients and steps. Only the member who saved a recipe, or an app admin, changes or deletes it in place; anyone else edits a fork. The fork remembers the recipe it came from; the original and the slots planned with it stay unchanged. UI: „Kopia innego przepisu".
+_Avoid_: clone, duplicate, variant, version
+
 **Source author**:
 The person or site credited with a recipe's original authorship: the name from an imported page, or a household member who wrote the recipe themselves. Not the same as who saved it.
 _Avoid_: author (alone, it is ambiguous with the member who saved the recipe), creator, owner
@@ -53,7 +57,7 @@ A catalogue entry, shared across all households, with macros per 100 g. Any sign
 _Avoid_: product (an Open Food Facts term), food, item
 
 **App admin**:
-A user allowed to change any ingredient, including seed rows that have no creator. Granted only from the database console, never from the app.
+A user allowed to change any ingredient, including seed rows that have no creator, and to change or delete any recipe they can read. Granted only from the database console, never from the app.
 _Avoid_: admin (alone, it is ambiguous with a household's owner), moderator, superuser
 
 **Recipe ingredient**:

@@ -65,6 +65,8 @@ export interface Recipe {
   visibility: Visibility;
   diet_tags: DietTag[];
   allergens: Allergen[];
+  /** The recipe this one was forked from (migration 0014); null for originals and when that recipe was deleted. */
+  forked_from_id: string | null;
   created_at: string;
 }
 

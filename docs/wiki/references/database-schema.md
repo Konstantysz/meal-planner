@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5966c4c
+verified_commit: 68dcc28
 sources:
   - title: "Initial schema and RLS"
     path: supabase/migrations/0001_initial.sql
@@ -34,6 +34,8 @@ sources:
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Ingredient ownership and app admins"
     path: supabase/migrations/0010_ingredient_ownership.sql
+  - title: "Recipe forks"
+    path: supabase/migrations/0014_recipe_fork.sql
   - title: "Ingredient seed"
     path: supabase/seed.sql
   - title: "Supabase CLI config"
@@ -43,7 +45,7 @@ sources:
 # Database Schema
 
 > [!tldr]
-> There are 11 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Nine migrations exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), the optional-ingredient flag (0007), source author plus step title (0008), and ingredient ownership with app admins (0010). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
+> There are 11 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Eleven migrations exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), the optional-ingredient flag (0007), source author plus step title (0008), the `update_recipe` RPC (0009), ingredient ownership with app admins (0010), and recipe forks with author-only recipe writes (0014). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
 
 ## Context
 
@@ -57,7 +59,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `household_members` | (`household_id`, `user_id`) | `role` ∈ {`owner`, `member`}. FK to `households` and `auth.users`, both `on delete cascade`. |
 | `ingredients` | `id` uuid | `category` ∈ 11 Polish categories. `kcal/protein/fat/carbs_per_100g` are nullable numerics. `source` ∈ {`off`, `manual`, `ai_estimate`}. Unique index on `lower(name)`. `created_by` defaults to `auth.uid()` and is `on delete set null` (0010); null means seed or legacy row. |
 | `app_admins` | `user_id` uuid | FK to `auth.users` `on delete cascade`, `created_at`. RLS on with no policies, and `anon`/`authenticated` have no table privileges: rows are added from the SQL editor only (0010). |
-| `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, nullable `source_author` (free text: who wrote the recipe; `author_id` is who saved it), `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]` |
+| `recipes` | `id` uuid | `household_id` (cascade), `author_id`, `servings_base > 0`, nullable `source_author` (free text: who wrote the recipe; `author_id` is who saved it), `visibility` ∈ {`private`, `household`, `public_link`}, `diet_tags text[]`, `allergens text[]`, nullable `forked_from_id` → `recipes` (on delete set null; the recipe this fork was copied from, 0014) |
 | `recipe_ingredients` | `id` uuid | `recipe_id` (cascade), `ingredient_id` (**no on-delete action**), nullable `amount` and `unit`, `raw_text`, `position`, `optional` (boolean, default false; excluded from recipe macros) |
 | `recipe_steps` | `id` uuid | `recipe_id` (cascade), `position`, nullable `title` (short heading), `text` |
 | `plans` | `id` uuid | `household_id` (cascade), `week_start_date date`, `unique (household_id, week_start_date)`, check `plans_week_start_monday` (ISO weekday 1, since 0005) |
@@ -74,10 +76,11 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 |---|---|---|
 | `is_member_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `household_members` for `hid`. Used by most policies. `execute` is granted to `authenticated` only (0004). |
 | `is_owner_of(hid uuid)` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` is the household's `owner`. Used by `hm_delete`. `authenticated` only. Added in 0004. |
-| `is_app_admin()` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `app_admins`. Used by `ing_update`. `authenticated` only. Added in 0010. |
+| `is_app_admin()` | `security definer`, `stable`, SQL, `search_path = public` | True if `auth.uid()` has a row in `app_admins`. Used by `ing_update` and, since 0014, the recipe write policies. `authenticated` only. Added in 0010. |
 | `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. Kept for compatibility: the app no longer calls it. `authenticated` only. |
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
 | `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008. |
+| `fork_recipe(p_recipe_id uuid)` | `security invoker`, plpgsql, returns `uuid` | Copies a recipe the caller can read, with its recipe ingredients and steps, as a new recipe authored by `auth.uid()` with `forked_from_id` set to the source; returns the new id. Household: the source's when the caller is a member, else the caller's own (owner role first). Raises `P0002` for an unreadable or unknown recipe. RLS applies. `authenticated` only. Added in 0014. See [[0015-recipe-forks]]. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
@@ -98,9 +101,10 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | | `ing_update` | update | `created_by = auth.uid() or is_app_admin()`, same check (0010; was any row). Rows without a creator: app admins only. |
 | `recipes` | `rec_select` | select | `visibility = 'public_link' or author_id = auth.uid() or is_member_of(household_id)` (authenticated only) |
 | | `rec_insert` | insert | `author_id = auth.uid() and is_member_of(household_id)` |
-| | `rec_update` | update | using: author or member. check: `is_member_of(household_id)` (can't move a recipe out to a foreign household) |
-| | `rec_delete` | delete | `author_id = auth.uid()` |
-| `recipe_ingredients`, `recipe_steps` | `ri_all`, `rs_all` | all | the parent recipe's author or member |
+| | `rec_update` | update | using: `author_id = auth.uid() or is_app_admin()`. check: the same, and `is_member_of(household_id)` (0014; was author or any member) |
+| | `rec_delete` | delete | `author_id = auth.uid() or is_app_admin()` (0014; was the author only) |
+| `recipe_ingredients`, `recipe_steps` | `ri_select`, `rs_select` | select | the parent recipe's author or a member of its household |
+| | `ri_insert`, `ri_update`, `ri_delete`, `rs_insert`, `rs_update`, `rs_delete` | insert, update, delete | the parent recipe's author or an app admin (0014; `ri_all` / `rs_all` let any member write) |
 | `plans` | `plans_all` | all | `is_member_of(household_id)` |
 | `plan_slots` | `plan_slots_all` | all | member of the parent plan's household |
 | `pantry_items` | `pantry_all` | all | `is_member_of(household_id)` |
@@ -112,7 +116,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 
 ## Indexes on foreign keys
 
-0004 added covering indexes for every foreign key that lacked one: `household_members(user_id)`, `ingredients(created_by)`, `pantry_items(ingredient_id)`, `plan_slots(recipe_id)`, `recipe_ingredients(ingredient_id)`, `recipes(author_id)`, `share_tokens(created_by)`, `share_tokens(plan_id)`.
+0004 added covering indexes for every foreign key that lacked one: `household_members(user_id)`, `ingredients(created_by)`, `pantry_items(ingredient_id)`, `plan_slots(recipe_id)`, `recipe_ingredients(ingredient_id)`, `recipes(author_id)`, `share_tokens(created_by)`, `share_tokens(plan_id)`. 0014 adds `recipes(forked_from_id)` with its foreign key.
 
 ## Migrations
 
@@ -127,6 +131,7 @@ Policies for the same command are OR'd together. Since 0004, every policy except
 | `0007_recipe_ingredient_optional.sql` | `recipe_ingredients.optional`; `save_recipe` stores it. Rollback: `supabase/rollbacks/0007_recipe_ingredient_optional.down.sql`. Check: `supabase/checks/0007_recipe_ingredient_optional.verify.sql`. |
 | `0008_recipe_source_author_step_title.sql` | `recipes.source_author`, `recipe_steps.title`; `save_recipe` stores them. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`. Check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0010_ingredient_ownership.sql` | `app_admins`, `is_app_admin`, `ingredients.created_by` default and `on delete set null`, `ing_insert` / `ing_update` limited to the creator or an app admin. Rollback: `supabase/rollbacks/0010_ingredient_ownership.down.sql`. Check: `supabase/checks/0010_ingredient_ownership.verify.sql`. |
+| `0014_recipe_fork.sql` | `recipes.forked_from_id`, `fork_recipe`, `rec_update` / `rec_delete` limited to the author or an app admin, `ri_all` / `rs_all` split into household reads and author-or-admin writes. Rollback: `supabase/rollbacks/0014_recipe_fork.down.sql`. Check: `supabase/checks/0014_recipe_fork.verify.sql`. |
 
 ## Seed
 
@@ -152,12 +157,13 @@ from plans p;
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`, `0008_recipe_source_author_step_title.sql`, `0010_ingredient_ownership.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`, `0008_recipe_source_author_step_title.sql`, `0010_ingredient_ownership.sql`, `0014_recipe_fork.sql`
 - `supabase/seed.sql`, `supabase/config.toml`
 - Supabase security and performance advisors, run 2026-10-04
 
 ## Changelog
 
+- 2026-10-13: Documented migration 0014 (`recipes.forked_from_id`, `fork_recipe`, author-or-admin recipe write policies).
 - 2026-10-13: Documented migration 0010 (`app_admins`, `is_app_admin`, ingredient ownership policies).
 - 2026-10-13: Documented migration 0008 (`recipes.source_author`, `recipe_steps.title`).
 - 2026-10-09: Terminology aligned with GLOSSARY.md.

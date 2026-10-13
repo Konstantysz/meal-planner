@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { RecipeInputSchema } from '@/lib/schemas';
 import type { Recipe } from '@/lib/types';
 
@@ -78,4 +79,26 @@ export async function updateRecipe(supabase: SupabaseClient, id: string, input: 
   const { data, error } = await supabase.rpc('update_recipe', { p_recipe_id: id, p_recipe: parsed });
   if (error) throw error;
   return data as Recipe;
+}
+
+/**
+ * Copies a readable recipe with its ingredients and steps as the signed-in user's own recipe
+ * (fork_recipe RPC, migration 0014) and returns the fork's id. The fork records the source in
+ * `forked_from_id`; the source is never changed. A recipe the caller cannot read raises P0002.
+ */
+export async function forkRecipe(supabase: SupabaseClient, id: string): Promise<string> {
+  const { data, error } = await supabase.rpc('fork_recipe', { p_recipe_id: id });
+  if (error) throw error;
+  return z.string().uuid().parse(data);
+}
+
+/**
+ * Deletes a recipe and reports whether a row was deleted. RLS (rec_delete: author or app admin,
+ * migration 0014) hides rows the caller may not delete, so a refused delete is `false`, not an error.
+ * Plan slots that used the recipe keep their row with `recipe_id` set to null (on delete set null).
+ */
+export async function deleteRecipe(supabase: SupabaseClient, id: string): Promise<boolean> {
+  const { data, error } = await supabase.from('recipes').delete().eq('id', id).select('id');
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }

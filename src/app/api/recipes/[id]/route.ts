@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ZodError } from 'zod';
-import { getRecipe, updateRecipe } from '@/lib/db/recipes';
+import { deleteRecipe, getRecipe, updateRecipe } from '@/lib/db/recipes';
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,7 +45,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
-  const { error } = await supabase.from('recipes').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: String(error) }, { status: 400 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauth' }, { status: 401 });
+  let deleted: boolean;
+  try {
+    deleted = await deleteRecipe(supabase, id);
+  } catch (e) {
+    const code = (e as { code?: string } | null)?.code;
+    if (code === '22P02') return NextResponse.json({ error: 'nieprawidłowy identyfikator' }, { status: 400 });
+    console.error('delete recipe failed', e);
+    return NextResponse.json({ error: 'nie udało się usunąć przepisu' }, { status: 500 });
+  }
+  // RLS (rec_delete: author or app admin, migration 0014) hides rows the caller may not delete, so
+  // 0 rows is a refusal (or an unknown id), never a silent success.
+  if (!deleted) return NextResponse.json({ error: 'brak dostępu do przepisu' }, { status: 403 });
   return new NextResponse(null, { status: 204 });
 }

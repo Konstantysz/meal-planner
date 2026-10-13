@@ -18,6 +18,8 @@ sources:
     path: supabase/migrations/0004_security_hardening.sql
   - title: "Share-link RPC"
     path: supabase/migrations/0005_share_link_rpc.sql
+  - title: "Recipe forks"
+    path: supabase/migrations/0014_recipe_fork.sql
   - title: "Atomic recipe save and signup trigger"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
   - title: "Optional ingredient flag"
@@ -41,7 +43,7 @@ sources:
 # Migration History
 
 > [!tldr]
-> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles, `0009` the `update_recipe` RPC for editing saved recipes. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. `0004`–`0010` each have a script in `supabase/checks/`; `0008`–`0010` were confirmed live on 2026-10-13. `0008` and `0009` merged without a baseline run first, and CI now blocks that (see Verification). Read this page first if you missed that work.
+> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles, `0009` the `update_recipe` RPC for editing saved recipes. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. `0014` (pending) limits recipe edits and deletes to the author or an app admin and adds recipe forks. `0004`–`0010` each have a script in `supabase/checks/`; `0008`–`0010` were confirmed live on 2026-10-13. `0008` and `0009` merged without a baseline run first, and CI now blocks that (see Verification). Read this page first if you missed that work.
 
 ## Context
 
@@ -61,6 +63,7 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0008` | Konstantysz/meal-planner#33 | `recipes.source_author` and `recipe_steps.title` (both nullable text); `save_recipe` reads `source_author` and per-step `title` (missing or blank = null) | Records who wrote a recipe (`author_id` is only who saved it) and an optional heading per step. No data migration, nothing populates the fields yet. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`; check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0009` | Konstantysz/meal-planner#42 | `update_recipe(p_recipe_id, p_recipe)` RPC (`security invoker`): updates the recipe's columns and replaces its ingredients and steps in one transaction; raises `42501` when RLS leaves 0 rows to update | Recipes could not be edited after saving. An RLS-filtered `UPDATE` returns no error, so the function checks the row count to fail loudly. Needs 0008. Rollback: `supabase/rollbacks/0009_update_recipe_rpc.down.sql` (drops the function only); check: `supabase/checks/0009_update_recipe_rpc.verify.sql`. |
 | `0010` | Konstantysz/meal-planner#70 | `app_admins` + `is_app_admin()`; `ingredients.created_by` defaults to `auth.uid()`, `on delete set null`; `ing_insert` requires the caller as creator; `ing_update` needs the creator or an app admin | Any signed-in user could change any ingredient's macros for every household, and no row recorded its creator (all 119 live rows null on 2026-10-13). Must deploy after `0008` and `0009`. See [[0013-ingredient-ownership-and-app-admins]]. |
+| `0014` | pending (issue Konstantysz/meal-planner#75) | `recipes.forked_from_id` (on delete set null) + index; `fork_recipe(p_recipe_id)` RPC (`security invoker`) copies a readable recipe with its recipe ingredients and steps as the caller's recipe; `rec_update` / `rec_delete` need the author or an app admin; `ri_all` / `rs_all` split into household reads and author-or-admin writes | Any member could edit another member's recipe, and its ingredients and steps directly. Others now edit a fork. After `0014`, check 3 of the `0009` script (a member who is not the author can edit) fails by design. Needs `0010` (`is_app_admin`). Does not copy `recipes.image_url` from PR #92: whichever merges second adds it to `fork_recipe`. See [[0015-recipe-forks]]. |
 
 ## Verification
 
@@ -78,6 +81,7 @@ Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwawa
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
+| `0014` | not yet run (PGlite baseline `FAIL 11 (16 checks)`) | pending |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions (including `is_app_admin`) by `authenticated`, and `app_admins` has RLS with no policies (INFO) so no client can reach it. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -115,6 +119,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 - [[known-gaps]]
 - [[0008-share-link-rpc]]
 - [[0013-ingredient-ownership-and-app-admins]]
+- [[0015-recipe-forks]]
 
 ## Sources
 
@@ -125,6 +130,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Added `0014` (recipe forks, author-only recipe writes) with its PGlite baseline; live results pending.
 - 2026-10-13: Scoped the "baselined" claims and the uncertainty warning to what was actually run; recorded the hand-applied `0010` migration and rollback during baselining; bumped `verified_commit`.
 - 2026-10-13: Recorded the live 0010 result after deploy (`ALL PASS (12 checks)`); advisors show only the expected `app_admins` (RLS, no policies) and `is_app_admin` notices.
 - 2026-10-13: The Verification table is now parsed by CI (`scripts/migration-record.ts`); added the format note.

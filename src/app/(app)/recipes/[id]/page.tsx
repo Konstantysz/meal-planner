@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getRecipe } from '@/lib/db/recipes';
+import { isAppAdmin } from '@/lib/db/app-admins';
+import { canEditRecipe } from '@/lib/recipe-access';
 import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
 import { formatAmount } from '@/lib/scaling';
 import { MacroSummary } from '@/components/recipes/MacroSummary';
@@ -15,6 +18,10 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   } catch {
     notFound();
   }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const canEdit = canEditRecipe(recipe, user?.id ?? null, await isAppAdmin(supabase));
 
   const total = sumMacros(
     recipe.ingredients.map((ri) => {
@@ -29,8 +36,16 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{recipe.name}</h1>
-        <RecipeActions recipeId={recipe.id} />
+        <RecipeActions recipeId={recipe.id} canEdit={canEdit} />
       </div>
+      {recipe.forked_from_id && (
+        <p className="text-sm text-muted">
+          Kopia innego przepisu.{' '}
+          <Link href={`/recipes/${recipe.forked_from_id}`} className="underline">
+            Zobacz oryginał
+          </Link>
+        </p>
+      )}
       <ul className="flex flex-wrap gap-2 text-sm">
         <li className="rounded-control border border-line px-3 py-1 text-ink">{recipe.servings_base} porcji</li>
         {recipe.prep_time_min != null && (

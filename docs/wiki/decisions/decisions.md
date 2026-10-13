@@ -2,16 +2,16 @@
 title: "Decisions"
 summary: "Index of architecture decision records."
 tags: [meta]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
+llm_model: "claude-opus-5-5"
+human_reviewed: false
 verified_commit: a7f8f52
 sources: []
 ---
@@ -44,6 +44,7 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 | 0011 | [[0011-html-to-markdown-import]] | accepted |
 | 0012 | [[0012-llm-structures-ingredients]] | accepted |
 | 0013 | [[0013-ingredient-ownership-and-app-admins]] | accepted |
+| 0015 | [[0015-recipe-forks]] | accepted, pending deploy (migration 0014) |
 
 ## Related
 
@@ -55,6 +56,7 @@ Decisions are never deleted. When one is superseded, its page links to the repla
 
 ## Changelog
 
+- 2026-10-13: Added 0015 (recipe forks). 0014 is reserved for an open PR.
 - 2026-10-13: Added 0013 (ingredient ownership and app admins); marked 0010 amended.
 - 2026-10-11: Added 0012 (LLM structures ingredients).
 - 2026-10-09: Added 0009 (signup trigger), 0010 (global ingredient catalog) and 0011 (HTML to Markdown import); fixed the intro on how records were made.
