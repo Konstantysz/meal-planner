@@ -19,10 +19,10 @@ const RECIPE = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** Routes fetch by "METHOD path"; mode is what GET /api/import/extract reports. */
-function stubFetch(mode: Response) {
+function stubFetch(mode: Response, imageUrl: string | null = null) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${url}`;
-    if (key === 'POST /api/import/fetch') return json({ markdown: '# Zupa' });
+    if (key === 'POST /api/import/fetch') return json({ markdown: '# Zupa', image_url: imageUrl });
     if (key === 'GET /api/import/extract') return mode;
     if (key === 'POST /api/import/extract') return json(RECIPE);
     throw new Error(`unexpected fetch ${key}`);
@@ -59,10 +59,19 @@ describe('ImportDialog', () => {
     const f = stubFetch(json({ mode: 'server' }));
     const onExtracted = await runImport();
 
-    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x'));
+    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x', null));
     expect(calledExtractPost(f)).toBe(true);
     expect(engine.hasWebGpu).not.toHaveBeenCalled();
     expect(engine.extractWithWebLlm).not.toHaveBeenCalled();
+  });
+
+  it('passes the photo URL found by the fetch route to onExtracted', async () => {
+    stubFetch(json({ mode: 'server' }), 'https://cdn.aniagotuje.com/p.jpg');
+    const onExtracted = await runImport();
+
+    await waitFor(() =>
+      expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x', 'https://cdn.aniagotuje.com/p.jpg'),
+    );
   });
 
   it('submits on Enter in the URL field, like the button', async () => {
@@ -71,7 +80,7 @@ describe('ImportDialog', () => {
     render(<ImportDialog onClose={() => {}} onExtracted={onExtracted} />);
     await userEvent.type(screen.getByPlaceholderText(/jadlonomia/), 'https://a.pl/x{Enter}');
 
-    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x'));
+    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x', null));
     expect(calledExtractPost(f)).toBe(true);
   });
 
@@ -98,7 +107,7 @@ describe('ImportDialog', () => {
     engine.extractWithWebLlm.mockResolvedValue(RECIPE);
     const onExtracted = await runImport();
 
-    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x'));
+    await waitFor(() => expect(onExtracted).toHaveBeenCalledWith(RECIPE, 'https://a.pl/x', null));
     expect(engine.extractWithWebLlm).toHaveBeenCalledWith('# Zupa');
     expect(calledExtractPost(f)).toBe(false);
   });

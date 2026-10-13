@@ -21,16 +21,19 @@ import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 export function ImportReviewForm({
   extracted,
   sourceUrl,
+  imageUrl,
   onCancel,
   onSaved,
 }: {
   extracted: ExtractedRecipe;
   sourceUrl: string;
+  imageUrl?: string | null;
   onCancel: () => void;
   onSaved: (id: string) => void;
 }) {
   const [name, setName] = useState(extracted.name);
   const [servings, setServings] = useState(parseYield(extracted.recipeYield));
+  const [photoUrl, setPhotoUrl] = useState(imageUrl ?? '');
   const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
@@ -129,6 +132,7 @@ export function ImportReviewForm({
         servings_base: servings,
         prep_time_min: prepTime,
         source_url: sourceUrl || null,
+        image_url: photoUrl.trim() || null,
         source_author: sourceAuthor.trim() || null,
         visibility: 'household',
         diet_tags: [],
@@ -145,7 +149,11 @@ export function ImportReviewForm({
       }),
     });
     if (!res.ok) {
-      setError(saveStatusMessage(res.status));
+      // POST /api/recipes answers an invalid body with `{ error, fields }`: show one message per field.
+      const body: unknown = res.status === 400 ? await res.json().catch(() => null) : null;
+      const { fields } = (body ?? {}) as { fields?: Record<string, unknown> };
+      const detail = Object.values(fields ?? {}).filter((m): m is string => typeof m === 'string');
+      setError(detail.length > 0 ? detail.join('. ') : saveStatusMessage(res.status));
       return;
     }
     // An expired session redirects to /login, which fetch follows into an HTML 200.
@@ -180,6 +188,16 @@ export function ImportReviewForm({
           onChange={(e) => setName(e.target.value)}
           className="font-display text-xl font-semibold lg:text-xl"
         />
+        <label className="block space-y-1">
+          <span className="text-sm text-muted">Zdjęcie (adres URL)</span>
+          <Input
+            type="url"
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            placeholder="https://…"
+            maxLength={2048}
+          />
+        </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
             <span className="text-sm text-muted">Porcje</span>

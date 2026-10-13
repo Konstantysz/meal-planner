@@ -40,6 +40,16 @@ export function recipeMacros(ingredients: PlannedRecipeIngredient[]): { total: M
 }
 
 /**
+ * Per-serving macros of a recipe for the list and the detail page. Null (UI: „brak danych makro") when any
+ * counted ingredient lacked data or `servingsBase` is invalid: the same rule as the day totals, so a partial
+ * sum never reads as a real value.
+ */
+export function recipePerServing(ingredients: PlannedRecipeIngredient[], servingsBase: number): Macros | null {
+  const { total, incomplete } = recipeMacros(ingredients);
+  return incomplete ? null : perServing(total, servingsBase);
+}
+
+/**
  * Per-day macro totals for a week: for each slot with a recipe, the recipe's per-serving macros times the
  * planned servings. Works on rows already fetched in one query, so it adds no per-slot requests.
  * Only dates that have a slot with a recipe appear in the result.

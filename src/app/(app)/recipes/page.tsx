@@ -5,7 +5,7 @@ export default function RecipesPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <h1 className="text-2xl font-bold">Przepisy</h1>
+        <h1 className="font-display text-3xl font-extrabold">Przepisy</h1>
         <ButtonLink href="/recipes/new?import=1">Importuj z URL</ButtonLink>
       </div>
       <Suspense>

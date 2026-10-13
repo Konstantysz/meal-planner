@@ -31,7 +31,7 @@ export function ImportDialog({
   onExtracted,
 }: {
   onClose: () => void;
-  onExtracted: (r: ExtractedRecipe, url: string) => void;
+  onExtracted: (r: ExtractedRecipe, url: string, imageUrl: string | null) => void;
 }) {
   const [url, setUrl] = useState('');
   const [stage, setStage] = useState<Stage>('idle');
@@ -74,7 +74,7 @@ export function ImportDialog({
         'fetch',
       );
       if (!fr.ok) throw new ImportError(importStatusMessage('fetch', fr.status));
-      const { markdown } = (await fr.json()) as { markdown: string };
+      const { markdown, image_url } = (await fr.json()) as { markdown: string; image_url?: string | null };
 
       // Modes are exclusive (Gemini fallback is paused): server → Ollama only, browser → WebLLM only.
       at = 'mode';
@@ -110,7 +110,7 @@ export function ImportDialog({
       }
       if (signal.aborted) return;
       setStage('done');
-      onExtracted(recipe, url);
+      onExtracted(recipe, url, image_url ?? null);
     } catch (e) {
       if (signal.aborted) return;
       setError(importErrorMessage(e, at));

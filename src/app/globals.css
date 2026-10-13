@@ -58,6 +58,9 @@
   --color-slot-4: var(--slot-4);
   --color-on-slot: var(--on-slot);
   --color-scrim: var(--scrim);
+  /* The root font size drops to 14px on desktop; the 12px minimum and 13px secondary size must not shrink with it. */
+  --text-xs: 12px;
+  --text-sm: 13px;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-bricolage);
@@ -92,7 +95,7 @@ select {
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--faint);
+  color: var(--muted);
 }
 
 :focus-visible {

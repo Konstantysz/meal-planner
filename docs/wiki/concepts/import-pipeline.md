@@ -2,7 +2,7 @@
 title: "Import Pipeline"
 summary: "End-to-end URL import: fetch and clean on the server, LLM extraction in browser or server, then human review with auto-matching before save."
 tags: [import, llm, recipes]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -11,8 +11,8 @@ review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: 381ad02
+human_reviewed: false
+verified_commit: acf949e
 sources:
   - title: "Import dialog"
     path: src/components/import/ImportDialog.tsx
@@ -36,6 +36,8 @@ sources:
     path: src/app/api/import/fetch/route.ts
   - title: "Extract route"
     path: src/app/api/import/extract/route.ts
+  - title: "Photo extraction"
+    path: src/lib/import/image.ts
   - title: "Prep-time parser"
     path: src/lib/import/duration.ts
   - title: "Page fetcher"
@@ -61,7 +63,7 @@ sequenceDiagram
   participant W as WebLLM worker
   participant R as ImportReviewForm
   D->>F: POST {url}
-  F-->>D: {markdown} (fetchPage + cleanHtml)
+  F-->>D: {markdown, image_url} (fetchPage + cleanHtml + extractImageUrl)
   D->>X: GET (mode?)
   alt mode = server
     D->>X: POST {markdown}
@@ -71,7 +73,7 @@ sequenceDiagram
     W-->>D: RecipeJsonLd
   end
   D->>D: page ingredients replace the model's recipeIngredient
-  D->>R: onExtracted(recipe, url)
+  D->>R: onExtracted(recipe, url, imageUrl)
   R->>R: Auto-mapuj składniki (optional)
   R->>R: POST /api/recipes
 ```
@@ -110,6 +112,7 @@ No route returns 401: an expired session is answered by the proxy middleware wit
 
 ## Invariants and gotchas
 
+- **The photo comes from the raw page, not the Markdown.** `cleanHtml` drops images, so `/api/import/fetch` also runs `extractImageUrl(html, url)` (`src/lib/import/image.ts`): the JSON-LD Recipe `image`, then `og:image`, resolved against the page URL and kept only if its host is in `IMAGE_HOSTS`. The result is `image_url` (or null) in the response; the review form prefills an editable „Zdjęcie (adres URL)" field and saves it as `recipes.image_url`. See [[0014-recipe-photos-hotlinked]].
 - **The model structures the ingredients.** It returns `{name, amount, unit, optional}` per ingredient and the dialog passes the result straight to the review form ([[0012-llm-structures-ingredients]]). There is no per-site code; quality depends on the model ([[ingredient-auto-match#Measuring the model]]).
 - **Review is mandatory.** `ImportReviewForm.save` refuses to save until at least one ingredient is mapped („Zmapuj co najmniej jeden składnik przed zapisem.").
 - Imported recipes get `diet_tags: []`, `allergens: []` and `visibility: 'household'`. `prep_time_min` comes from the extracted `prepTime` (ISO 8601, parsed by `parsePrepMinutes` in `src/lib/import/duration.ts`; absent or unparsable → `null`), prefilled in the editable "Czas (min)" field of the review form. Each recipe ingredient is saved with `optional: false`.
@@ -146,6 +149,7 @@ LLM_MODE=server pnpm dev
 ## Changelog
 
 - 2026-10-13: Redesigned on the design system: sheet dialog with steps and Polish errors, per-row auto-match outcome, entry point on the recipe list (#40).
+- 2026-10-13: Fetch route returns `image_url`; review form saves it (migration 0011). Status set to `review` for the edit.
 - 2026-10-13: Review form edits imported ingredient rows and steps (add, remove, reorder) and `source_author` (#35).
 - 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.

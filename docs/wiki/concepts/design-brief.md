@@ -13,9 +13,9 @@ confidence: medium
 llm_generated: true
 llm_model: "claude-sonnet-5-5"
 human_reviewed: false
-verified_commit: e0f0256
+verified_commit: 4329ca9
 sources:
-  - title: "Theme tokens today (create-next-app defaults)"
+  - title: "Theme tokens"
     path: src/app/globals.css
   - title: "Root layout (fonts, lang, metadata)"
     path: src/app/layout.tsx
@@ -23,9 +23,6 @@ sources:
     path: src/components/plan/WeekPlan.tsx
   - title: "App name and theme colour"
     path: public/manifest.json
-  - title: "Structure prototype, treatment 3 (private claude.ai artifact)"
-    url: "https://claude.ai/artifact/4ymb96mmWzYvW5STSTkYtF"
-    accessed: 2026-10-13
 ---
 
 # Design Brief
@@ -37,10 +34,10 @@ sources:
 
 Issue #37 (foundations, epic #47) builds the tokens, primitives and app shell. The per-screen redesigns (#38–#41) build on them. This page is the reference for all of that. Read it, and use the `frontend-design` skill, before building or restyling UI.
 
-Every decision below comes from the style interview of 2026-10-13 (answers cited as "interview"). The structure and colours were settled on the prototype listed in Sources. The `src/app/globals.css` of today still holds the create-next-app defaults (white and near-black, Arial body).
+Every decision below comes from the style interview of 2026-10-13 (answers cited as "interview"). The structure and colours were settled on a throwaway prototype. The tokens live in `src/app/globals.css`.
 
 > [!note] Text on slot colours
-> Measured when the tokens landed: `ink` on the five slot colours is 10.4–11.8:1 in light and 7.5–9.2:1 in dark. `muted` is 4.0–4.6:1 in light and 3.4–4.2:1 in dark, which fails for small text. Text on a slot colour therefore uses `ink` (token `on-slot`), never `muted`.
+> Measured with `tests/unit/token-contrast.test.ts` (WCAG 2.x ratios from the CSS values). `ink` on the five slot colours is 10.4–11.8:1 in light and 7.5–9.2:1 in dark. `muted` on them is 4.0–4.6:1 in light and 3.4–4.2:1 in dark, which fails for small text and cannot be fixed by darkening `muted` without losing its place between `ink` and `faint`. Text on a slot colour therefore uses `ink` (token `on-slot`), never `muted`; no component puts `muted` or `faint` on a slot colour.
 
 ## Direction and tone
 
@@ -57,7 +54,7 @@ Every decision below comes from the style interview of 2026-10-13 (answers cited
 | Section title, day number | Bricolage Grotesque | 600 | 18–24 px |
 | Body | Geist | 400 | 14 px desktop, 16 px mobile |
 | Secondary text | Geist | 400–500 | 13 px |
-| Minimum | Geist | 400 | 12 px (the prototype's 11 px cover time and tab labels are 12 px in the build) |
+| Minimum | Geist | 400 | 12 px (the prototype's 11 px cover time and tab labels are 12 px in the build; `--text-xs` is fixed at 12 px and `--text-sm` at 13 px because the root size drops to 14 px on desktop) |
 
 - Body is 16 px on mobile so iOS does not zoom into inputs (interview Q4).
 - Numbers that align (dates, amounts, macros) use `font-variant-numeric: tabular-nums`.
@@ -68,7 +65,19 @@ Every decision below comes from the style interview of 2026-10-13 (answers cited
 
 Light and dark are both fully designed and follow `prefers-color-scheme` (interview). The brand colour marks today, the one filled button per screen, and the active navigation icon. Focus rings and the "today" day label use it too. Nothing else is brand-coloured.
 
-`faint` is for icons and other non-text marks (3:1 against every surface). Text uses `muted` or `ink`. Measured contrast: `muted` and `ink` pass 4.5:1 on `background`, `side` and `hover` in light, and `muted` passes on them in dark. `faint` passes 3:1 on all three surfaces in both themes.
+`faint` is for icons and other non-text marks (3:1 against every surface); it is never text, and placeholders use `muted`. Text uses `muted` or `ink`.
+
+Measured contrast (#56, `tests/unit/token-contrast.test.ts`; thresholds 4.5:1 text, 3:1 icons):
+
+| Pair | Light | Dark |
+|---|---|---|
+| `ink` on `background` / `side` / `hover` | 14.6 / 13.3 / 12.3 | 14.4 / 13.3 / 11.9 |
+| `muted` on `background` / `side` / `hover` | 5.7 / 5.2 / 4.8 | 6.5 / 6.1 / 5.4 |
+| `brand` on `background` / `side` / `hover` | 6.5 / 6.0 / 5.5 | 7.3 / 6.8 / 6.1 |
+| `on-brand` on `brand` | 6.8 | 6.9 |
+| `faint` on `background` / `side` / `hover` (icons) | 3.8 / 3.5 / 3.2 | 4.8 / 4.4 / 4.0 |
+| `on-slot` on slots 0–4 | 10.4–11.8 | 7.5–9.2 |
+| `muted` on slots 0–4 (not used) | 4.0–4.6 | 3.4–4.2 |
 
 | Token | Light | Dark |
 |---|---|---|
@@ -108,7 +117,7 @@ Components use tokens only. No hard-coded colours in components.
 
 | Surface | Desktop | Mobile |
 |---|---|---|
-| Shell | Sidebar: name, search, navigation, this week's recipes | Bottom tabs: Plan, Przepisy, Zakupy, Ustawienia |
+| Shell | Sidebar: name, search, navigation, this week's recipes | Bottom tabs: Przepisy, Plan, Zakupy, Ustawienia |
 | Plan | Calendar-style grid: small day names, large date numbers, today circled in brand, blocks tinted by slot position | Agenda list, one row per day |
 | Recipes | Steam-style shelves of tall covers | Same shelves, horizontal scroll |
 | Recipe | Notion-style page: cover band, large title, property list (Porcje, Czas, Na porcję, Źródło), ingredients beside numbered steps | One column |
@@ -132,6 +141,8 @@ Subtle, and only in response to an action (interview). Opening a dialog or sheet
 
 A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, about 21 px) on its slot colour, with the cooking time at the top. With a photo (interview Q7) the photo fills the cover and the name sits on a bottom gradient for legibility. On the recipe page the photo replaces the colour band. The layout does not change between the two cases, so adding photo upload later changes no layout.
 
+The photo is `recipes.image_url`, a hotlinked URL ([[0014-recipe-photos-hotlinked]]). `RecipePhoto` (`src/components/recipes/RecipePhoto.tsx`) is the photo layer: it fills its positioned parent, takes `scrim` for the bottom gradient (token `from-scrim`), and renders nothing when there is no URL or it fails to load, so the parent's slot colour is the fallback.
+
 ## Examples
 
 ```css
@@ -144,6 +155,10 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 }
 ```
 
+## Status of the recipe screens
+
+The recipe list and detail (#39) use the cover as above with two deviations: the tint is `hover` (no slot colour yet), and the list is a responsive grid instead of shelves with horizontal scroll on mobile.
+
 ## Related
 
 - [[concepts]]: concept index
@@ -153,11 +168,14 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 ## Sources
 
 - Style interview of 2026-10-13 (questions Q1–Q7 and the earlier rounds), between the maintainer and the agent.
-- The structure prototype (private claude.ai artifact in the frontmatter), which held the values above as CSS variables. Its kept copy in the repo was removed when #37 shipped.
 - `src/app/globals.css` and `src/app/layout.tsx` for the current defaults.
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail built (#39); deviations noted under "Status of the recipe screens".
+- 2026-10-13: Described the photo layer (`RecipePhoto`) and `image_url`.
+- 2026-10-13: Foundations wrap-up (#56): contrast table for all token pairs and slot colours; `faint` no longer used for text or placeholders; `--text-xs` fixed at 12 px; prototype source removed.
+- 2026-10-13: Review follow-up (#56): `--text-sm` fixed at 13 px (the secondary size); the add-slot "+" uses `muted`; the contrast test parses the dark block on its own.
 - 2026-10-13: Review follow-up: brand focus ring measured (6.8–7.3:1 dark, 6.0–6.5:1 light); spacing steps map to Tailwind's scale.
 - 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.

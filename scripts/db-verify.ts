@@ -6,12 +6,14 @@
  * re-apply the migration and require "ALL PASS". Fresh pass: every migration on an empty database, then the seed.
  *
  * The stub is not Supabase: a human still runs each verification script on the live project.
+ * Each "(n checks)" recorded in the migration-history wiki page must match the count the script reports here.
  *
  * Usage: pnpm db:verify
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { checkCount, checkRecordedCounts, parseVerificationTable, RECORD_PATH } from './migration-record';
 
 const ROOT = 'supabase';
 
@@ -84,6 +86,7 @@ async function main(): Promise<number> {
   const all = collectMigrations(list('migrations'), list('rollbacks'), list('checks'));
   const seed = readFileSync(join(ROOT, 'seed.sql'), 'utf8');
   let failures = 0;
+  const counts = new Map<string, number>();
 
   const fresh = async () => {
     const db = new PGlite({ extensions: { pgcrypto } });
@@ -117,6 +120,9 @@ async function main(): Promise<number> {
     const { outcome, message } = await verify(db, m);
     if (outcome === 'pass') {
       console.log(`  ✓ ${label}: ${verifyHeadline(message)}`);
+      // Count from ALL PASS: a baseline run may stop early on the old schema and report no count.
+      const n = checkCount(verifyHeadline(message));
+      if (n !== undefined) counts.set(m.version, n);
     } else {
       console.error(`  ✗ ${label}:\n${message}`);
       failures++;
@@ -158,6 +164,12 @@ async function main(): Promise<number> {
   for (const m of all) ok = ok && (await run(db2, `apply ${m.migration}`, read('migrations', m.migration)));
   if (ok && (await run(db2, 'seed', seed))) console.log('  ✓ all migrations and the seed apply to an empty database');
   await db2.close();
+
+  console.log(`Recorded check counts (${RECORD_PATH})`);
+  const countErrors = checkRecordedCounts(parseVerificationTable(readFileSync(RECORD_PATH, 'utf8')), counts);
+  for (const e of countErrors) console.error(`  ✗ ${e}`);
+  if (countErrors.length) failures += countErrors.length;
+  else console.log('  ✓ every recorded count matches its verification script');
 
   console.log(failures ? `db-verify: ${failures} failure(s)` : 'db-verify: all migrations verified');
   return failures ? 1 : 0;
