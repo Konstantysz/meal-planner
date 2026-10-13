@@ -66,3 +66,16 @@ export async function createRecipe(supabase: SupabaseClient, input: unknown, hou
   if (error) throw error;
   return data as Recipe;
 }
+
+/**
+ * Edits a saved recipe in one transaction (update_recipe RPC, migration 0009): updates the recipe's
+ * own columns and replaces its ingredients and steps. `author_id` and `household_id` never change.
+ * RLS decides who may edit; when it blocks the update the RPC raises 42501 (`insufficient_privilege`)
+ * instead of silently updating nothing, and that PostgREST error is thrown as is.
+ */
+export async function updateRecipe(supabase: SupabaseClient, id: string, input: unknown): Promise<Recipe> {
+  const parsed = RecipeInputSchema.parse(input);
+  const { data, error } = await supabase.rpc('update_recipe', { p_recipe_id: id, p_recipe: parsed });
+  if (error) throw error;
+  return data as Recipe;
+}

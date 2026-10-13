@@ -5,7 +5,7 @@ tags: [database, rls, security]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
@@ -24,6 +24,8 @@ sources:
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "Source author and step title"
     path: supabase/migrations/0008_recipe_source_author_step_title.sql
+  - title: "Migration 0009"
+    path: supabase/migrations/0009_update_recipe_rpc.sql
   - title: "Verification scripts"
     path: supabase/checks/0004_security_hardening.verify.sql
   - title: "Supabase MCP config"
@@ -53,10 +55,11 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0006` | Konstantysz/meal-planner#7 | `on_auth_user_created` trigger creates the household; backfill; idempotent `create_household_with_owner`; `save_recipe` RPC | With email confirmation on, signup left users without a household. `createRecipe` used three inserts and could leave orphan recipes. |
 | `0007` | Konstantysz/meal-planner#13 | `recipe_ingredients.optional` boolean (default `false`); `save_recipe` reads the flag per ingredient | Optional ingredients ("ewentualne dodatki") are excluded from recipe macros but still shopped. Rollback: `supabase/rollbacks/0007_recipe_ingredient_optional.down.sql`; check: `supabase/checks/0007_recipe_ingredient_optional.verify.sql`. See [[recipe-management]]. |
 | `0008` | Konstantysz/meal-planner#33 | `recipes.source_author` and `recipe_steps.title` (both nullable text); `save_recipe` reads `source_author` and per-step `title` (missing or blank = null) | Records who wrote a recipe (`author_id` is only who saved it) and an optional heading per step. No data migration, nothing populates the fields yet. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`; check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
+| `0009` | Konstantysz/meal-planner#42 | `update_recipe(p_recipe_id, p_recipe)` RPC (`security invoker`): updates the recipe's columns and replaces its ingredients and steps in one transaction; raises `42501` when RLS leaves 0 rows to update | Recipes could not be edited after saving. An RLS-filtered `UPDATE` returns no error, so the function checks the row count to fail loudly. Needs 0008. Rollback: `supabase/rollbacks/0009_update_recipe_rpc.down.sql` (drops the function only); check: `supabase/checks/0009_update_recipe_rpc.verify.sql`. |
 
 ## Verification
 
-Each of `0004`–`0008` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
+Each of `0004`–`0009` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
 
 | Migration | Before merge | After deploy |
 |---|---|---|
@@ -65,6 +68,7 @@ Each of `0004`–`0008` has a script in `supabase/checks/` that creates throwawa
 | `0006` | `FAIL 7 (7 checks)` (features missing) | `ALL PASS (7 checks)` |
 | `0007` | `FAIL 2 (2 checks)` | `ALL PASS (2 checks)` |
 | `0008` | not yet run (expect `FAIL` on the checks that need the new columns) | not yet run (expect `ALL PASS (5 checks)`) |
+| `0009` | not yet run (expect `FAIL`: the function does not exist) | not yet run (expect `ALL PASS (8 checks)`) |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -110,6 +114,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Added migration 0009 (`update_recipe` RPC); the SQL and its check script were written without a Postgres to run them against, live results pending.
 - 2026-10-13: Added migration 0008 (`recipes.source_author`, `recipe_steps.title`); live results pending.
 - 2026-10-09: Checked the migration SQL for `0001`–`0007`, the rollbacks and checks, and PRs #2, #4–#7 and #13 with `gh`. Added the missing `0007` row. Corrected the backup claim (the workflow ran and failed, it did not never run) and the seed `source` claim (the picker writes `manual`). Left `verified_commit` at dd67b66 because the live results and plan facts are unverifiable from the repo.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
