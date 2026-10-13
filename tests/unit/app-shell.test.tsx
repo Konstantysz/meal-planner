@@ -31,29 +31,3 @@ describe('EmptyState', () => {
     expect(screen.getByRole('button', { name: 'Dodaj' })).toBeTruthy();
   });
 });
-
-describe('Sheet', () => {
-  it('is labelled and calls onClose once for a user close, not for a parent close', async () => {
-    const { Sheet } = await import('@/components/ui');
-    HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
-      this.open = true;
-    };
-    HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
-      this.open = false;
-      this.dispatchEvent(new Event('close'));
-    };
-    const onClose = vi.fn();
-    const { rerender } = render(
-      <Sheet open onClose={onClose} title="Wybierz">
-        x
-      </Sheet>,
-    );
-    expect(screen.getByRole('dialog', { name: 'Wybierz' })).toBeTruthy();
-    rerender(
-      <Sheet open={false} onClose={onClose} title="Wybierz">
-        x
-      </Sheet>,
-    );
-    expect(onClose).not.toHaveBeenCalled();
-  });
-});

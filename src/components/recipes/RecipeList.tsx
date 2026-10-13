@@ -13,6 +13,8 @@ export function RecipeList() {
   const [exclude, setExclude] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const visible = recipes.filter((r) => r.name.toLowerCase().includes(q));
+
   useEffect(() => {
     const params = new URLSearchParams();
     diet.forEach((d) => params.append('diet', d));
@@ -29,22 +31,19 @@ export function RecipeList() {
       <RecipeFilters diet={diet} exclude={exclude} onDiet={setDiet} onExclude={setExclude} />
       <div className="p-4 space-y-2">
         {loading && <p className="text-muted">Ładuję…</p>}
-        {!loading && recipes.length > 0 && q && !recipes.some((r) => r.name.toLowerCase().includes(q)) && (
+        {!loading && recipes.length === 0 && <p className="text-muted">Brak przepisów. Dodaj pierwszy.</p>}
+        {!loading && recipes.length > 0 && visible.length === 0 && (
           <p className="text-muted">Brak przepisów pasujących do „{q}”.</p>
         )}
-        {!loading && recipes.length === 0 && <p className="text-muted">Brak przepisów. Dodaj pierwszy.</p>}
-        {recipes
-          .filter((r) => r.name.toLowerCase().includes(q))
-          .map((r) => (
-            <RecipeCard key={r.id} recipe={r} />
-          ))}
+        {visible.map((r) => (
+          <RecipeCard key={r.id} recipe={r} />
+        ))}
       </div>
       <Link
         href="/recipes/new"
-        aria-label="Nowy przepis"
-        className="fixed bottom-20 right-4 lg:bottom-6 bg-brand text-on-brand rounded-full w-14 h-14 flex items-center justify-center text-2xl"
+        className="fixed bottom-20 right-4 lg:bottom-6 bg-brand text-on-brand rounded-control min-h-11 px-4 flex items-center justify-center font-medium"
       >
-        +
+        + Nowy przepis
       </Link>
     </div>
   );

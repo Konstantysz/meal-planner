@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { usePlan } from '@/hooks/usePlan';
 import { WeekPlanDesktop } from './WeekPlanDesktop';
 import { WeekPlanMobile } from './WeekPlanMobile';
+import { Input, Sheet } from '@/components/ui';
 import type { Macros } from '@/lib/types';
 
 export function WeekPlan({ weekStart }: { weekStart: string }) {
@@ -69,28 +70,23 @@ function RecipePickerDialog({
   const filtered = recipes.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 bg-scrim flex items-end lg:items-center justify-center z-50" onClick={onClose}>
-      <div
-        className="bg-background text-ink rounded-t-sheet lg:rounded-sheet w-full lg:max-w-md p-4 max-h-[80vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="font-semibold mb-2">Wybierz przepis na {date}</h3>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Szukaj…"
-          className="w-full border rounded px-3 py-2 mb-2"
-        />
-        <ul className="divide-y">
-          {filtered.map((r) => (
-            <li key={r.id}>
-              <button className="w-full text-left py-2" onClick={() => onPick(r.id)}>
-                {r.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <Sheet open onClose={onClose} title={`Wybierz przepis na ${date}`}>
+      <Input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Szukaj…"
+        aria-label="Szukaj przepisu"
+        className="mb-2"
+      />
+      <ul className="divide-y divide-line">
+        {filtered.map((r) => (
+          <li key={r.id}>
+            <button className="min-h-11 w-full text-left" onClick={() => onPick(r.id)}>
+              {r.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }

@@ -34,12 +34,14 @@ export function Sheet({
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
-      className="anim-sheet m-0 mt-auto max-h-[85vh] w-full max-w-none rounded-t-sheet bg-background p-4 text-ink backdrop:bg-scrim lg:m-auto lg:max-w-md lg:rounded-sheet"
+      className="anim-sheet m-0 mt-auto max-h-[85vh] w-full max-w-none rounded-t-sheet bg-background p-0 text-ink backdrop:bg-scrim lg:m-auto lg:max-w-md lg:rounded-sheet"
     >
-      <h2 id={titleId} className="mb-3 font-display text-lg font-semibold">
-        {title}
-      </h2>
-      {open && children}
+      <div className="p-4">
+        <h2 id={titleId} className="mb-3 font-display text-lg font-semibold">
+          {title}
+        </h2>
+        {open && children}
+      </div>
     </dialog>
   );
 }

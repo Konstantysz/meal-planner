@@ -21,7 +21,11 @@ export function PlanSlot({
         <div>{recipeName ?? <span className="text-faint italic">puste</span>}</div>
       </div>
       {onRemove && recipeName && (
-        <button onClick={onRemove} aria-label="Usuń z planu" className="text-xs text-on-slot min-w-6 min-h-6">
+        <button
+          onClick={onRemove}
+          aria-label="Usuń z planu"
+          className="text-xs text-on-slot min-w-11 min-h-11 lg:min-w-6 lg:min-h-6"
+        >
           ×
         </button>
       )}

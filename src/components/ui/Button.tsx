@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ButtonHTMLAttributes, ComponentProps } from 'react';
+import { cx } from './cx';
 
 type Variant = 'primary' | 'outline' | 'link';
 
@@ -12,7 +13,7 @@ const VARIANTS: Record<Variant, string> = {
 };
 
 function classes(variant: Variant, className?: string) {
-  return `${BASE} ${VARIANTS[variant]} ${className ?? ''}`.trim();
+  return cx(BASE, VARIANTS[variant], className);
 }
 
 /** One `primary` button per screen; everything else is `outline` or `link`. */

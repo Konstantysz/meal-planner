@@ -100,7 +100,7 @@ Components use tokens only. No hard-coded colours in components.
 
 ## Spacing, radius, density
 
-- **Spacing:** 4 px base; steps 4, 8, 12, 16, 24, 32, 48.
+- **Spacing:** 4 px base; steps 4, 8, 12, 16, 24, 32, 48. These are Tailwind's default scale (`1`, `2`, `3`, `4`, `6`, `8`, `12`); there are no custom spacing tokens.
 - **Radius:** 4 px for blocks and covers, 6 px for buttons, inputs and chips, 10 px for dialogs and sheets only. A radius is never reused for nesting; a shape inside a shape has a smaller radius or none.
 - **Density:** airy on mobile with 44 px touch targets; moderately dense on desktop (interview). Content columns stay under about 70 characters for reading text.
 
@@ -158,6 +158,7 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 
 ## Changelog
 
+- 2026-10-13: Review follow-up: brand focus ring measured (6.8–7.3:1 dark, 6.0–6.5:1 light); spacing steps map to Tailwind's scale.
 - 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.
 - 2026-10-13: Maintainer accepted the brief; implementation tracked in #49. Status stays `draft` until a human review.
