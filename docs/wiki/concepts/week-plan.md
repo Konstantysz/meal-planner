@@ -2,7 +2,7 @@
 title: "Week Plan"
 summary: "Plans keyed by household and Monday week start, week navigation by ?week=, slots keyed by date and position, moving slots (drag and drop, picker), servings stepper, desktop vs mobile views and unavailable-recipe slots."
 tags: [plan, ui]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
 updated: 2026-10-13
@@ -11,7 +11,7 @@ review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
-human_reviewed: true
+human_reviewed: false
 verified_commit: 8632fa0
 sources:
   - title: "Slot PATCH route"
@@ -53,6 +53,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 - `usePlan(weekStart)` calls `GET /api/plans?week=`, which runs `getOrCreatePlan` and then `getWeekPlan`. That returns the plan with `slots: plan_slots(*, recipe:recipes(id, name, servings_base, ingredients:recipe_ingredients(amount, unit, optional, ingredients(<macro columns>))))`: one query for the whole week, so day totals need no per-slot fetching.
 - `assign(date, position, recipeId, servings)` sends `POST /api/plans/[id]/slots` (`upsertSlot`, `onConflict: 'plan_id,date,position'`) and then reloads. `remove(slotId)` sends `DELETE` and reloads. `update(slotId, patch)` sends `PATCH /api/plans/[id]/slots/[slotId]` with `date`, `position` and/or `servings` (`PlanSlotPatchSchema`). The screen updates optimistically (`applySlotPatch`) and then reloads. Every write that fails shows a Polish message in a `role="alert"` line and reloads, so the screen matches the server again.
 - `WeekPlan` renders both views and CSS shows one: the desktop table from the `lg` breakpoint (1024 px), the mobile list below it. There is no JavaScript viewport check, so nothing re-lays out after hydration. Slots are tinted by position with the `slot-0`…`slot-4` tokens; empty slots and positions above 4 stay neutral.
+- **Look (design brief, Calendar style):** the heading is the week range („12–18 października") with borderless arrows, „Dziś" and one filled „Lista zakupów" link (desktop). Desktop day headers are a small day name over a large date, today circled in the brand colour; the grid has hairlines only, and a filled block shows the recipe and „N porcje" (`servingsLabel`). Move, remove, drag handle and the − / + stepper show on hover or keyboard focus from `lg` up and are always visible below it. Mobile is an agenda: date column, then the day's slots.
 
 | View | Layout | Positions | Slot label |
 |---|---|---|---|
@@ -63,7 +64,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ### Day macro totals
 
-`computeDayMacros(plan.slots)` (`src/lib/day-macros.ts`, pure) runs in both views on the already loaded plan, so the stepper and moves update the totals at once. Per slot with a recipe: `recipeMacros` sums the base recipe (rules in [[macro-calculation]]), `perServing` divides by `servings_base`, and the result is multiplied by the slot's planned servings. A day is **incomplete** when any slot has a non-optional ingredient with a unit other than `g`/`ml`, no amount, no macros or no ingredient row; a recipe with no counted ingredients; an unavailable recipe; or a `servings_base` of 0 or less. `DayTotals` then shows „brak danych makro" instead of a partial sum that would read as a real total. A day with no recipe slot shows nothing. Desktop renders the totals in a „Razem" footer row, mobile in each day's heading.
+`computeDayMacros(plan.slots)` (`src/lib/day-macros.ts`, pure) runs in both views on the already loaded plan, so the stepper and moves update the totals at once. Per slot with a recipe: `recipeMacros` sums the base recipe (rules in [[macro-calculation]]), `perServing` divides by `servings_base`, and the result is multiplied by the slot's planned servings. A day is **incomplete** when any slot has a non-optional ingredient with a unit other than `g`/`ml`, no amount, no macros or no ingredient row; a recipe with no counted ingredients; an unavailable recipe; or a `servings_base` of 0 or less. `DayTotals` then shows „brak danych makro" instead of a partial sum that would read as a real total. A day with no recipe slot shows nothing. Desktop renders the totals in a „Razem" footer row (left out while no day has a recipe), mobile under each day's slots.
 
 ### Moving slots and servings
 

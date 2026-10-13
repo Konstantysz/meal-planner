@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { addDays, format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { usePlan } from '@/hooks/usePlan';
@@ -44,10 +45,10 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
   const moving = plan?.slots.find((s) => s.id === movingId);
 
   return (
-    <div>
+    <div className="lg:px-7 lg:py-5">
       <WeekNav weekStart={weekStart} />
       {error && (
-        <p role="alert" className="mx-3 mb-2 rounded-block border border-line p-2 text-sm text-ink">
+        <p role="alert" className="mx-3 mb-2 lg:mx-0 rounded-block border border-line p-2 text-sm text-ink">
           {error}
         </p>
       )}
@@ -86,25 +87,38 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
   );
 }
 
+/** „12–18 października", „29 września – 5 października"; the year only when the week crosses New Year. */
 function weekRange(weekStart: string): string {
   const from = parse(weekStart, 'yyyy-MM-dd', new Date());
   const to = addDays(from, 6);
-  const sameMonth = from.getMonth() === to.getMonth();
-  const start = format(from, sameMonth ? 'd' : 'd MMM', { locale: pl });
-  return `${start} – ${format(to, 'd MMM yyyy', { locale: pl })}`;
+  if (from.getFullYear() !== to.getFullYear()) {
+    return `${format(from, 'd MMMM yyyy', { locale: pl })} – ${format(to, 'd MMMM yyyy', { locale: pl })}`;
+  }
+  if (from.getMonth() === to.getMonth()) return `${format(from, 'd')}–${format(to, 'd MMMM', { locale: pl })}`;
+  return `${format(from, 'd MMMM', { locale: pl })} – ${format(to, 'd MMMM', { locale: pl })}`;
 }
+
+const ARROW = 'grid size-11 place-items-center rounded-control text-muted hover:bg-hover hover:text-ink lg:size-8';
 
 function WeekNav({ weekStart }: { weekStart: string }) {
   return (
-    <nav aria-label="Tydzień" className="flex flex-wrap items-center gap-2 p-3">
-      <ButtonLink href={`/plan?week=${shiftWeek(weekStart, -1)}`} aria-label="Poprzedni tydzień" className="px-2">
-        <Icon name="prev" width={18} height={18} />
-      </ButtonLink>
-      <ButtonLink href={`/plan?week=${shiftWeek(weekStart, 1)}`} aria-label="Następny tydzień" className="px-2">
-        <Icon name="next" width={18} height={18} />
-      </ButtonLink>
+    <nav aria-label="Tydzień" className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 lg:px-0 lg:pt-0">
+      <h2 className="font-display text-2xl font-extrabold tracking-tight tabular-nums">{weekRange(weekStart)}</h2>
+      <div className="flex gap-0.5">
+        <Link href={`/plan?week=${shiftWeek(weekStart, -1)}`} aria-label="Poprzedni tydzień" className={ARROW}>
+          <Icon name="prev" width={18} height={18} />
+        </Link>
+        <Link href={`/plan?week=${shiftWeek(weekStart, 1)}`} aria-label="Następny tydzień" className={ARROW}>
+          <Icon name="next" width={18} height={18} />
+        </Link>
+      </div>
       <ButtonLink href="/plan">Dziś</ButtonLink>
-      <h2 className="font-display text-lg font-semibold tabular-nums">{weekRange(weekStart)}</h2>
+      <span className="hidden flex-1 lg:block" />
+      <span className="hidden lg:block">
+        <ButtonLink href="/shopping" variant="primary">
+          Lista zakupów
+        </ButtonLink>
+      </span>
     </nav>
   );
 }
