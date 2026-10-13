@@ -14,7 +14,7 @@ const ing = (
   optional = false,
 ): PlannedRecipeIngredient => ({ amount, unit, optional, ingredients });
 
-// 200 g rice + 20 g oil for 2 servings: total 718 kcal, so 359 kcal per serving.
+// 200 g rice + 20 g oil for 2 servings: total 880 kcal, so 440 kcal per serving.
 const ricePlate = [ing(rice, 200), ing(oil, 20)];
 
 const slot = (

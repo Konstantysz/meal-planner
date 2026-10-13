@@ -3,6 +3,10 @@ import { PlanSlotInputSchema, PlanSlotPatchSchema } from '@/lib/schemas';
 import type { PlannedRecipeIngredient } from '@/lib/day-macros';
 import type { Plan, PlanSlot } from '@/lib/types';
 
+export interface WeekPlan extends Plan {
+  slots: Array<PlanSlot & { recipe: { id: string; name: string; servings_base: number } | null }>;
+}
+
 export interface PlanWithSlots extends Plan {
   slots: Array<
     PlanSlot & {
@@ -28,7 +32,19 @@ export async function getOrCreatePlan(supabase: SupabaseClient, householdId: str
   return data as Plan;
 }
 
-export async function getWeekPlan(supabase: SupabaseClient, planId: string): Promise<PlanWithSlots> {
+/** Plan with slots and bare recipe refs; for callers that don't need macros (shopping). */
+export async function getWeekPlan(supabase: SupabaseClient, planId: string): Promise<WeekPlan> {
+  const { data, error } = await supabase
+    .from('plans')
+    .select('*, slots:plan_slots(*, recipe:recipes(id, name, servings_base))')
+    .eq('id', planId)
+    .single();
+  if (error) throw error;
+  return data as unknown as WeekPlan;
+}
+
+/** Like `getWeekPlan` plus per-recipe ingredient macro columns, for the plan UI's day totals. */
+export async function getWeekPlanWithMacros(supabase: SupabaseClient, planId: string): Promise<PlanWithSlots> {
   const { data, error } = await supabase
     .from('plans')
     .select(
@@ -37,7 +53,19 @@ export async function getWeekPlan(supabase: SupabaseClient, planId: string): Pro
     .eq('id', planId)
     .single();
   if (error) throw error;
-  return data as unknown as PlanWithSlots;
+  type RawSlot = Omit<WeekPlan['slots'][number], 'recipe'> & {
+    recipe: { id: string; name: string; servings_base: number; ingredients?: unknown } | null;
+  };
+  const plan = data as unknown as Omit<WeekPlan, 'slots'> & { slots: RawSlot[] };
+  return {
+    ...plan,
+    slots: plan.slots.map((s) => ({
+      ...s,
+      recipe: s.recipe
+        ? { ...s.recipe, ingredients: Array.isArray(s.recipe.ingredients) ? s.recipe.ingredients : [] }
+        : null,
+    })),
+  } as PlanWithSlots;
 }
 
 export async function upsertSlot(supabase: SupabaseClient, input: unknown): Promise<PlanSlot> {
