@@ -73,6 +73,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
+- The detail page shows servings and prep time (when set) as two bordered chips under the title (plain `<li>` with the `rounded-control border-line` tokens, not the interactive `Chip` primitive). Visual treatment is left to the redesign.
 - The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name.
 - Each ingredient row has an `optional` flag (the „opcjonalny" checkbox in `IngredientPicker`, migration 0007). Optional rows are left out of the recipe macros and labelled „(opcjonalnie)" on the detail page. The shopping list does **not** treat them differently. Import does not tick the box: the extractor drops the „ewentualne dodatki" label, so the user ticks it by hand.
 

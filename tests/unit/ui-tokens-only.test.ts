@@ -3,7 +3,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Redesigned components use theme tokens only (docs/wiki/concepts/design-brief.md).
-const DIRS = ['src/components/ui', 'src/components/shell', 'src/components/plan'];
+const DIRS = [
+  'src/components/ui',
+  'src/components/shell',
+  'src/components/plan',
+  'src/components/shopping',
+  'src/components/auth',
+];
 const FORBIDDEN = [
   /#[0-9a-fA-F]{3,8}\b/,
   /\brgba?\(/,
