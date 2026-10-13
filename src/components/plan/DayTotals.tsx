@@ -8,7 +8,7 @@ export function DayTotals({ day }: { day: DayMacros | undefined }) {
   if (!day) return null;
   if (day.incomplete) {
     return (
-      <p className="text-xs text-faint" data-testid="day-totals">
+      <p className="text-xs text-muted" data-testid="day-totals">
         brak danych makro
       </p>
     );

@@ -65,7 +65,7 @@ jobs:
       - if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: pnpm db:order "origin/$BASE_REF"
+        run: pnpm db:order "origin/$BASE_REF" --require-baseline # red until the live baseline is recorded
       - run: pnpm db:verify # migrations, verification scripts and rollbacks on PGlite
 
   test:
