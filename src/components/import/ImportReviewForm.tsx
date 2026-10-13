@@ -1,11 +1,14 @@
 'use client';
 import { useState } from 'react';
-import type { ExtractedRecipe } from '@/lib/import/schema';
+import type { ExtractedIngredient, ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
 import { OffDisclaimer } from '@/components/recipes/OffDisclaimer';
+import { StepsEditor, type EditableStep } from '@/components/recipes/StepsEditor';
+import { ExtractedIngredientsEditor } from './ExtractedIngredientsEditor';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
 import { parsePrepMinutes } from '@/lib/import/duration';
+import { normalizeUnit } from '@/lib/import/unit';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 
 export function ImportReviewForm({
@@ -24,7 +27,12 @@ export function ImportReviewForm({
   const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
-  const [steps, setSteps] = useState<{ title: string | null; text: string }[]>(extracted.recipeInstructions);
+  // Editable copy of the imported rows; auto-match reads it, so removed or corrected rows are respected.
+  const [rows, setRows] = useState<ExtractedIngredient[]>(extracted.recipeIngredient);
+  const [sourceAuthor, setSourceAuthor] = useState('');
+  const [steps, setSteps] = useState<EditableStep[]>(
+    extracted.recipeInstructions.map((s) => ({ title: s.title ?? '', text: s.text })),
+  );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [matching, setMatching] = useState(false);
@@ -35,7 +43,10 @@ export function ImportReviewForm({
     setNotice(null);
     try {
       const localIngredients: Ingredient[] = await fetch('/api/ingredients').then((r) => r.json());
-      const results = await autoMatchIngredients(extracted.recipeIngredient, localIngredients, {
+      const toMatch = rows
+        .filter((r) => r.name.trim())
+        .map((r) => ({ ...r, unit: r.unit ? (normalizeUnit(r.unit.trim()) ?? r.unit.trim()) : null }));
+      const results = await autoMatchIngredients(toMatch, localIngredients, {
         searchOff: (q) => fetch(`/api/ingredients/lookup?q=${encodeURIComponent(q)}`).then((r) => r.json()),
       });
 
@@ -71,10 +82,8 @@ export function ImportReviewForm({
         setNotice(
           `Dopasowano wszystkie ${picked.length} składników (${createdCount} nowo utworzonych — sprawdź makra).`,
         );
-      } else if (picked.length < extracted.recipeIngredient.length) {
-        setNotice(
-          `Dopasowano ${picked.length} z ${extracted.recipeIngredient.length} składników. Uzupełnij resztę ręcznie.`,
-        );
+      } else if (picked.length < toMatch.length) {
+        setNotice(`Dopasowano ${picked.length} z ${toMatch.length} składników. Uzupełnij resztę ręcznie.`);
       } else {
         setNotice(`Dopasowano wszystkie ${picked.length} składników.`);
       }
@@ -88,6 +97,11 @@ export function ImportReviewForm({
       setError('Zmapuj co najmniej jeden składnik przed zapisem.');
       return;
     }
+    const cleanSteps = steps.filter((s) => s.text.trim());
+    if (cleanSteps.length === 0) {
+      setError('Dodaj co najmniej jeden krok.');
+      return;
+    }
     setError(null);
     const res = await fetch('/api/recipes', {
       method: 'POST',
@@ -97,6 +111,7 @@ export function ImportReviewForm({
         servings_base: servings,
         prep_time_min: prepTime,
         source_url: sourceUrl || null,
+        source_author: sourceAuthor.trim() || null,
         visibility: 'household',
         diet_tags: [],
         allergens: [],
@@ -108,9 +123,7 @@ export function ImportReviewForm({
           position: i.position,
           optional: i.optional,
         })),
-        steps: steps
-          .filter((s) => s.text.trim())
-          .map((s, i) => ({ position: i, title: s.title?.trim() || null, text: s.text })),
+        steps: cleanSteps.map((s, i) => ({ position: i, title: s.title.trim() || null, text: s.text })),
       }),
     });
     if (!res.ok) {
@@ -158,13 +171,19 @@ export function ImportReviewForm({
           </span>
         )}
       </div>
+      <label className="block text-sm">
+        Autor przepisu
+        <input
+          value={sourceAuthor}
+          onChange={(e) => setSourceAuthor(e.target.value)}
+          placeholder="np. Ania Gotuje"
+          maxLength={200}
+          className="w-full border rounded px-3 py-2"
+        />
+      </label>
       <div>
-        <h3 className="font-semibold">Składniki (z importu: {extracted.recipeIngredient.length})</h3>
-        <ul className="text-sm opacity-70 mb-2">
-          {extracted.recipeIngredient.map((x, i) => (
-            <li key={i}>· {[x.amount, x.unit, x.name].filter((p) => p != null).join(' ')}</li>
-          ))}
-        </ul>
+        <h3 className="font-semibold">Składniki z importu ({rows.length})</h3>
+        <ExtractedIngredientsEditor rows={rows} onChange={setRows} />
         <button
           type="button"
           onClick={autoMatch}
@@ -179,18 +198,7 @@ export function ImportReviewForm({
       </div>
       <div>
         <h3 className="font-semibold">Kroki</h3>
-        {steps.map((s, i) => (
-          <textarea
-            key={i}
-            value={s.text}
-            onChange={(e) => {
-              const n = [...steps];
-              n[i] = { ...s, text: e.target.value };
-              setSteps(n);
-            }}
-            className="w-full border rounded px-2 py-1 my-1"
-          />
-        ))}
+        <StepsEditor steps={steps} onChange={setSteps} />
       </div>
       {notice && <p className="text-sm bg-blue-50 text-blue-900 p-2 rounded">{notice}</p>}
       {error && <p className="text-red-600">{error}</p>}

@@ -66,6 +66,8 @@ sources:
 | `src/components/import/ImportDialog.tsx` | `tests/unit/import/ImportDialog.test.tsx` |
 | `src/components/import/ImportReviewForm.tsx` | `tests/unit/import/ImportReviewForm.test.tsx` |
 | `src/lib/import/duration.ts` | `tests/unit/import/duration.test.ts` |
+| `src/lib/list-edit.ts` | `tests/unit/list-edit.test.ts` |
+| `src/components/import/ExtractedIngredientsEditor.tsx`, `src/components/recipes/StepsEditor.tsx` | `tests/unit/import/review-editors.test.tsx` (also `ImportReviewForm` editing) |
 | `scripts/wiki-check.ts` | `tests/unit/wiki-check.test.ts` |
 
 ## Not covered
@@ -121,6 +123,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Added `list-edit.ts` and the review editors (#35).
 - 2026-10-13: Added `src/lib/macro-validation.ts` and `OffDisclaimer`; `schemas.ts` now also has `IngredientInputSchema` tests (#71).
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
