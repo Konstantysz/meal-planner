@@ -7,10 +7,18 @@ import type { PlanWithSlots } from '@/lib/db/plans';
 const plan = {
   id: 'p1',
   week_start_date: '2026-10-05',
-  slots: [{ id: 's1', date: '2026-10-05', position: 0, label: null, recipe_id: 'r1', recipe: null }],
+  slots: [{ id: 's1', date: '2026-10-05', position: 0, label: null, recipe_id: 'r1', recipe: null, servings: 1 }],
 } as unknown as PlanWithSlots;
 
-const props = { plan, onAdd: () => {}, onRemove: () => {}, dayMacros: {} };
+const props = {
+  plan,
+  onAdd: () => {},
+  onRemove: () => {},
+  onMove: () => {},
+  onServingsChange: () => {},
+  onOpenMove: () => {},
+  onDropRecipe: () => {},
+};
 
 describe.each([
   ['WeekPlanMobile', WeekPlanMobile],

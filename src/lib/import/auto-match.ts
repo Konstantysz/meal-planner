@@ -4,7 +4,7 @@ import type { ExtractedIngredient } from './schema';
 import { findBestMatch } from './match-ingredient';
 
 export interface AutoMatchResult {
-  /** Clean ingredient name only — amount/unit live in their own fields, not duplicated here. */
+  /** Clean ingredient name — amount/unit live in their own fields, not duplicated here. A source range is appended: "sok (1-2 łyżki)". */
   raw_text: string;
   amount: number | null;
   unit: string | null;
@@ -26,8 +26,10 @@ export async function autoMatchIngredients(
   deps: AutoMatchDeps,
 ): Promise<AutoMatchResult[]> {
   const results: AutoMatchResult[] = [];
-  for (const { name, amount, unit, optional } of ingredients) {
+  for (const { name, amount, unit, optional, range } of ingredients) {
     const cleanName = name.trim();
+    // Lookup uses the clean name; the displayed raw_text also keeps the original range (amount is its upper bound).
+    const rawText = range ? `${cleanName} (${range})` : cleanName;
     const local = findBestMatch(cleanName, localIngredients);
     const hasMacros =
       !!local &&
@@ -48,7 +50,7 @@ export async function autoMatchIngredients(
             default_unit: null,
             source: 'manual',
           };
-    results.push({ raw_text: cleanName, amount, unit, optional, ingredient, offCandidate, fallbackCandidate });
+    results.push({ raw_text: rawText, amount, unit, optional, ingredient, offCandidate, fallbackCandidate });
   }
   return results;
 }

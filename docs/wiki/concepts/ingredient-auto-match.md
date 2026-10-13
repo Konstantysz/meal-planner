@@ -58,8 +58,9 @@ Before this existed (commit `e7cda69`), users had to re-pick every imported ingr
 
 ## Invariants and gotchas
 
-- `raw_text` stored on the recipe is the **clean name only**. Amount and unit live in their own fields.
+- `raw_text` stored on the recipe is the clean name, plus the original range in parentheses when the source line had one ("sok z cytryny (1-2 łyżki)"). Amount and unit live in their own fields. The recipe page renders `{amount} {raw_text}`, so the range text shows there. `raw_text` is also the fallback shopping-list name (`ri.ingredients?.name ?? ri.raw_text`) and goes into `raw_amounts`, so range text flows into the shopping list too.
 - A macro-less local match is kept only when OFF has nothing (commit `df8755a`). Before that fix, placeholders shadowed real data.
+- Ranges are also fixed in code, not only by the prompt: `applyQuantityRanges` (`src/lib/import/ranges.ts`, called from `extractRecipe` and the WebLLM engine) finds the source line in the page Markdown (ingredient-list lines only: the "Składniki" section or bullet lines; the single best-fitting line, ties skipped; a model-supplied `range` is dropped by `parseLlmJson`) (`1-2`, `1–2`, `1 do 2`, leading or trailing the name). If the model's amount equals a bound and its unit agrees with the unit next to the range, `amount` becomes the upper bound and the original text lands in `range`; `autoMatchIngredients` shows it as `raw_text` "sok z cytryny (1-2 łyżki)". Time ranges ("5-7 minut") are skipped. `SYSTEM_PROMPT` is unchanged, so the eval scores are not affected; `tests/unit/import/ranges.test.ts` covers it.
 - What the model does with a line (one weight per entry, ranges, „lub", water, several ingredients on one line) is set by `SYSTEM_PROMPT`, not by code. A bad import is a prompt or model problem: name the class of mistake it belongs to and fix that class, then measure (see "Measuring the model" below).
 - A failed create (for example a name collision with `lower(name)`) silently drops that line. The notice then reports fewer matches.
 - Matching is substring plus word overlap with a common-prefix rule, not a lemmatizer or edit distance. It covers endings („czosnku" ~ „czosnek") but not a short stem, like „mąki" vs. „mąka" (prefix 3, under the 4-letter minimum). Two `ponytail:` comments in `match-ingredient.ts` mark this.
@@ -101,7 +102,7 @@ Names are solid on both; amount and unit are where the 2B model falls short, whi
 
 ## Sources
 
-- `src/lib/import/{auto-match,match-ingredient,unit,schema}.ts`, `src/components/import/ImportReviewForm.tsx`, `scripts/eval-ingredients.ts`
+- `src/lib/import/{auto-match,match-ingredient,unit,schema,ranges}.ts`, `src/components/import/ImportReviewForm.tsx`, `scripts/eval-ingredients.ts`
 - `tests/unit/import/auto-match*.test.ts`, `match-ingredient.test.ts`, `schema.test.ts`; `tests/fixtures/ingredient-corpus.ts`
 - Commits `e7cda69` (auto-match) and `df8755a` (keep macro-less local matches)
 

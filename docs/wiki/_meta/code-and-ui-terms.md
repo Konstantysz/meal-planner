@@ -58,7 +58,7 @@ Deeper reading: [[household-model]], [[rls-authorization]], [[week-plan]], [[sha
 | „puste" | Plan slot | Slot with no recipe. |
 | „posiłek N" | Mobile plan, share page | Fallback slot label (position + 1). |
 | śniadanie, lunch, obiad, przekąska, kolacja | Desktop plan rows | Fixed labels for positions 0–4. |
-| „Tryb offline — …" | Shopping list | Shown while the shopping list's `offline` flag is set. The flag starts from `navigator.onLine` and follows the `online` and `offline` events. |
+| „Brak połączenia — …" | Shopping list | Shown while the shopping list's `offline` flag is set. The flag starts from `navigator.onLine` and follows the `online` and `offline` events. |
 | „Import z URL" | `/recipes/new` | Opens the import dialog. |
 | „Auto-mapuj składniki" | Import review | Runs auto-match. |
 | Składniki / Kroki | Recipe views | Ingredients / Steps. |

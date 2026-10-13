@@ -56,7 +56,7 @@ The sharing requirement was "share with friends". The first version (migration 0
 - The share page never reads tables directly. Don't add anon `select` policies for sharing; extend the RPC instead.
 - `GET /api/share/[token]` returns the same payload, but it sits behind the proxy, so anonymous callers get redirected. The page doesn't use it.
 - Tokens never expire. A creator can list (`st_select`) and delete (`st_delete`) their own tokens, but no UI does that.
-- Every click on „Wygeneruj link" creates a new token for the same plan.
+- Every click on „Wygeneruj link" creates a new token for the same plan. The settings screen shows the link in a read-only field, and a failed request now shows „Nie udało się wygenerować linku. Spróbuj ponownie." (#41).
 
 ## Known gaps
 

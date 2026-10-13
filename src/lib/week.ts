@@ -1,4 +1,4 @@
-import { format, isValid, parse, startOfWeek } from 'date-fns';
+import { addDays, addWeeks, format, isValid, parse, startOfWeek } from 'date-fns';
 
 /** Monday of the week containing `date`, as yyyy-MM-dd (plans are keyed by it; DB enforces Monday). */
 export function weekStartOf(date: Date): string {
@@ -11,4 +11,20 @@ export function normalizeWeekStart(value: string): string | null {
   const date = parse(value, 'yyyy-MM-dd', new Date());
   if (!isValid(date) || format(date, 'yyyy-MM-dd') !== value) return null;
   return weekStartOf(date);
+}
+
+/** The Monday `weeks` weeks after (or before, when negative) `weekStart`. */
+export function shiftWeek(weekStart: string, weeks: number): string {
+  return format(addWeeks(parse(weekStart, 'yyyy-MM-dd', new Date()), weeks), 'yyyy-MM-dd');
+}
+
+/** Week for a `?week=` value: its Monday, or the current week when missing or malformed. */
+export function resolveWeek(param: string | string[] | undefined, now: Date): string {
+  const value = Array.isArray(param) ? param[0] : param;
+  return (value ? normalizeWeekStart(value) : null) ?? weekStartOf(now);
+}
+
+/** The Sunday closing the week that starts on `weekStart` (inclusive end of the plan window). */
+export function weekEndOf(weekStart: string): string {
+  return format(addDays(parse(weekStart, 'yyyy-MM-dd', new Date()), 6), 'yyyy-MM-dd');
 }
