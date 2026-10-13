@@ -108,7 +108,7 @@ Components use tokens only. No hard-coded colours in components.
 
 | Surface | Desktop | Mobile |
 |---|---|---|
-| Shell | Sidebar: name, search, navigation, this week's recipes | Bottom tabs: Plan, Przepisy, Zakupy, Ustawienia |
+| Shell | Sidebar: name, search, navigation, this week's recipes | Bottom tabs: Przepisy, Plan, Zakupy, Ustawienia |
 | Plan | Calendar-style grid: small day names, large date numbers, today circled in brand, blocks tinted by slot position | Agenda list, one row per day |
 | Recipes | Steam-style shelves of tall covers | Same shelves, horizontal scroll |
 | Recipe | Notion-style page: cover band, large title, property list (Porcje, Czas, Na porcję, Źródło), ingredients beside numbered steps | One column |
