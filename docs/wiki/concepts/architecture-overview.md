@@ -54,7 +54,7 @@ flowchart LR
 | Layer | Location | Notes |
 |---|---|---|
 | Proxy | `src/proxy.ts` → `src/lib/supabase/middleware.ts` | Refreshes the session cookie and redirects anyone without a session. See [[auth-session]]. |
-| Pages | `src/app/(app)/*`, `(auth)/*`, `share/[token]` | `(app)` pages share `BottomNav`. The recipe detail, recipe edit and share pages are server components that call `lib/db` (`getRecipe`, `getSharedPlan`). |
+| Pages | `src/app/(app)/*`, `(auth)/*`, `share/[token]` | `(app)` pages share `AppShell` (bottom tabs below `lg`, sidebar from it up; tokens and primitives in `src/components/ui`, rules in [[design-brief]]). `/` redirects to `/plan`. The recipe detail, recipe edit and share pages are server components that call `lib/db` (`getRecipe`, `getSharedPlan`). |
 | Client components | `src/components/{recipes,plan,shopping,import,auth}` | Fetch `/api/*`. Tailwind inline, no shared UI kit. |
 | Hooks | `src/hooks/usePlan.ts`, `useShoppingList.ts`, `useAuth.ts` | Wrap fetch plus local state. `useShoppingList` also reads and writes IndexedDB. |
 | Route handlers | `src/app/api/**/route.ts` | Thin: parse input, resolve the user's household, call `lib/db`. See [[api-routes]]. |
@@ -104,6 +104,8 @@ const recipe = await createRecipe(supabase, body, household.household_id);
 - `src/app/**`, `src/proxy.ts`, `src/lib/**`, `src/hooks/**`, `package.json` (Next `16.3.5`, React `19.2.8`)
 
 ## Changelog
+
+- 2026-10-13: App shell replaces `BottomNav` (#37).
 
 - 2026-10-09: Re-verified against a7f8f52. Added `share.ts` to the data layer, server pages now call `lib/db`, `createRecipe` takes no user id (`save_recipe` RPC), and households are created by trigger.
 - 2026-10-04: Created.

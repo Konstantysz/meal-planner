@@ -24,9 +24,9 @@ export function WeekPlanDesktop({
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <th className="border p-2"></th>
+            <th className="border border-line p-2"></th>
             {days.map((d) => (
-              <th key={d.toISOString()} className="border p-2 text-sm">
+              <th key={d.toISOString()} className="border border-line p-2 text-sm">
                 {format(d, 'EEE d.MM', { locale: pl })}
               </th>
             ))}
@@ -35,22 +35,23 @@ export function WeekPlanDesktop({
         <tbody>
           {POSITIONS.map((pos) => (
             <tr key={pos}>
-              <td className="border p-2 text-xs text-gray-500">{LABELS[pos]}</td>
+              <td className="border border-line p-2 text-xs text-muted">{LABELS[pos]}</td>
               {days.map((d) => {
                 const dateStr = format(d, 'yyyy-MM-dd');
                 const slot = plan.slots.find((s) => s.date === dateStr && s.position === pos);
                 return (
-                  <td key={dateStr + pos} className="border p-1 align-top w-32">
+                  <td key={dateStr + pos} className="border border-line p-1 align-top w-32">
                     {slot ? (
                       <PlanSlot
                         label={LABELS[pos]}
+                        position={pos}
                         recipeName={slot.recipe?.name ?? (slot.recipe_id ? 'przepis niedostępny' : null)}
                         onRemove={() => onRemove(slot.id)}
                       />
                     ) : (
                       <button
                         onClick={() => onAdd(dateStr, pos)}
-                        className="w-full h-full text-gray-300 hover:text-green-600 text-xl"
+                        className="w-full h-full text-faint hover:text-brand text-xl min-h-11"
                       >
                         +
                       </button>

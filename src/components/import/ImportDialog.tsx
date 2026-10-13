@@ -65,7 +65,7 @@ export function ImportDialog({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl p-4 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-background text-ink rounded-sheet p-4 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-semibold mb-3">Import przepisu z URL</h3>
         <input
           value={url}
