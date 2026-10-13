@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeWeekStart } from '@/lib/week';
 
 export const RecipeJsonLdSchema = z.object({
   name: z.string().min(1),
@@ -43,12 +44,21 @@ export const RecipeIngredientInputSchema = z.object({
   optional: z.boolean().default(false),
 });
 
+/** Trimmed optional text (<= 200 chars); missing, null or blank becomes null. */
+const BlankToNullSchema = z
+  .string()
+  .trim()
+  .max(200)
+  .transform((v) => (v === '' ? null : v))
+  .nullable()
+  .default(null);
+
 export const RecipeInputSchema = z.object({
   name: z.string().min(1).max(200),
   servings_base: z.number().int().positive(),
   prep_time_min: z.number().int().nonnegative().nullable(),
   source_url: z.string().url().nullable(),
-  source_author: z.string().trim().min(1).max(200).nullable().default(null),
+  source_author: BlankToNullSchema,
   visibility: z.enum(['private', 'household', 'public_link']).default('household'),
   diet_tags: z.array(z.enum(['wegetarianska', 'ketogeniczna', 'bezglutenowa'])).default([]),
   allergens: z.array(z.enum(['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'])).default([]),
@@ -57,7 +67,7 @@ export const RecipeInputSchema = z.object({
     .array(
       z.object({
         position: z.number().int(),
-        title: z.string().trim().min(1).max(200).nullable().default(null),
+        title: BlankToNullSchema,
         text: z.string().min(1),
       }),
     )
@@ -72,6 +82,17 @@ export const PlanSlotInputSchema = z.object({
   recipe_id: z.string().uuid().nullable(),
   servings: z.number().positive(),
 });
+
+// Body of PATCH /api/plans/[id]/slots/[slotId]: move a slot and/or change its servings.
+export const PlanSlotPatchSchema = z
+  .object({
+    date: z.string().refine((v) => normalizeWeekStart(v) !== null, { message: 'invalid calendar date' }),
+    position: z.number().int().nonnegative(),
+    servings: z.number().positive().max(99),
+  })
+  .partial()
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: 'date, position or servings required' });
 
 // Shape returned by the get_shared_plan(token) RPC (migration 0005).
 export const SharedPlanSchema = z.object({
@@ -92,4 +113,5 @@ export type RecipeJsonLd = z.infer<typeof RecipeJsonLdSchema>;
 export type SharedPlan = z.infer<typeof SharedPlanSchema>;
 export type RecipeInput = z.infer<typeof RecipeInputSchema>;
 export type IngredientInput = z.infer<typeof IngredientInputSchema>;
+export type PlanSlotPatch = z.infer<typeof PlanSlotPatchSchema>;
 export type PlanSlotInput = z.infer<typeof PlanSlotInputSchema>;

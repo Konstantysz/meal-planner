@@ -65,13 +65,12 @@ describe('createRecipe', () => {
     expect(payload.steps).toEqual([{ position: 0, title: 'Przygotuj', text: 'Ugotuj makaron' }]);
   });
 
-  it('rejects a blank source_author or step title', async () => {
+  it('sends null for a blank source_author or step title', async () => {
     const { client, rpc } = mockRpc({ data: null, error: null });
-    await expect(createRecipe(client, { ...input, source_author: '  ' }, 'h1')).rejects.toThrow();
-    await expect(
-      createRecipe(client, { ...input, steps: [{ position: 0, title: '', text: 'x' }] }, 'h1'),
-    ).rejects.toThrow();
-    expect(rpc).not.toHaveBeenCalled();
+    await createRecipe(client, { ...input, source_author: '  ', steps: [{ position: 0, title: '', text: 'x' }] }, 'h1');
+    const payload = rpc.mock.calls[0][1].p_recipe;
+    expect(payload.source_author).toBeNull();
+    expect(payload.steps[0].title).toBeNull();
   });
 
   it('rejects invalid input before calling the database', async () => {

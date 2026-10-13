@@ -81,6 +81,16 @@ describe('ImportReviewForm prep time', () => {
   it('saves null when cleared', async () => {
     expect((await saveWith({ prepTime: 'PT20M' }, '')).prep_time_min).toBeNull();
   });
+
+  it('rounds decimals to an integer', async () => {
+    const body = await saveWith({ prepTime: 'PT20M' }, '12.5');
+    expect(Number.isInteger(body.prep_time_min)).toBe(true);
+  });
+
+  it('never saves a negative value', async () => {
+    const body = await saveWith({ prepTime: 'PT20M' }, '-3');
+    expect(body.prep_time_min).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('ImportReviewForm step titles', () => {

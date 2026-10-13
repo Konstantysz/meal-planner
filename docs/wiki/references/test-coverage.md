@@ -38,12 +38,16 @@ sources:
 | Module | Test file |
 |---|---|
 | `src/lib/macros.ts` | `tests/unit/macros.test.ts` |
+| `src/lib/day-macros.ts` | `tests/unit/day-macros.test.tsx` (also `DayTotals`) |
 | `src/lib/scaling.ts` | `tests/unit/scaling.test.ts` |
 | `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` |
 | `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` |
 | `src/lib/off.ts` | `tests/unit/off.test.ts` |
 | `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema` only) |
-| `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`) |
+| `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`, `shiftWeek`, `resolveWeek`) |
+| `src/lib/plan-slots.ts` | `tests/unit/plan-slots.test.ts` |
+| `src/lib/db/plans.ts` | `tests/unit/db/plans.test.ts` (`updateSlot` only) |
+| `src/app/api/plans/[id]/slots/[slotId]/route.ts` | `tests/unit/plan-slot-route.test.ts` (`PATCH`) |
 | `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
 | `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`; `getRecipe` and `listRecipes` not covered) |
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |

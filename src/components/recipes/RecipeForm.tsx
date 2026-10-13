@@ -121,7 +121,8 @@ export function RecipeForm({
           type="number"
           min={0}
           value={prepTime ?? ''}
-          onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))}
+          step={1}
+          onChange={(e) => setPrepTime(e.target.value === '' ? null : Math.max(0, Math.round(Number(e.target.value))))}
           className="w-24"
         />
       </div>
