@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-haiku-5-5"
 human_reviewed: true
-verified_commit: a7f8f52
+verified_commit: 5e8ed97
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
@@ -38,6 +38,14 @@ sources:
     path: src/app/(app)/recipes/[id]/page.tsx
   - title: "Edit page"
     path: src/app/(app)/recipes/[id]/edit/page.tsx
+  - title: "Recipe cards, cover and tags"
+    path: src/components/recipes/RecipeCard.tsx
+  - title: "Collapsible steps"
+    path: src/components/recipes/RecipeSteps.tsx
+  - title: "Scaled ingredients"
+    path: src/components/recipes/RecipeIngredients.tsx
+  - title: "Field-level validation messages"
+    path: src/lib/recipe-errors.ts
   - title: "Recipe actions"
     path: src/components/recipes/RecipeActions.tsx
 ---
@@ -56,7 +64,7 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 | Operation | UI | API → lib |
 |---|---|---|
 | Create | `/recipes/new` → `RecipeForm` (or [[import-pipeline]]) | `POST /api/recipes` → `createRecipe` |
-| List | `/recipes` → `RecipeList` + `RecipeFilters` | `GET /api/recipes?diet=&exclude=` → `listRecipes` |
+| List | `/recipes` → `RecipeList` + `RecipeFilters`, one `RecipeCard` per recipe | `GET /api/recipes?diet=&exclude=` → `listRecipes` |
 | Detail | `/recipes/[id]` (server component) | `getRecipe` directly |
 | Edit | `/recipes/[id]/edit` → `RecipeForm` with `recipeId` | `PUT /api/recipes/[id]` → `updateRecipe` |
 | Delete | `RecipeActions` „Usuń" | `DELETE /api/recipes/[id]` |
@@ -79,8 +87,12 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
-- The detail page shows servings and prep time (when set) as two bordered chips under the title (plain `<li>` with the `rounded-control border-line` tokens, not the interactive `Chip` primitive). Visual treatment is left to the redesign.
-- The detail page shows `formatAmount(amount, unit)` followed by `raw_text`. Manual entries set `raw_text` to the ingredient name.
+- **List cards** (`RecipeCard`): a 3:4 `RecipeCover` (name set large, prep time on top), then source author (when set), servings, per-serving macros, and diet and allergen tags. The cover has a `photo` slot, so a future image fills it without a layout change; its tint is `hover` until covers take the colour of the most-planned slot position (see [[design-brief]]). The grid is 2 columns on mobile and up to 5 on wide screens (the brief's horizontal shelves are not built). The filters are `Chip` toggles. States: skeleton covers while loading, „Brak przepisów. Dodaj pierwszy." with one action, a message for no filter match, for no search match and for a failed fetch.
+- `listRecipes` also selects each recipe's ingredient macro columns and returns `RecipeListItem` (`Recipe` plus `macros_per_serving`, from `toListItem` and `recipePerServing`). `WeekPlan` reads the same endpoint and ignores the extra field.
+- **Per-serving macros** use the rule of the day totals ([[week-plan]]): when any counted ingredient lacks data (a non-gram unit, no macros, or none counted) the value is null and the UI shows „brak danych makro". The detail page used to show a partial sum.
+- **Detail page**: cover band, title, servings and prep time as large tags (plain `RecipeTag`, not the interactive `Chip`), diet and allergen tags, a property list („Na porcję"; „Autor" with the „Źródło" link next to it), then ingredients beside steps on wide screens (one column on mobile).
+- `RecipeIngredients` shows `formatAmount(amount, unit)` followed by `raw_text`, with a servings stepper that scales amounts from `servings_base` through `scaleAmount`. Macros per serving do not change with it. Manual entries set `raw_text` to the ingredient name.
+- `RecipeSteps` renders each step as a `<details>` card. A step with a title shows it in the summary and its text when open; a step without one is a numbered card whose text is the summary (two lines closed). The first step starts open; „Rozwiń wszystkie" / „Zwiń wszystkie" toggles all (hidden for a single step).
 - Each ingredient row has an `optional` flag (the „opcjonalny" checkbox in `IngredientPicker`, migration 0007). Optional rows are left out of the recipe macros and labelled „(opcjonalnie)" on the detail page. The shopping list does **not** treat them differently. Import does not tick the box: the extractor drops the „ewentualne dodatki" label, so the user ticks it by hand.
 
 ## Known gaps
@@ -89,7 +101,10 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition and `recipes` has no `updated_at`, so two household members editing the same recipe silently overwrite each other. Accepted for now; a fix needs an `updated_at` column plus a mismatch error mapped to 409.
 - An author who has left the household cannot edit their old recipe: `rec_update` USING passes but WITH CHECK (`is_member_of`) fails, so the RPC raises `42501` (403). Covered by check 9 in the verify script.
 - No pagination. `listRecipes` returns every visible recipe.
-- A failed save shows the raw Zod error JSON (e.g. `too_small` on `steps`) instead of a Polish message.
+
+## Validation messages
+
+`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. `ImportReviewForm` reads only `error`, so it shows the short Polish sentence instead of JSON.
 
 ## Examples
 
@@ -110,6 +125,8 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - [[ingredient-database]]
 - [[import-pipeline]]
 - [[api-routes]]
+- [[design-brief]]
+- [[week-plan]]
 
 ## Sources
 
@@ -119,6 +136,7 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.
 - 2026-10-05: Documented the `optional` ingredient flag (0007).

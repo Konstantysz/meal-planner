@@ -144,6 +144,10 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 }
 ```
 
+## Status of the recipe screens
+
+The recipe list and detail (#39) use the cover as above with two deviations: the tint is `hover` (no slot colour yet), and the list is a responsive grid instead of shelves with horizontal scroll on mobile.
+
 ## Related
 
 - [[concepts]]: concept index
@@ -158,6 +162,7 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 
 ## Changelog
 
+- 2026-10-13: Recipe list and detail built (#39); deviations noted under "Status of the recipe screens".
 - 2026-10-13: Review follow-up: brand focus ring measured (6.8–7.3:1 dark, 6.0–6.5:1 light); spacing steps map to Tailwind's scale.
 - 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.

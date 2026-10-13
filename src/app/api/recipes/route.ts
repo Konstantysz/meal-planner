@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { ZodError } from 'zod';
 import { listRecipes, createRecipe } from '@/lib/db/recipes';
+import { recipeFieldErrors } from '@/lib/recipe-errors';
 
 export async function GET(req: Request) {
   const supabase = await createServerSupabase();
@@ -32,6 +34,8 @@ export async function POST(req: Request) {
     const recipe = await createRecipe(supabase, body, household.household_id);
     return NextResponse.json(recipe, { status: 201 });
   } catch (e) {
+    if (e instanceof ZodError)
+      return NextResponse.json({ error: 'nieprawidłowe dane przepisu', fields: recipeFieldErrors(e) }, { status: 400 });
     return NextResponse.json({ error: String(e) }, { status: 400 });
   }
 }

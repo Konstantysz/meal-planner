@@ -5,7 +5,7 @@ tags: [testing]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
@@ -38,7 +38,7 @@ sources:
 | Module | Test file |
 |---|---|
 | `src/lib/macros.ts` | `tests/unit/macros.test.ts` |
-| `src/lib/day-macros.ts` | `tests/unit/day-macros.test.tsx` (also `DayTotals`) |
+| `src/lib/day-macros.ts` | `tests/unit/day-macros.test.tsx` (also `DayTotals`), `tests/unit/recipe-cards-lib.test.ts` (`recipePerServing`) |
 | `src/lib/scaling.ts` | `tests/unit/scaling.test.ts` |
 | `src/lib/shopping-list.ts` | `tests/unit/shopping-list.test.ts` |
 | `src/lib/share-token.ts` | `tests/unit/share-token.test.ts` |
@@ -49,7 +49,8 @@ sources:
 | `src/lib/db/plans.ts` | `tests/unit/db/plans.test.ts` (`updateSlot` only) |
 | `src/app/api/plans/[id]/slots/[slotId]/route.ts` | `tests/unit/plan-slot-route.test.ts` (`PATCH`) |
 | `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
-| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`; `getRecipe` and `listRecipes` not covered) |
+| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`), `tests/unit/recipe-cards-lib.test.ts` (`toListItem`); `getRecipe` and the query in `listRecipes` not covered |
+| `src/lib/recipe-errors.ts` | `tests/unit/recipe-cards-lib.test.ts` |
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
 | `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
 | `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` |
@@ -119,6 +120,7 @@ pnpm vitest run -t "different units"        # by test name
 
 ## Changelog
 
+- 2026-10-13: Recipe list/detail redesign (#39): `toListItem`, `recipePerServing` and `recipeFieldErrors` tested; `listRecipes` query still not covered.
 - 2026-10-10: Added `pnpm coverage:check` (`scripts/test-coverage-check.ts`); every current `src/lib` export was already tested or listed, so the list is unchanged.
 - 2026-10-09: Removed per-row and total test counts (they went stale; `pnpm test` reports them). Kept the covered list and the not-covered rationale.
 - 2026-10-09: Re-verified against a7f8f52 (src and tests unchanged since). Per-row counts corrected: scaling 8 to 6, clean 8 to 10, parse-ingredient 13 to 19. `table` cells replaced with counts (week 11, db/recipes 3, db/share 4, yield 14). Added the `auth/callback` route row (4). Totals re-confirmed: 25 files, 148 tests.

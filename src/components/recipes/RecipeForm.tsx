@@ -2,10 +2,21 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
+import type { RecipeFieldErrors } from '@/lib/recipe-errors';
 import { IngredientPicker, type PickedIngredient } from './IngredientPicker';
 
 const DIETS = ['wegetarianska', 'ketogeniczna', 'bezglutenowa'] as const;
 const ALLERGENS = ['gluten', 'mieso', 'nabial', 'orzechy', 'ryby'] as const;
+
+/** Polish message under a field; `aria-describedby` points the field at it. */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} role="alert" className="mt-1 text-sm text-brand">
+      {message}
+    </p>
+  );
+}
 
 export interface RecipeFormStep {
   title: string;
@@ -43,6 +54,7 @@ export function RecipeForm({
   const [ingredients, setIngredients] = useState<PickedIngredient[]>(initialValues?.ingredients ?? []);
   const [steps, setSteps] = useState<RecipeFormStep[]>(initialValues?.steps ?? [{ title: '', text: '' }]);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<RecipeFieldErrors>({});
   const [saving, setSaving] = useState(false);
 
   function updateStep(idx: number, patch: Partial<RecipeFormStep>) {
@@ -61,6 +73,7 @@ export function RecipeForm({
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setFieldErrors({});
     const res = await fetch(recipeId ? `/api/recipes/${recipeId}` : '/api/recipes', {
       method: recipeId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -89,7 +102,11 @@ export function RecipeForm({
     setSaving(false);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setError(j.error ?? 'Błąd zapisu');
+      const fields = (j as { fields?: RecipeFieldErrors }).fields;
+      if (fields) {
+        setFieldErrors(fields);
+        setError(fields._form ?? 'Popraw zaznaczone pola');
+      } else setError(typeof j.error === 'string' ? j.error : 'Błąd zapisu');
       return;
     }
     const recipe = await res.json();
@@ -105,7 +122,10 @@ export function RecipeForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nazwa przepisu"
+        aria-invalid={!!fieldErrors.name}
+        aria-describedby={fieldErrors.name ? 'err-name' : undefined}
       />
+      <FieldError id="err-name" message={fieldErrors.name} />
       <div className="flex flex-wrap items-center gap-2">
         <Input
           aria-label="Liczba porcji"
@@ -126,6 +146,7 @@ export function RecipeForm({
           className="w-24"
         />
       </div>
+      <FieldError id="err-servings" message={fieldErrors.servings_base ?? fieldErrors.prep_time_min} />
       <label className="block">
         <span className="font-semibold">Autor przepisu</span>
         <Input
@@ -133,7 +154,9 @@ export function RecipeForm({
           onChange={(e) => setSourceAuthor(e.target.value)}
           placeholder="np. Ania Gotuje"
           maxLength={200}
+          aria-describedby={fieldErrors.source_author ? 'err-author' : undefined}
         />
+        <FieldError id="err-author" message={fieldErrors.source_author} />
       </label>
       <fieldset>
         <legend className="font-semibold">Diety</legend>
@@ -164,6 +187,7 @@ export function RecipeForm({
       <div>
         <h3 className="mb-2 font-semibold">Składniki</h3>
         <IngredientPicker value={ingredients} onChange={setIngredients} />
+        <FieldError id="err-ingredients" message={fieldErrors.ingredients} />
       </div>
       <div>
         <h3 className="mb-2 font-semibold">Kroki</h3>
@@ -207,6 +231,7 @@ export function RecipeForm({
         <Button className="mt-2" onClick={() => setSteps([...steps, { title: '', text: '' }])}>
           + krok
         </Button>
+        <FieldError id="err-steps" message={fieldErrors.steps} />
       </div>
       {error && (
         <p role="alert" className="rounded-control border border-brand px-3 py-2">
