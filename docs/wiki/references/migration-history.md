@@ -28,6 +28,8 @@ sources:
     path: supabase/migrations/0009_update_recipe_rpc.sql
   - title: "Ingredient ownership and app admins"
     path: supabase/migrations/0010_ingredient_ownership.sql
+  - title: "Verification record check"
+    path: scripts/migration-record.ts
   - title: "Verification scripts"
     path: supabase/checks/0004_security_hardening.verify.sql
   - title: "Supabase MCP config"
@@ -63,6 +65,9 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 ## Verification
 
 Each of `0004`–`0010` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
+
+> [!note] This table is checked by CI
+> `scripts/migration-record.ts` parses it. Keep exactly three columns. A new migration's "Before merge" cell must start with its live result in backticks, for example `` `FAIL 10 (12 checks)` ``, or CI job `db` stays red (`db:order --require-baseline`). Every `(n checks)` in a row must match what the script runs (`pnpm db:verify`).
 
 | Migration | Before merge | After deploy |
 |---|---|---|
@@ -119,6 +124,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: The Verification table is now parsed by CI (`scripts/migration-record.ts`); added the format note.
 - 2026-10-13: Recorded the live results for 0008 and 0009 (`ALL PASS` after deploy; no baseline was run before either merge) and the live 0010 baseline.
 - 2026-10-13: Added migration 0010 (ingredient ownership and app admins) with its expected baseline; live results pending.
 - 2026-10-13: Added migration 0009 (`update_recipe` RPC); the SQL and its check script were written without a Postgres to run them against, live results pending.
