@@ -49,6 +49,7 @@ export interface RecipeStep {
   id: string;
   recipe_id: string;
   position: number;
+  title: string | null;
   text: string;
 }
 
@@ -60,6 +61,7 @@ export interface Recipe {
   servings_base: number;
   prep_time_min: number | null;
   source_url: string | null;
+  source_author: string | null;
   visibility: Visibility;
   diet_tags: DietTag[];
   allergens: Allergen[];
