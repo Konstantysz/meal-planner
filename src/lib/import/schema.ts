@@ -7,7 +7,7 @@ export const SYSTEM_PROMPT = `Jesteś ekstraktorem przepisów kulinarnych. Otrzy
 {
   "name": string (wymagane, min 1 znak),
   "recipeIngredient": [{ "name": string, "amount": number | null, "unit": string | null, "optional": boolean }] (jeden wpis na składnik),
-  "recipeInstructions": string[] (kroki jako lista stringów),
+  "recipeInstructions": [{ "title": string | null, "text": string }] (jeden wpis na krok),
   "recipeYield": string | number | undefined (np. "4 porcje"),
   "prepTime": string | undefined (ISO 8601 duration, np. "PT20M")
 }
@@ -20,11 +20,19 @@ Zasady dla składników:
 - "lub": zostaw pierwszą opcję; wodę pomiń;
 - optional: true dla "można pominąć", "do podania", "dodatki".
 
-Przykłady:
+Zasady dla kroków:
+- title: nagłówek kroku z oryginalnej strony ("Smażenie cebuli"); strona bez nagłówków kroków → null;
+- text: szczegóły kroku, bez powtarzania tytułu; nie skracaj i nie łącz kroków;
+
+Przykłady składników:
 "2 łyżki oleju roślinnego do smażenia" → {"name":"olej roślinny","amount":2,"unit":"łyżka","optional":false}
 "1 duża cebula - około 160 g" → {"name":"cebula","amount":160,"unit":"g","optional":false}
 "4 łyżki ketchupu (można pominąć)" → {"name":"ketchup","amount":4,"unit":"łyżka","optional":true}
 "szczypta soli i pieprzu" → {"name":"sól","amount":1,"unit":"szczypta","optional":false}, {"name":"pieprz","amount":1,"unit":"szczypta","optional":false}
+
+Przykład kroku (aniagotuje):
+"Smażenie cebuli. Na patelni rozgrzej olej i smaż pokrojoną cebulę przez 5 minut, aż się zeszkli." → {"title":"Smażenie cebuli","text":"Na patelni rozgrzej olej i smaż pokrojoną cebulę przez 5 minut, aż się zeszkli."}
+Krok bez nagłówka: "Gotuj zupę 20 minut." → {"title":null,"text":"Gotuj zupę 20 minut."}
 
 Jeśli pole jest nieobecne, pomiń je. Nie halucynuj.`;
 
@@ -55,7 +63,18 @@ export const LLM_OUTPUT_SCHEMA = {
         additionalProperties: false,
       },
     },
-    recipeInstructions: { type: 'array', items: { type: 'string' } },
+    recipeInstructions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: ['string', 'null'] },
+          text: { type: 'string' },
+        },
+        required: ['title', 'text'],
+        additionalProperties: false,
+      },
+    },
     recipeYield: { type: 'string' },
     prepTime: { type: 'string' },
   },
@@ -73,9 +92,30 @@ export const ExtractedIngredientSchema = z.object({
 });
 export type ExtractedIngredient = z.infer<typeof ExtractedIngredientSchema>;
 
-// What the model returns: the JSON-LD recipe shape, but with structured ingredients.
+export const ExtractedStepSchema = z.object({
+  title: z.string().nullable().default(null),
+  text: z.string(),
+});
+export type ExtractedStep = z.infer<typeof ExtractedStepSchema>;
+
+// Legacy shapes (a string, string[], [{text}] from page JSON-LD, or a model that ignores the new
+// format) become {title: null, text}; a blank title becomes null.
+function normalizeSteps(v: unknown): unknown {
+  if (typeof v === 'string') return [{ title: null, text: v }];
+  if (!Array.isArray(v)) return v;
+  return v.map((s) => {
+    if (typeof s === 'string') return { title: null, text: s };
+    if (s && typeof s === 'object' && 'title' in s && typeof s.title === 'string' && !s.title.trim()) {
+      return { ...s, title: null };
+    }
+    return s;
+  });
+}
+
+// What the model returns: the JSON-LD recipe shape, but with structured ingredients and steps.
 export const ExtractedRecipeSchema = RecipeJsonLdSchema.extend({
   recipeIngredient: z.array(ExtractedIngredientSchema).default([]),
+  recipeInstructions: z.preprocess(normalizeSteps, z.array(ExtractedStepSchema)).default([]),
 });
 export type ExtractedRecipe = z.infer<typeof ExtractedRecipeSchema>;
 

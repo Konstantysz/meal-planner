@@ -5,14 +5,14 @@ tags: [import, llm, ingredients]
 status: draft
 owner: "@konstantysz"
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-10-13
 last_reviewed: 2026-10-11
 review_interval_days: 180
 confidence: medium
 llm_generated: true
 llm_model: "claude-sonnet-5-5"
 human_reviewed: false
-verified_commit: c9c43ec
+verified_commit: fe7a53d
 sources:
   - title: "Output schema, prompt and parser"
     path: src/lib/import/schema.ts
@@ -44,6 +44,7 @@ The model was meant to be the universal extractor, so that no per-site code is n
 - `LLM_OUTPUT_SCHEMA` makes `recipeIngredient` an array of `{ name, amount, unit, optional }`, all required. `SYSTEM_PROMPT` carries the rules (base form of the name, a weight in grams wins, ranges take the upper bound, several ingredients per line give several entries, „lub" keeps the first option, water is skipped) and four examples.
 - `parseLlmJson` validates with `ExtractedRecipeSchema` and runs `normalizeUnit` over `unit`, so „łyżek" becomes „łyżka".
 - `autoMatchIngredients` takes the structured entries and goes straight to matching.
+- **Extension (2026-10-13, #34):** the same schema carries step headings. `recipeInstructions` is an array of `{ title: string | null, text }`, both required in the grammar. `title` is the page's heading for the step (aniagotuje: „Smażenie cebuli"), `null` when the page has none; `text` is the detail without the title. `SYSTEM_PROMPT` gets two step rules and one worked aniagotuje example. `parseLlmJson` turns legacy `string[]`, `{text}` steps, a single string and blank titles into `{ title: null, text }`, so a model that ignores the new shape still works. `pnpm eval:ingredients` also scores step count and title presence on the aniagotuje fixture. No per-site parser.
 - The regex parser, its tests and the markup bypass are deleted. The corpus moved to `tests/fixtures/ingredient-corpus.ts` and scores the model through `pnpm eval:ingredients`.
 
 ## Alternatives considered
@@ -56,6 +57,7 @@ The model was meant to be the universal extractor, so that no per-site code is n
 
 - Ingredient quality now depends on the model. gemma2:2b may drop „- około 160 g" or invent amounts; the next step is a stronger model (`gemma4:e2b`), not more regexes. See [[known-gaps]].
 - Measured on the 115-entry corpus (2026-10-11): gemma2:2b gets name 97%, amount 70%, unit 57%; gemma4:e2b gets 97%, 87%, 89%.
+- Step titles make the output longer again and a ~2B model may lose steps; if step counts regress, the fallback is `title: null`, not dropped content. Before/after numbers for #34 are not measured yet (no local Ollama when it was written); run `pnpm eval:ingredients` and `pnpm bench:llm` and record them here.
 - Structured output is longer, so a long recipe can hit the 1536-token limit (the „ucięta" error in the browser path).
 - A regression in prompt or model is no longer caught by CI; run `pnpm eval:ingredients` against a local Ollama.
 - The inflected-name gap („czosnku") closes: the prompt asks for the base form.
@@ -76,4 +78,5 @@ The model was meant to be the universal extractor, so that no per-site code is n
 
 ## Changelog
 
+- 2026-10-13: Extension for step titles (#34).
 - 2026-10-11: Created. Supersedes the staged parser and the markup bypass added on `feat/ingredient-parser-stages`.

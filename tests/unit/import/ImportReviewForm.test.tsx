@@ -30,7 +30,7 @@ import { ImportReviewForm } from '@/components/import/ImportReviewForm';
 const BASE = {
   name: 'Zupa',
   recipeIngredient: [{ name: 'a', amount: 1, unit: 'g', optional: false }],
-  recipeInstructions: ['b'],
+  recipeInstructions: [{ title: null, text: 'b' }],
 };
 
 async function saveWith(extracted: Record<string, unknown>, edit?: string) {
@@ -80,5 +80,20 @@ describe('ImportReviewForm prep time', () => {
 
   it('saves null when cleared', async () => {
     expect((await saveWith({ prepTime: 'PT20M' }, '')).prep_time_min).toBeNull();
+  });
+});
+
+describe('ImportReviewForm step titles', () => {
+  it('sends the title of each step to save_recipe, null when absent', async () => {
+    const body = await saveWith({
+      recipeInstructions: [
+        { title: 'Smażenie cebuli', text: 'Smaż 5 minut.' },
+        { title: null, text: 'Gotuj.' },
+      ],
+    });
+    expect(body.steps).toEqual([
+      { position: 0, title: 'Smażenie cebuli', text: 'Smaż 5 minut.' },
+      { position: 1, title: null, text: 'Gotuj.' },
+    ]);
   });
 });
