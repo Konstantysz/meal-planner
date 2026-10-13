@@ -35,3 +35,22 @@ export function RecipePhoto({
     </>
   );
 }
+
+/** 16:9 band for the detail page: renders nothing (no empty grey band) when there is no usable photo or it fails to load. */
+export function RecipePhotoBand({ src, sizes }: { src: string | null | undefined; sizes: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed || !isAllowedImageUrl(src)) return null;
+  return (
+    <div className="relative aspect-video overflow-hidden rounded-block bg-hover">
+      <Image
+        src={src}
+        alt=""
+        fill
+        sizes={sizes}
+        className="object-cover"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}

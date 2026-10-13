@@ -45,7 +45,7 @@ sources:
 # Database Schema
 
 > [!tldr]
-> There are 11 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. Ten migrations exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), the optional-ingredient flag (0007), source author plus step title (0008), ingredient ownership with app admins (0010), and the recipe photo URL (0011). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
+> There are 11 tables, all with RLS enabled. Access hangs off `is_member_of(household_id)`. 11 migration files exist: the initial schema, share-token read policies (dropped in 0005), the signup RPC, security hardening (0004), the share-link RPC (0005), the atomic recipe save plus signup trigger (0006), the optional-ingredient flag (0007), source author plus step title (0008), the `update_recipe` RPC (0009), ingredient ownership with app admins (0010), and the recipe photo URL (0011). Full history with reasons: [[migration-history]]. Member policies apply to `authenticated` only; `anon` reads share links only through `get_shared_plan`. The seed loads 40 ingredients and is **not** idempotent.
 
 ## Context
 
@@ -80,6 +80,7 @@ This is the lookup table for the Supabase Postgres database. Project ref `tfysxp
 | `create_household_with_owner(household_name text)` | `security definer`, plpgsql | Returns the caller's owned household, or creates one with an `owner` membership; raises if unauthenticated. Idempotent since 0006. Kept for compatibility: the app no longer calls it. `authenticated` only. |
 | `handle_new_user()` | trigger function, `security definer`, plpgsql | Run by trigger `on_auth_user_created` (after insert on `auth.users`). Creates the household (email local part, fallback „Moje gospodarstwo") and the `owner` row. No role can execute it directly. Added in 0006. |
 | `save_recipe(p_household_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Inserts recipe, ingredients and steps in one transaction; author is `auth.uid()`; raises `22023` without ingredients or steps. RLS applies. `authenticated` only. Added in 0006; stores each ingredient's `optional` flag (missing = false) since 0007, and `source_author` plus each step's `title` (missing or blank = null) since 0008, and `image_url` (missing or blank = null) since 0011. |
+| `update_recipe(p_recipe_id uuid, p_recipe jsonb)` | `security invoker`, plpgsql, returns `recipes` | Replaces a recipe's fields, ingredients and steps in one transaction (added in 0009); raises `42501` when the recipe is not found or not editable under RLS. Stores `image_url` (missing or blank = null, so an omitted value clears the photo) since 0011. `authenticated` only. |
 | `get_shared_plan(p_token text)` | `security definer`, `stable`, SQL, `search_path = public` | Returns the plan a share token unlocks as JSON (week, slots, recipe names), or null. `execute` for `anon` and `authenticated`. Added in 0005. See [[share-links]]. |
 
 `rls_auto_enable()` also lives in `public`, but Supabase creates it (event trigger `ensure_rls`), not our migrations. 0004 revokes `execute` on it from `anon` and `authenticated`.
@@ -155,7 +156,7 @@ from plans p;
 
 ## Sources
 
-- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`, `0008_recipe_source_author_step_title.sql`, `0010_ingredient_ownership.sql`, `0011_recipe_image_url.sql`
+- `supabase/migrations/0001_initial.sql`, `0002_share_token_rls.sql`, `0003_household_signup_rpc.sql`, `0004_security_hardening.sql`, `0005_share_link_rpc.sql`, `0006_atomic_recipe_and_signup_trigger.sql`, `0007_recipe_ingredient_optional.sql`, `0008_recipe_source_author_step_title.sql`, `0009_update_recipe_rpc.sql`, `0010_ingredient_ownership.sql`, `0011_recipe_image_url.sql`
 - `supabase/seed.sql`, `supabase/config.toml`
 - Supabase security and performance advisors, run 2026-10-04
 

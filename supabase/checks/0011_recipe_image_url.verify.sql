@@ -2,13 +2,17 @@
 -- Run as postgres (SQL editor). Creates throwaway rows, then ALWAYS aborts with an
 -- exception: nothing persists. Read the result in the error message:
 --   "VERIFY 0011: ALL PASS (n checks)"  or  "VERIFY 0011: FAIL ..."
--- Before 0011 is applied every check is expected to FAIL.
+-- Before 0011 is applied checks 1-5, 7 and 8 FAIL; check 6 (grants) and check 9 (cross-household
+-- update_recipe still raises 42501) already pass and stay as regression checks.
 -- Needs migrations 0008 and 0009 and at least one row in ingredients (the seed provides 40).
 
 do $verify$
 declare
   a uuid := gen_random_uuid();
+  b uuid := gen_random_uuid();
   ha uuid;
+  hb uuid;
+  rid0 uuid;
   ing uuid;
   rec jsonb;
   saved jsonb;
@@ -30,6 +34,13 @@ begin
     insert into household_members (household_id, user_id, role) values (ha, a, 'owner');
   end if;
 
+  insert into auth.users (id, email) values (b, 'verify-b-' || b || '@verify.test');
+  select household_id into hb from household_members where user_id = b limit 1;
+  if hb is null then
+    insert into households (name) values ('verify b') returning id into hb;
+    insert into household_members (household_id, user_id, role) values (hb, b, 'owner');
+  end if;
+
   results := results || format('%s 1 recipes.image_url exists', case when has_col then 'PASS' else 'FAIL' end);
 
   perform set_config('role', 'authenticated', true);
@@ -42,6 +53,12 @@ begin
     'ingredients', jsonb_build_array(
       jsonb_build_object('ingredient_id', ing, 'amount', 100, 'unit', 'g', 'raw_text', 'x', 'position', 0)),
     'steps', jsonb_build_array(jsonb_build_object('position', 0, 'text', 'details')));
+
+  -- recipe without image_url (works before and after 0011), used by check 9
+  begin
+    execute 'select (save_recipe($1, $2)).id' into rid0 using ha, rec - 'image_url';
+  exception when others then rid0 := null;
+  end;
 
   -- 2. save_recipe stores image_url
   begin
@@ -88,6 +105,39 @@ begin
     and has_function_privilege('authenticated', 'public.update_recipe(uuid, jsonb)', 'execute')
     and not has_function_privilege('anon', 'public.update_recipe(uuid, jsonb)', 'execute');
   results := results || format('%s 6 RPC grants (authenticated only)', case when ok then 'PASS' else 'FAIL' end);
+
+  -- 7. update_recipe with image_url omitted clears it (documented in ADR 0014)
+  begin
+    execute 'select to_jsonb(update_recipe($1, $2))' into saved using rid,
+      jsonb_set(rec, '{image_url}', '"https://jadlonomia.com/wp-content/uploads/y.jpg"');
+    ok := saved ->> 'image_url' is not null;
+    execute 'select to_jsonb(update_recipe($1, $2))' into saved using rid, rec - 'image_url';
+    ok := ok and saved ->> 'image_url' is null;
+  exception when others then ok := false;
+  end;
+  results := results || format('%s 7 update_recipe without image_url clears it', case when has_col and ok then 'PASS' else 'FAIL' end);
+
+  -- 8. over-long image_url (> 2048 chars) is rejected by the check constraint
+  begin
+    execute 'select to_jsonb(save_recipe($1, $2))' into saved using ha,
+      jsonb_set(rec, '{image_url}', to_jsonb('https://cdn.aniagotuje.com/' || repeat('a', 2050)));
+    ok := false;
+  exception
+    when check_violation then ok := true;
+    when others then ok := false;
+  end;
+  results := results || format('%s 8 image_url over 2048 chars rejected (check_violation)', case when has_col and ok then 'PASS' else 'FAIL' end);
+
+  -- 9. regression: a member of another household still cannot update the recipe (42501)
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  begin
+    execute 'select to_jsonb(update_recipe($1, $2))' into saved using rid0, rec;
+    ok := false;
+  exception
+    when sqlstate '42501' then ok := rid0 is not null;
+    when others then ok := false;
+  end;
+  results := results || format('%s 9 update_recipe by another household raises 42501', case when ok then 'PASS' else 'FAIL' end);
 
   perform set_config('role', 'postgres', true);
   select count(*) into fails from unnest(results) t where t like 'FAIL%';

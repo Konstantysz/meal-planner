@@ -44,7 +44,9 @@ Recipes had no image, and the redesign cover (see [[design-brief]]) takes an opt
 - Only hosts in `IMAGE_HOSTS` (`src/lib/image-hosts.ts`) are accepted: `RecipeInputSchema` rejects any other host, the import drops an `og:image` on another host, and `next.config.ts` builds `images.remotePatterns` from the same list. Adding a source site means adding its image host there.
 - The import (`extractImageUrl`) prefers the JSON-LD Recipe `image`, then `og:image`. The user can change or clear the URL in the review form and in the recipe form.
 - `RecipePhoto` is the photo layer of a cover. If the URL is missing, not allowed or fails to load, it renders nothing and the colour underneath is the fallback.
-- The recipe page credits the source host under the photo („Zdjęcie: jadlonomia.com").
+- The recipe page credits the photo's own host under it („Zdjęcie: jadlonomia.com").
+- `images.maximumRedirects` is 0 in `next.config.ts`: `next/image` does not re-check `remotePatterns` on a redirect, so an open redirect on an allowed host would let anyone point `/_next/image` at any public host. A photo URL that redirects therefore fails and the fallback colour shows.
+- `RecipeInputSchema` normalises the URL with `new URL(v).href` (lowercase scheme) so it passes the case-sensitive DB check.
 
 ## Alternatives considered
 
@@ -75,4 +77,5 @@ Recipes had no image, and the redesign cover (see [[design-brief]]) takes an opt
 
 ## Changelog
 
+- 2026-10-13: Review fixes: redirects disabled, URL normalised, credit uses the photo host.
 - 2026-10-13: Created with migration 0011.

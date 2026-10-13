@@ -5,7 +5,7 @@ import { calculateIngredientMacros, sumMacros, perServing } from '@/lib/macros';
 import { formatAmount } from '@/lib/scaling';
 import { MacroSummary } from '@/components/recipes/MacroSummary';
 import { RecipeActions } from '@/components/recipes/RecipeActions';
-import { RecipePhoto } from '@/components/recipes/RecipePhoto';
+import { RecipePhotoBand } from '@/components/recipes/RecipePhoto';
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,11 +28,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-4 space-y-4">
-      {recipe.image_url && (
-        <div className="relative aspect-video overflow-hidden rounded-block bg-hover">
-          <RecipePhoto src={recipe.image_url} sizes="(min-width: 1024px) 768px, 100vw" />
-        </div>
-      )}
+      <RecipePhotoBand src={recipe.image_url} sizes="(min-width: 1024px) 768px, 100vw" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{recipe.name}</h1>
         <RecipeActions recipeId={recipe.id} />
@@ -57,8 +53,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           Źródło
         </a>
       )}
-      {recipe.image_url && recipe.source_url && (
-        <p className="text-xs text-muted">Zdjęcie: {new URL(recipe.source_url).hostname.replace(/^www\./, '')}</p>
+      {recipe.image_url && (
+        <p className="text-xs text-muted">Zdjęcie: {new URL(recipe.image_url).hostname.replace(/^www\./, '')}</p>
       )}
       <section>
         <h2 className="font-semibold text-lg">Składniki</h2>

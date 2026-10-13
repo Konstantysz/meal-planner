@@ -92,6 +92,11 @@ describe('RecipeInputSchema image_url', () => {
     expect(parsed.image_url).toBe('https://cdn.aniagotuje.com/a.jpg');
   });
 
+  it('normalises the scheme to lowercase so the DB check passes', () => {
+    const parsed = RecipeInputSchema.parse({ ...base, image_url: 'HTTPS://cdn.aniagotuje.com/a.jpg' });
+    expect(parsed.image_url).toBe('https://cdn.aniagotuje.com/a.jpg');
+  });
+
   it('turns a blank string into null', () => {
     expect(RecipeInputSchema.parse({ ...base, image_url: '  ' }).image_url).toBeNull();
   });

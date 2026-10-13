@@ -62,7 +62,9 @@ const ImageUrlSchema = z
   .transform((v) => (v === '' ? null : v))
   .nullable()
   .default(null)
-  .refine((v) => v === null || isAllowedImageUrl(v), { message: 'image host not allowed' });
+  .refine((v) => v === null || isAllowedImageUrl(v), { message: 'image host not allowed' })
+  // new URL lowercases the scheme; the DB check `^https?://` is case-sensitive.
+  .transform((v) => (v === null ? null : new URL(v).href));
 
 export const RecipeInputSchema = z.object({
   name: z.string().min(1).max(200),
