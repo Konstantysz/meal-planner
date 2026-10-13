@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectMigrations, parseVerifyMessage } from '../../scripts/db-verify';
+import { collectMigrations, parseVerifyMessage, verifyHeadline } from '../../scripts/db-verify';
 
 describe('parseVerifyMessage', () => {
   it('reads ALL PASS and FAIL for the matching version only', () => {
@@ -7,6 +7,18 @@ describe('parseVerifyMessage', () => {
     expect(parseVerifyMessage('0010', 'VERIFY 0010: FAIL 2 (12 checks)')).toBe('fail');
     expect(parseVerifyMessage('0010', 'VERIFY 0009: ALL PASS (3 checks)')).toBe('not-run');
     expect(parseVerifyMessage('0010', 'relation "app_admins" does not exist')).toBe('not-run');
+  });
+});
+
+describe('verifyHeadline', () => {
+  it('keeps the first line, so a partial rollback (FAIL 3 vs FAIL 8) differs from the baseline', () => {
+    expect(verifyHeadline('VERIFY 0008: FAIL 8 (12 checks)\nFAIL 1 x\nPASS 2 y')).toBe(
+      'VERIFY 0008: FAIL 8 (12 checks)',
+    );
+    expect(verifyHeadline('VERIFY 0008: FAIL 3 (12 checks)\nFAIL 1 x')).not.toBe(
+      verifyHeadline('VERIFY 0008: FAIL 8 (12 checks)\nFAIL 1 x'),
+    );
+    expect(verifyHeadline('')).toBe('');
   });
 });
 

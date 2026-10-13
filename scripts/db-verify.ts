@@ -2,7 +2,7 @@
  * Runs supabase/migrations on an in-process Postgres (PGlite) with a minimal Supabase auth stub.
  *
  * Incremental pass, per migration: run its verification script (baseline), apply the migration,
- * require "ALL PASS"; if a rollback exists, apply it and require the baseline outcome again, then
+ * require "ALL PASS"; if a rollback exists, apply it and require the baseline's first line again, then
  * re-apply the migration and require "ALL PASS". Fresh pass: every migration on an empty database, then the seed.
  *
  * The stub is not Supabase: a human still runs each verification script on the live project.
@@ -46,6 +46,11 @@ export function parseVerifyMessage(version: string, message: string): VerifyOutc
   const m = new RegExp(`VERIFY ${version}: (ALL PASS|FAIL)`).exec(message);
   if (!m) return 'not-run';
   return m[1] === 'ALL PASS' ? 'pass' : 'fail';
+}
+
+// First line of a verify message, e.g. 'VERIFY 0008: FAIL 8 (12 checks)'; the per-check details follow it.
+export function verifyHeadline(message: string): string {
+  return message.split('\n')[0] ?? '';
 }
 
 export interface MigrationFiles {
@@ -111,7 +116,7 @@ async function main(): Promise<number> {
     if (!m.check) return;
     const { outcome, message } = await verify(db, m);
     if (outcome === 'pass') {
-      console.log(`  ✓ ${label}: ${message.split('\n')[0]}`);
+      console.log(`  ✓ ${label}: ${verifyHeadline(message)}`);
     } else {
       console.error(`  ✗ ${label}:\n${message}`);
       failures++;
@@ -123,21 +128,21 @@ async function main(): Promise<number> {
   for (const m of all) {
     console.log(`${m.migration}`);
     const baseline = await verify(db, m);
-    if (m.check) console.log(`  · baseline: ${baseline.message.split('\n')[0] || baseline.outcome}`);
+    if (m.check) console.log(`  · baseline: ${verifyHeadline(baseline.message) || baseline.outcome}`);
     if (!(await run(db, 'apply', read('migrations', m.migration)))) break;
     if (m.version === '0001' && !(await run(db, 'seed', seed))) break;
     await requirePass(db, m, 'after apply');
     if (m.rollback) {
       if (!(await run(db, 'rollback', read('rollbacks', m.rollback)))) break;
-      // A rollback that runs but changes nothing would otherwise pass: it must restore the baseline outcome.
+      // A rollback that changes nothing, or undoes only part of the migration, would otherwise pass:
+      // it must restore the baseline's first line ('FAIL 8 (12 checks)'), not just its outcome.
       if (m.check) {
         const back = await verify(db, m);
-        if (back.outcome === baseline.outcome) {
-          console.log(`  ✓ after rollback: ${back.message.split('\n')[0]} (baseline outcome restored)`);
+        const expected = verifyHeadline(baseline.message);
+        if (verifyHeadline(back.message) === expected) {
+          console.log(`  ✓ after rollback: ${expected} (baseline restored)`);
         } else {
-          console.error(
-            `  ✗ after rollback: expected the baseline outcome (${baseline.outcome}), got:\n${back.message}`,
-          );
+          console.error(`  ✗ after rollback: expected the baseline "${expected}", got:\n${back.message}`);
           failures++;
         }
       }

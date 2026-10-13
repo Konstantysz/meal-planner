@@ -54,7 +54,7 @@ On deploy, Supabase applies new migrations and deploys Edge Functions and Storag
 2. For every new table: `alter table … enable row level security;` plus its policies, in the same migration. Reuse `is_member_of(household_id)` (see [[rls-authorization]]). Scope member policies `to authenticated` and write `(select auth.uid())`.
 3. Add a manual rollback in `supabase/rollbacks/000N_<name>.down.sql`. The CLI ignores that folder.
 4. Add a verification script in `supabase/checks/000N_<name>.verify.sql`. Don't use `supabase/tests/`: `supabase test db` runs every file there as pgTAP.
-5. Run `pnpm db:verify`. Each migration with a verification script must report `ALL PASS` after apply and after rollback + re-apply, and the fresh pass must apply every migration and the seed. The printed baseline of your migration is what the live baseline should show.
+5. Run `pnpm db:verify`. Each migration with a verification script must report `ALL PASS` after apply and after rollback + re-apply; after the rollback alone it must print the same first line as the baseline (for example `FAIL 8 (12 checks)`), so a partial rollback fails. The fresh pass must apply every migration and the seed. The printed baseline of your migration is what the live baseline should show.
 6. **Baseline:** run the verification script in the SQL editor before merging. The attack checks should fail on the current database.
 7. Open the PR, let CI pass, merge. CI job `db` and the pre-commit hook also run `pnpm db:order`: a new migration must be numbered above every migration on `main` and ship its rollback and verification script, and a migration already on `main` must not change. If another migration PR merges first, renumber yours. Watch the deploy in the dashboard (project home, last migration).
 8. **After:** run the verification script again. It must report `ALL PASS`. Then check Database → Advisors.
@@ -109,6 +109,7 @@ create policy pantry_notes_all on pantry_notes for all to authenticated
 
 ## Changelog
 
+- 2026-10-13: `pnpm db:verify` now requires the rollback to restore the baseline's full first line, not just its pass/fail outcome.
 - 2026-10-13: Added `pnpm db:verify` and `pnpm db:order` (CI job `db`, issues #78 and #79), the wiki page checklist, and the live migration record as of 2026-10-13.
 - 2026-10-09: Re-verified against a7f8f52. Fixed the example migration name (`0005_share_link_rpc.sql`), the verify-script output wording, and the `config.toml` production behaviour (confirmed by the Supabase docs). Flagged the live-state snapshot and CLI-specific commands as uncertain.
 - 2026-10-04: Rewrote for the actual flow: merge into `main` deploys to production. Added rollback and verification steps.
