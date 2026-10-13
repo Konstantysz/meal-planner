@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1933f3c
 sources:
   - title: "Macro functions"
     path: src/lib/macros.ts
@@ -49,16 +49,16 @@ All functions are in `src/lib/macros.ts` and are pure:
 | `calculateIngredientMacros(ing, grams)` | `null` if **all four** per-100g fields are null. Otherwise each field is `(value ?? 0) * grams / 100`. |
 | `sumMacros(list)` | Adds the list up and skips `null` entries. An empty or all-null list gives `{0,0,0,0}`. |
 | `perServing(total, servings)` | `null` if `servings <= 0`, otherwise each field divided by `servings`. |
-| `toGrams(amount, unit)` | Grams for a mass or volume multiple, `null` for any other unit (see the table below). Case and surrounding spaces are ignored. |
+| `toGrams(amount, unit)` | Grams for a mass or volume multiple, `null` for any other unit (see the table below). Case, surrounding spaces and one trailing dot (`kg.`) are ignored; inflected forms fall back to `normalizeUnit` (`gramów` → `g`, `litra` → `l`). |
 | `recipeMacros(ingredients, servings)` | `{ total, perServing, complete, leftOut }` for a recipe (see below). |
 
 `toGrams` factors:
 
-| Unit | mg | g | dag | kg | ml | cl | dl | l |
+| Unit | mg | g, gr | dag, dkg | kg | ml | cl | dl | l |
 |---|---|---|---|---|---|---|---|---|
 | grams per unit | 0.001 | 1 | 10 | 1000 | 1 | 10 | 100 | 1000 |
 
-`toGrams` is a separate converter on purpose: `normalizeUnit` (`src/lib/import/unit.ts`) maps model output onto stored units and is measured by the import evals (see [[ingredient-auto-match]]), so it is not changed for macros.
+`toGrams` is a separate converter on purpose: `normalizeUnit` (`src/lib/import/unit.ts`) maps model output onto stored units and is measured by the import evals (see [[ingredient-auto-match]]), so `toGrams` only calls it as a fallback and never changes it.
 
 ### `recipeMacros`
 
@@ -75,7 +75,7 @@ The result:
 - `total`: the sum of the counted ingredients for the whole base recipe.
 - `perServing`: `total / servings`, or `null` when nothing was counted or `servings <= 0`.
 - `complete`: true when at least one ingredient was counted and none was left out.
-- `leftOut`: `{ name, reason }` per left-out ingredient. `name` is the ingredient's name, or the recipe ingredient's `raw_text` when the row has no name.
+- `leftOut`: `{ name, reason }` per left-out ingredient. `name` is the ingredient's name, else the recipe ingredient's `raw_text`, else „składnik" (blank strings are skipped).
 
 A total with `complete: false` is an **incomplete macro total**: a lower bound, not a value.
 
@@ -134,7 +134,7 @@ recipeMacros(
 
 ## Changelog
 
-- 2026-10-13: Unknown is not zero (#73): `toGrams` (mg, g, dag, kg, ml, cl, dl, l), `recipeMacros` with `complete` and `leftOut`, the „makra niepełne" badge on the recipe page and labelled partial day totals. Removed the "non-gram units count as 0" and "0 kcal instead of no data" gotchas.
+- 2026-10-13: Unknown is not zero (#73): `toGrams` (mg, g/gr, dag/dkg, kg, ml, cl, dl, l, trailing dot, `normalizeUnit` fallback), `recipeMacros` with `complete` and `leftOut`, the „makra niepełne" badge on the recipe page and labelled partial day totals. Removed the "non-gram units count as 0" and "0 kcal instead of no data" gotchas.
 - 2026-10-13: Documented per-day totals in the plan (#44).
 - 2026-10-09: Re-verified against a7f8f52. Documented the optional-ingredient exclusion (`ri.optional`) and dividing by `servings_base`. Reworded the unit-conversion gap and the macro-less wording. Verified claims otherwise unchanged.
 - 2026-10-05: Optional ingredients are excluded from recipe macros.

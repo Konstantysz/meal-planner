@@ -97,6 +97,21 @@ describe('toGrams', () => {
     expect(toGrams(1, ' KG ')).toBe(1000);
   });
 
+  it('accepts Polish abbreviations and one trailing dot', () => {
+    expect(toGrams(5, 'dkg')).toBe(50);
+    expect(toGrams(150, 'gr')).toBe(150);
+    expect(toGrams(1, 'kg.')).toBe(1000);
+    expect(toGrams(0.5, 'l.')).toBe(500);
+    expect(toGrams(3, 'dkg.')).toBe(30);
+    expect(toGrams(1, 'kg..')).toBeNull();
+  });
+
+  it('falls back to the inflected forms normalizeUnit knows', () => {
+    expect(toGrams(200, 'gramów')).toBe(200);
+    expect(toGrams(1, 'litra')).toBe(1000);
+    expect(toGrams(2, 'łyżki')).toBeNull();
+  });
+
   it('returns null for units that are not a mass or volume multiple', () => {
     for (const unit of ['łyżka', 'łyżeczka', 'szklanka', 'sztuki', 'szt', 'garść', '', null]) {
       expect(toGrams(1, unit)).toBeNull();
@@ -133,6 +148,14 @@ describe('recipeMacros', () => {
       { name: 'oliwa', reason: 'unit' },
       { name: 'oliwa', reason: 'no_amount' },
       { name: 'surowy tekst', reason: 'no_macros' },
+    ]);
+  });
+
+  it('falls back to raw_text and then to „składnik" when the name is empty', () => {
+    const blank = { ...salt, name: '' };
+    expect(recipeMacros([ing(blank, 5)], 1).leftOut).toEqual([{ name: 'surowy tekst', reason: 'no_macros' }]);
+    expect(recipeMacros([{ ...ing(blank, 5), raw_text: '  ' }], 1).leftOut).toEqual([
+      { name: 'składnik', reason: 'no_macros' },
     ]);
   });
 

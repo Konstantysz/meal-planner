@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5966c4c
+verified_commit: 1933f3c
 sources:
   - title: "Ingredient data access"
     path: src/lib/db/ingredients.ts

@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 656711c
+verified_commit: 1933f3c
 sources:
   - title: "Architecture plan"
     path: docs/plans/architecture_plan_document.md

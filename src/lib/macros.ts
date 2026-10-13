@@ -1,3 +1,4 @@
+import { normalizeUnit } from './import/unit';
 import type { Macros } from './types';
 
 export interface IngredientMacroInput {
@@ -54,7 +55,9 @@ export function perServing(total: Macros, servings: number): Macros | null {
 const GRAMS_PER_UNIT: Record<string, number> = {
   mg: 0.001,
   g: 1,
+  gr: 1,
   dag: 10,
+  dkg: 10,
   kg: 1000,
   ml: 1,
   cl: 10,
@@ -64,10 +67,15 @@ const GRAMS_PER_UNIT: Record<string, number> = {
 
 /**
  * Weight in grams of `amount` `unit`, or null when the unit is not a mass or volume multiple (łyżka, szt, …).
- * Kept apart from `normalizeUnit`, which maps model output onto stored units and is measured by the evals.
+ * Accepts Polish abbreviations (dkg, gr), one trailing dot ("kg.") and, as a fallback, the inflected forms
+ * `normalizeUnit` maps ("gramów", "litra"). `normalizeUnit` itself stays unchanged: it maps model output onto
+ * stored units and is measured by the evals.
  */
 export function toGrams(amount: number, unit: string | null): number | null {
-  const factor = unit === null ? undefined : GRAMS_PER_UNIT[unit.trim().toLowerCase()];
+  if (unit === null) return null;
+  const key = unit.trim().toLowerCase().replace(/\.$/, '');
+  const canonical = normalizeUnit(key);
+  const factor = GRAMS_PER_UNIT[key] ?? (canonical === null ? undefined : GRAMS_PER_UNIT[canonical]);
   return factor === undefined ? null : amount * factor;
 }
 
@@ -110,7 +118,7 @@ export function recipeMacros(ingredients: MacroRecipeIngredient[], servings: num
   const parts: Macros[] = [];
   for (const ri of ingredients) {
     if (ri.optional) continue;
-    const name = ri.ingredients?.name ?? ri.raw_text ?? '';
+    const name = ri.ingredients?.name?.trim() || ri.raw_text?.trim() || 'składnik';
     if (!ri.ingredients || !hasMacros(ri.ingredients)) {
       leftOut.push({ name, reason: 'no_macros' });
       continue;

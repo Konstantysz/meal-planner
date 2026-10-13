@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5e8ed97
+verified_commit: 1933f3c
 sources:
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
