@@ -52,6 +52,8 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 
 `.github/rulesets/main-protection.json` is a GitHub ruleset for the default branch. It blocks direct pushes (changes need a PR), force pushes and deletion, and requires the `lint`, `wiki`, `db`, `test` and `build` checks, with the branch up to date. Repository admins can bypass it, so only an admin can push straight to `main` or force-push.
 
+A merge of a branch that is behind `main` fails with `Repository rule violations found` and `N of N required status checks are expected`, even when every check on the PR is green. Update the branch ("Update branch" on the PR, a merge commit), wait for CI, then merge. Each merge puts the other open PRs behind again.
+
 The ruleset is active on `main`: on 2026-10-09 `gh api repos/Konstantysz/meal-planner/rules/branches/main` listed deletion, non-fast-forward, pull_request (0 required approvals) and required_status_checks (`lint`, `wiki`, `test`, `build`, strict) from ruleset 24806035.
 
 > [!warning] `db` not yet required on GitHub
@@ -124,6 +126,7 @@ gh run list --workflow backup.yml --limit 5
 
 ## Changelog
 
+- 2026-10-13: Explained the "required status checks are expected" merge error on a branch behind `main`.
 - 2026-10-13: Added the step-by-step ruleset sync for admins.
 - 2026-10-13: Added CI job `db` (`pnpm db:order`, `pnpm db:verify`) and listed it in the ruleset file.
 - 2026-10-09: `wiki` job now checks out full history and runs `pnpm wiki:stale` (informational).
