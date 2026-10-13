@@ -65,6 +65,8 @@ On deploy, Supabase applies new migrations and deploys Edge Functions and Storag
 > [!warning] A merge is a production deploy
 > Don't merge a migration PR you haven't baselined. If a deploy breaks something, run the rollback file in the SQL editor, then `supabase migration repair --status reverted 000N`.
 
+**Stacked PRs.** Before deciding which migration PR merges first, check each PR's base: `gh pr list --json number,baseRefName`. A PR based on a `stack/*` branch lands there, not in `main`, so its migration doesn't deploy. Once its parent PR has merged, retarget it with `gh pr edit N --base main`. CI runs `pnpm db:order "origin/$BASE_REF"`, so a stacked PR is ordered against the stack branch, not `main`: after retargeting, re-run CI so `db:order` checks against `main`. Merging a `stack/*` branch into `main` deploys every migration on it at once, so baseline each one first.
+
 ### Applying without a merge
 
 `supabase link --project-ref tfysxpkfbumctfuxcend`, then `supabase db push --dry-run` and `supabase db push`. The dry run must list only your new migration. Prefer the merge deploy: it keeps `main` and production in step, and the dashboard records the deploy.
@@ -112,6 +114,8 @@ create policy pantry_notes_all on pantry_notes for all to authenticated
 
 ## Changelog
 
+- 2026-10-13: Stacked-PR note: `db:order` runs against the stack base, and merging a stack deploys every migration on it.
+- 2026-10-13: Added the stacked-PR base check. Not run against production, so `verified_commit` is unchanged.
 - 2026-10-13: The baseline gate applies once `db` is required; scripts must guard schema lookups so the baseline ends in a result; re-baseline after renumbering; live migrations now `0001`–`0010`.
 - 2026-10-13: CI blocks a migration PR until its live baseline is recorded in [[migration-history]], and checks recorded check counts against the scripts.
 - 2026-10-13: The baseline step names the one file to paste; the migration and rollback are not run by hand (the 0010 migration and rollback were once applied by hand on production while baselining).
