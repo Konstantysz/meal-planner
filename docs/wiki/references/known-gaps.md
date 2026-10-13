@@ -54,7 +54,6 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Gap | Details |
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
-| No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
 | Per-day macro totals are a stub | [[week-plan#Known gaps]] |

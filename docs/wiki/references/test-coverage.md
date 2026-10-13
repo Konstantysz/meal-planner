@@ -45,7 +45,7 @@ sources:
 | `src/lib/schemas.ts` | `tests/unit/schemas.test.ts` (`RecipeJsonLdSchema` only) |
 | `src/lib/week.ts` | `tests/unit/week.test.ts` (`weekStartOf`, `normalizeWeekStart`) |
 | `src/lib/db/ingredients.ts` | `tests/unit/db/ingredients.test.ts` (`listIngredients`, `createIngredient`) |
-| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe` only) |
+| `src/lib/db/recipes.ts` | `tests/unit/db/recipes.test.ts` (`createRecipe`, `updateRecipe`; `getRecipe` and `listRecipes` not covered) |
 | `src/lib/db/share.ts` | `tests/unit/db/share.test.ts` (`getSharedPlan`) |
 | `src/lib/import/clean.ts` | `tests/unit/import/clean.test.ts` (real HTML fixtures) |
 | `src/lib/import/extract.ts` | `tests/unit/import/extract.test.ts` |
