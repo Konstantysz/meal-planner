@@ -96,4 +96,96 @@ describe('ImportReviewForm step titles', () => {
       { position: 1, title: null, text: 'Gotuj.' },
     ]);
   });
+
+  it('truncates a model-supplied title to 200 characters on prefill', async () => {
+    const body = await saveWith({
+      recipeInstructions: [{ title: 'x'.repeat(250), text: 'Gotuj.' }],
+    });
+    expect(body.steps[0].title).toBe('x'.repeat(200));
+  });
+});
+
+describe('ImportReviewForm step editing', () => {
+  async function saveAfter(act: () => Promise<void>, instructions = [{ title: null, text: 'Pierwszy' }]) {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: 'r1' }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <ImportReviewForm
+        extracted={{ ...BASE, recipeInstructions: instructions } as never}
+        sourceUrl=""
+        onCancel={() => {}}
+        onSaved={() => {}}
+      />,
+    );
+    await act();
+    await userEvent.click(screen.getByText('mock-pick'));
+    await userEvent.click(screen.getByRole('button', { name: /zapisz przepis/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    return JSON.parse(calls[0][1].body as string);
+  }
+
+  const TWO = [
+    { title: null, text: 'A' },
+    { title: null, text: 'B' },
+  ];
+
+  it('adds a step and drops it on save when it is left empty', async () => {
+    const body = await saveAfter(async () => {
+      await userEvent.click(screen.getByRole('button', { name: '+ krok' }));
+      expect(screen.getByLabelText('Treść kroku 2')).toBeInTheDocument();
+    });
+    expect(body.steps).toEqual([{ position: 0, title: null, text: 'Pierwszy' }]);
+  });
+
+  it('saves a typed new step with its title', async () => {
+    const body = await saveAfter(async () => {
+      await userEvent.click(screen.getByRole('button', { name: '+ krok' }));
+      await userEvent.type(screen.getByLabelText('Tytuł kroku 2'), 'Podanie');
+      await userEvent.type(screen.getByLabelText('Treść kroku 2'), 'Podaj.');
+    });
+    expect(body.steps[1]).toEqual({ position: 1, title: 'Podanie', text: 'Podaj.' });
+  });
+
+  it('removes a step', async () => {
+    const body = await saveAfter(async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Usuń krok 1' }));
+      expect(screen.queryByLabelText('Treść kroku 2')).not.toBeInTheDocument();
+    }, TWO);
+    expect(body.steps).toEqual([{ position: 0, title: null, text: 'B' }]);
+  });
+
+  it('moves a step down', async () => {
+    const body = await saveAfter(async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Przesuń krok 1 w dół' }));
+    }, TWO);
+    expect(body.steps.map((s: { text: string }) => s.text)).toEqual(['B', 'A']);
+  });
+
+  it('moves a step up', async () => {
+    const body = await saveAfter(async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Przesuń krok 2 w górę' }));
+    }, TWO);
+    expect(body.steps.map((s: { text: string }) => s.text)).toEqual(['B', 'A']);
+  });
+});
+
+describe('ImportReviewForm source author', () => {
+  it('saves the trimmed author', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ id: 'r1' }), { status: 201 })),
+    );
+    render(<ImportReviewForm extracted={BASE as never} sourceUrl="" onCancel={() => {}} onSaved={() => {}} />);
+    await userEvent.type(screen.getByLabelText('Autor przepisu'), '  Ania Gotuje ');
+    await userEvent.click(screen.getByText('mock-pick'));
+    await userEvent.click(screen.getByRole('button', { name: /zapisz przepis/i }));
+    const calls = (fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls;
+    await waitFor(() => expect(calls.length).toBe(1));
+    expect(JSON.parse(calls[0][1].body as string).source_author).toBe('Ania Gotuje');
+  });
+
+  it('saves null when left blank', async () => {
+    expect((await saveWith({})).source_author).toBeNull();
+  });
 });

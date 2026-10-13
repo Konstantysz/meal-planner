@@ -5,7 +5,7 @@ tags: [import, llm, recipes]
 status: stable
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-10
+updated: 2026-10-13
 last_reviewed: 2026-10-10
 review_interval_days: 90
 confidence: high
@@ -24,6 +24,8 @@ sources:
     path: src/app/api/import/fetch/route.ts
   - title: "Extract route"
     path: src/app/api/import/extract/route.ts
+  - title: "Steps editor"
+    path: src/components/recipes/StepsEditor.tsx
   - title: "Prep-time parser"
     path: src/lib/import/duration.ts
   - title: "Page fetcher"
@@ -78,7 +80,8 @@ The `ImportDialog` is a native `<form>`: Enter in the URL field submits like "Im
 
 - **The model structures the ingredients.** It returns `{name, amount, unit, optional}` per ingredient and the dialog passes the result straight to the review form ([[0012-llm-structures-ingredients]]). There is no per-site code; quality depends on the model ([[ingredient-auto-match#Measuring the model]]).
 - **Review is mandatory.** `ImportReviewForm.save` refuses to save until at least one ingredient is mapped („Zmapuj co najmniej jeden składnik przed zapisem.").
-- Imported recipes get `diet_tags: []`, `allergens: []` and `visibility: 'household'`. `prep_time_min` comes from the extracted `prepTime` (ISO 8601, parsed by `parsePrepMinutes` in `src/lib/import/duration.ts`; absent or unparsable → `null`), prefilled in the editable "Czas (min)" field of the review form. Each recipe ingredient is saved with `optional: false`.
+- Imported recipes get `diet_tags: []`, `allergens: []` and `visibility: 'household'`. `prep_time_min` comes from the extracted `prepTime` (ISO 8601, parsed by `parsePrepMinutes` in `src/lib/import/duration.ts`; absent or unparsable → `null`), prefilled in the editable "Czas (min)" field of the review form. Each recipe ingredient is saved with its row's „opcjonalny" flag (`optional: i.optional`).
+- **Review editing.** Before the first save the review form lets the user edit everything that is saved: name, servings, "Czas (min)", „Autor przepisu" (`source_author`, empty by default because extraction does not read an author; blank saves `null`), the ingredient rows and the steps. Ingredient rows are the shared `IngredientPicker` (the same one `RecipeForm` uses): add a row by searching the ingredient database or creating a new ingredient, edit raw text, amount, unit and „opcjonalny", move up/down, remove. Steps are the shared `StepsEditor`: optional title, text, move up/down, remove, „+ krok". Positions are renumbered from list order on save and steps with blank text are dropped. Editing an already saved recipe is `RecipeForm` with `recipeId` ([[recipe-management]]).
 - `recipeInstructions` can be a string, an array of strings, or an array of `{text}`. The review form normalises all three into step strings.
 - Review Focus #3 (a page with no recipe content) must fail validation and save nothing. The repo test `rejects JSON without name (Review Focus #3)` in `tests/unit/import/extract.test.ts` covers a missing `name` with `maxRetries` 0. On the server path, `extractRecipe` throws, the extract route answers HTTP 502, and the review form is never opened.
 
@@ -111,6 +114,7 @@ LLM_MODE=server pnpm dev
 
 ## Changelog
 
+- 2026-10-13: Review screen edits steps (add, remove, move, title) and ingredient rows, and `source_author`; shares `StepsEditor` and `IngredientPicker` with `RecipeForm`.
 - 2026-10-10: Ingredient lines are read from the page markup and replace the model's list when present (`acf949e`).
 - 2026-10-09: Re-verified against `a7f8f52`. Corrected Review Focus #3 (missing-`name` validation, HTTP 502 on the server path) and noted `optional: false` on saved ingredients.
 - 2026-10-11: Dropped the ingredients bypass; the fetch route returns only `markdown`.
