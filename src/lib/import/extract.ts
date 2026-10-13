@@ -1,4 +1,5 @@
 import { parseLlmJson, type ExtractedRecipe } from './schema';
+import { applyQuantityRanges } from './ranges';
 
 export type LlmFn = (system: string, user: string) => Promise<string>;
 
@@ -16,7 +17,7 @@ export async function extractRecipe(
         : `${markdown}\n\nUWAGA: poprzednia odpowiedź nie pasowała do schematu (${lastError}). Spróbuj ponownie, zwróć TYLKO poprawny JSON.`;
     const raw = await llm(systemPrompt, user);
     try {
-      return parseLlmJson(raw);
+      return applyQuantityRanges(parseLlmJson(raw), markdown);
     } catch (e) {
       lastError = String(e);
     }

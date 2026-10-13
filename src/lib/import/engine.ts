@@ -1,5 +1,6 @@
 'use client';
 import { CreateWebWorkerMLCEngine, type WebWorkerMLCEngine, type InitProgressReport } from '@mlc-ai/web-llm';
+import { applyQuantityRanges } from './ranges';
 import { SYSTEM_PROMPT, LLM_OUTPUT_SCHEMA, parseLlmJson, type ExtractedRecipe } from './schema';
 
 const MODEL_ID = 'gemma-2-2b-it-q4f16_1-MLC';
@@ -54,7 +55,7 @@ export async function extractWithWebLlm(markdown: string): Promise<ExtractedReci
   if (choice?.finish_reason === 'length') {
     throw new Error('Odpowiedź modelu została ucięta (za długi przepis). Spróbuj importu w trybie LLM_MODE=server.');
   }
-  return parseLlmJson(choice?.message?.content ?? '');
+  return applyQuantityRanges(parseLlmJson(choice?.message?.content ?? ''), markdown);
 }
 
 export async function hasWebGpu(): Promise<boolean> {

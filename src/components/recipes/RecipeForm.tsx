@@ -89,8 +89,11 @@ export function RecipeForm({
           <input
             type="number"
             min={0}
+            step={1}
             value={prepTime ?? ''}
-            onChange={(e) => setPrepTime(e.target.value === '' ? null : Number(e.target.value))}
+            onChange={(e) =>
+              setPrepTime(e.target.value === '' ? null : Math.max(0, Math.round(Number(e.target.value))))
+            }
             className="w-24 border rounded px-2 py-1"
           />
         </div>

@@ -40,11 +40,37 @@ describe('createRecipe', () => {
         visibility: 'household',
         diet_tags: [],
         allergens: [],
+        source_author: null,
         ingredients: input.ingredients.map((i) => ({ ...i, optional: false })),
+        steps: input.steps.map((s) => ({ ...s, title: null })),
       },
     });
     // No direct table writes: atomicity lives in the database.
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it('passes source_author and step titles through to the RPC', async () => {
+    const { client, rpc } = mockRpc({ data: { id: 'r1' }, error: null });
+    await createRecipe(
+      client,
+      {
+        ...input,
+        source_author: ' Ania Gotuje ',
+        steps: [{ position: 0, title: 'Przygotuj', text: 'Ugotuj makaron' }],
+      },
+      'h1',
+    );
+    const payload = rpc.mock.calls[0][1].p_recipe;
+    expect(payload.source_author).toBe('Ania Gotuje');
+    expect(payload.steps).toEqual([{ position: 0, title: 'Przygotuj', text: 'Ugotuj makaron' }]);
+  });
+
+  it('sends null for a blank source_author or step title', async () => {
+    const { client, rpc } = mockRpc({ data: null, error: null });
+    await createRecipe(client, { ...input, source_author: '  ', steps: [{ position: 0, title: '', text: 'x' }] }, 'h1');
+    const payload = rpc.mock.calls[0][1].p_recipe;
+    expect(payload.source_author).toBeNull();
+    expect(payload.steps[0].title).toBeNull();
   });
 
   it('rejects invalid input before calling the database', async () => {

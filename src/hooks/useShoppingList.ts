@@ -11,19 +11,24 @@ export function useShoppingList(week: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const cached = await loadShoppingList(week);
-    if (cached) setItems(cached);
-    const haveMap = await getHaveMap(week);
-    setHaveMap(haveMap);
-    if (navigator.onLine) {
-      const r = await fetch(`/api/shopping?week=${week}`);
-      if (r.ok) {
-        const fresh: ShoppingItem[] = await r.json();
-        setItems(fresh);
-        await saveShoppingList(week, fresh);
+    try {
+      const cached = await loadShoppingList(week);
+      if (cached) setItems(cached);
+      const haveMap = await getHaveMap(week);
+      setHaveMap(haveMap);
+      if (navigator.onLine) {
+        const r = await fetch(`/api/shopping?week=${week}`);
+        if (r.ok) {
+          const fresh: ShoppingItem[] = await r.json();
+          setItems(fresh);
+          await saveShoppingList(week, fresh);
+        }
       }
+    } catch {
+      // Flaky network while navigator.onLine is true: keep the cached list (if any) and stop loading.
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [week]);
 
   useEffect(() => {

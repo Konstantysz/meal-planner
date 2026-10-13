@@ -48,13 +48,15 @@ IndexedDB database `meal-planner`, version 1, object store `shopping-list` with 
 
 1. Loads the cached items and the have-map and shows them.
 2. If `navigator.onLine`, fetches `/api/shopping`, shows the fresh list and saves it.
-3. On the `online` event it reloads; on `offline` it shows the banner („Tryb offline — zmiany zsynchronizują się po powrocie online").
+3. On the `online` event it reloads; on `offline` it shows the banner („Brak połączenia — widzisz ostatnio zapisaną listę. Zaznaczenia „mam to" zostają na tym urządzeniu."). The banner says only what the code does: it shows the last saved list and keeps the have marks on this device. It promises no sync. With no saved list and no connection, `ShoppingList` shows an empty state without an action; online and empty, it links to the plan. The page header repeats „„Mam to" zapisuje się tylko na tym urządzeniu."
+
+The shopping screen (`/shopping`) is a 2xl column: category headings (Bricolage, hairline underneath, `have/total` count), rows of 44 px on mobile with an accent-coloured checkbox, struck-through muted text for have marks, and „(brak makro)" in muted small text for incomplete items. Tokens and primitives from `src/components/ui` only.
 
 ## Invariants and gotchas
 
 - **Keep the read-before-write in `saveShoppingList`.** An earlier version overwrote the row and wiped every have mark on each refresh (fixed in `2f62038`).
 - The have-map key is `${ingredient_id}::${unit ?? 'none'}`, the same as the aggregation key.
-- The banner promises a sync that doesn't exist. Have-state is only local. The `pantry_items` table is unused.
+- Have-state is only local, so the banner copy must never promise a sync (`tests/unit/shopping-auth-screens.test.tsx` checks this). The `pantry_items` table is unused.
 
 > [!warning] Uncertain: Node version dependency
 > `useShoppingList` calls `useState(!navigator.onLine)` during render, which also runs when Next pre-renders `/shopping`. `pnpm build` passes on Node 26, which has a global `navigator` (with `onLine` undefined). Node 20 has no global `navigator` (the repo runs on Node 24 in CI and per `AGENTS.md`, and Node 21+ defines one), so the pre-render would most likely throw a `ReferenceError` there. That hasn't been tested. Guard it with `typeof navigator !== 'undefined'`.
@@ -85,6 +87,7 @@ await setHave('2026-10-05', ingredientId, 'g', true);  // "mam to"
 
 ## Changelog
 
+- 2026-10-13: Shopping screen restyled (#41). Offline banner copy corrected to match behaviour (no sync promise); empty states and the per-device note added.
 - 2026-10-09: Re-checked against a7f8f52: store, hook and banner code match. Terminology aligned with GLOSSARY.md (have marks). Corrected the Node version in the uncertain note (Node 24, not 22.22+). Not bumped to a7f8f52: the Node 26 / Node 20 pre-render behaviour is still untested.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-04: Created from the offline section of legacy `shopping.md`. Added the no-sync, no-service-worker and SSR `navigator` notes.

@@ -59,9 +59,8 @@ The UI (`ShoppingList` → `CategoryGroup` → `ShoppingItem`) groups shopping i
 
 ## Known gaps
 
-- `/shopping` is statically pre-rendered, so its `week` is fixed at build time. See [[week-plan#Known gaps]].
 - N+1 queries: one `getRecipe` per slot. A `Promise.all` or a single joined query would fix it.
-- Servings are always 1 per slot (see [[week-plan#Invariants and gotchas]]).
+- Servings come from the slot, set with the stepper in the plan (see [[week-plan#Moving slots and servings]]); new slots start at 1.
 - No unit conversion (`kg` vs `g` stay separate shopping items).
 
 ## Examples

@@ -31,10 +31,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold">{recipe.name}</h1>
         <RecipeActions recipeId={recipe.id} />
       </div>
-      <p className="text-sm opacity-70">
-        {recipe.servings_base} porcji
-        {recipe.prep_time_min != null && ` · ${recipe.prep_time_min} min`}
-      </p>
+      <ul className="flex flex-wrap gap-2 text-sm">
+        <li className="rounded-control border border-line px-3 py-1 text-ink">{recipe.servings_base} porcji</li>
+        {recipe.prep_time_min != null && (
+          <li className="rounded-control border border-line px-3 py-1 text-ink">{recipe.prep_time_min} min</li>
+        )}
+      </ul>
       <div className="bg-green-50 rounded p-3">
         <div className="text-xs text-gray-600 mb-1">Makro per porcja:</div>
         <MacroSummary macros={per} />

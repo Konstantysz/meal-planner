@@ -4,6 +4,7 @@ import type { ExtractedRecipe } from '@/lib/import/schema';
 import type { Ingredient } from '@/lib/types';
 import { IngredientPicker, type PickedIngredient } from '@/components/recipes/IngredientPicker';
 import { autoMatchIngredients } from '@/lib/import/auto-match';
+import { parsePrepMinutes } from '@/lib/import/duration';
 import { parseYield, yieldWeightGrams } from '@/lib/import/yield';
 
 export function ImportReviewForm({
@@ -19,6 +20,7 @@ export function ImportReviewForm({
 }) {
   const [name, setName] = useState(extracted.name);
   const [servings, setServings] = useState(parseYield(extracted.recipeYield));
+  const [prepTime, setPrepTime] = useState<number | null>(parsePrepMinutes(extracted.prepTime));
   const totalGrams = yieldWeightGrams(extracted.recipeYield);
   const [ingredients, setIngredients] = useState<PickedIngredient[]>([]);
   const [steps, setSteps] = useState<string[]>(
@@ -96,7 +98,7 @@ export function ImportReviewForm({
       body: JSON.stringify({
         name,
         servings_base: servings,
-        prep_time_min: null,
+        prep_time_min: prepTime,
         source_url: sourceUrl || null,
         visibility: 'household',
         diet_tags: [],
@@ -113,7 +115,9 @@ export function ImportReviewForm({
       }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? 'save failed');
+      const body: unknown = await res.json().catch(() => null);
+      const msg = (body as { error?: unknown } | null)?.error;
+      setError(typeof msg === 'string' ? msg : 'Nie udało się zapisać przepisu.');
       return;
     }
     const r = await res.json();
@@ -132,8 +136,22 @@ export function ImportReviewForm({
           value={servings}
           min={1}
           onChange={(e) => setServings(Number(e.target.value))}
+          aria-label="Porcje"
           className="w-24 border rounded px-2 py-1"
         />
+        <label className="flex items-center gap-1 text-sm">
+          Czas (min)
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={prepTime ?? ''}
+            onChange={(e) =>
+              setPrepTime(e.target.value === '' ? null : Math.max(0, Math.round(Number(e.target.value))))
+            }
+            className="w-24 border rounded px-2 py-1"
+          />
+        </label>
         {totalGrams !== null && servings >= 1 && (
           <span className="text-sm opacity-70">
             Przepis podaje wagę ({totalGrams} g) — porcja ok. {Math.round(totalGrams / servings)} g. Popraw liczbę

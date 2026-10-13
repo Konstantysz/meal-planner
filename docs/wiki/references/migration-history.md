@@ -22,6 +22,8 @@ sources:
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
   - title: "Optional ingredient flag"
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
+  - title: "Source author and step title"
+    path: supabase/migrations/0008_recipe_source_author_step_title.sql
   - title: "Ingredient ownership and app admins"
     path: supabase/migrations/0010_ingredient_ownership.sql
   - title: "Verification scripts"
@@ -35,7 +37,7 @@ sources:
 # Migration History
 
 > [!tldr]
-> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. Each was baselined and verified on the live database with a script in `supabase/checks/`. Read this page first if you missed that work.
+> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. Each was baselined and verified on the live database with a script in `supabase/checks/`. Read this page first if you missed that work.
 
 ## Context
 
@@ -52,11 +54,12 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0005` | Konstantysz/meal-planner#6 | `get_shared_plan(token)` RPC; dropped the `*_via_share_token` policies and the open `st_select`; deleted empty non-Monday plans; `plans_week_start_monday` check | Anyone with the anon key could list every token and read every shared plan. The settings page shared a plan keyed by today, not Monday, which created empty plans. See [[0008-share-link-rpc]]. |
 | `0006` | Konstantysz/meal-planner#7 | `on_auth_user_created` trigger creates the household; backfill; idempotent `create_household_with_owner`; `save_recipe` RPC | With email confirmation on, signup left users without a household. `createRecipe` used three inserts and could leave orphan recipes. |
 | `0007` | Konstantysz/meal-planner#13 | `recipe_ingredients.optional` boolean (default `false`); `save_recipe` reads the flag per ingredient | Optional ingredients ("ewentualne dodatki") are excluded from recipe macros but still shopped. Rollback: `supabase/rollbacks/0007_recipe_ingredient_optional.down.sql`; check: `supabase/checks/0007_recipe_ingredient_optional.verify.sql`. See [[recipe-management]]. |
+| `0008` | Konstantysz/meal-planner#33 | `recipes.source_author` and `recipe_steps.title` (both nullable text); `save_recipe` reads `source_author` and per-step `title` (missing or blank = null) | Records who wrote a recipe (`author_id` is only who saved it) and an optional heading per step. No data migration, nothing populates the fields yet. Rollback: `supabase/rollbacks/0008_recipe_source_author_step_title.down.sql`; check: `supabase/checks/0008_recipe_source_author_step_title.verify.sql`. |
 | `0010` | Konstantysz/meal-planner#70 | `app_admins` + `is_app_admin()`; `ingredients.created_by` defaults to `auth.uid()`, `on delete set null`; `ing_insert` requires the caller as creator; `ing_update` needs the creator or an app admin | Any signed-in user could change any ingredient's macros for every household, and no row recorded its creator (all 119 live rows null on 2026-10-13). Must deploy after `0008` and `0009`. See [[0013-ingredient-ownership-and-app-admins]]. |
 
 ## Verification
 
-Each of `0004`–`0007` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
+Each of `0004`–`0008` and `0010` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It was run in the SQL editor before merging (baseline) and after the deploy:
 
 | Migration | Before merge | After deploy |
 |---|---|---|
@@ -64,6 +67,7 @@ Each of `0004`–`0007` has a script in `supabase/checks/` that creates throwawa
 | `0005` | `FAIL 7 (10 checks)` | `ALL PASS (10 checks)` |
 | `0006` | `FAIL 7 (7 checks)` (features missing) | `ALL PASS (7 checks)` |
 | `0007` | `FAIL 2 (2 checks)` | `ALL PASS (2 checks)` |
+| `0008` | not yet run (expect `FAIL` on the checks that need the new columns) | not yet run (expect `ALL PASS (5 checks)`) |
 | `0010` | Expected `FAIL 10 (12 checks)` (PGlite run, 2026-10-13) | Pending |
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions by `authenticated`. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
@@ -112,6 +116,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 ## Changelog
 
 - 2026-10-13: Added migration 0010 (ingredient ownership and app admins) with its expected baseline; live results pending.
+- 2026-10-13: Added migration 0008 (`recipes.source_author`, `recipe_steps.title`); live results pending.
 - 2026-10-09: Checked the migration SQL for `0001`–`0007`, the rollbacks and checks, and PRs #2, #4–#7 and #13 with `gh`. Added the missing `0007` row. Corrected the backup claim (the workflow ran and failed, it did not never run) and the seed `source` claim (the picker writes `manual`). Left `verified_commit` at dd67b66 because the live results and plan facts are unverifiable from the repo.
 - 2026-10-09: Terminology aligned with GLOSSARY.md.
 - 2026-10-09: Node line changed from "need Node 24" to "should use Node 24 to match CI" (see [[local-dev-setup]]).
