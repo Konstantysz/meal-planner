@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Input } from '@/components/ui';
 import { AUTH_TITLE, Field, FormMessage } from './AuthFrame';
+import { authErrorMessage } from './auth-errors';
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -18,7 +19,7 @@ export function ResetPasswordForm() {
     const { error } = await createClient().auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage('reset', error));
       return;
     }
     router.push('/recipes');

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button, ButtonLink, Input } from '@/components/ui';
 import { AUTH_TITLE, Field, FormMessage } from './AuthFrame';
+import { authErrorMessage } from './auth-errors';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export function ForgotPasswordForm() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage('forgot', error));
       return;
     }
     // Same message whether or not the account exists, so the form can't be used to probe emails.

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button, ButtonLink, Input } from '@/components/ui';
 import { AUTH_TITLE, Field, FormMessage } from './AuthFrame';
+import { authErrorMessage } from './auth-errors';
 import { useRouter } from 'next/navigation';
 
 export function AuthForm({ mode, initialError }: { mode: 'login' | 'signup'; initialError?: string }) {
@@ -24,7 +25,7 @@ export function AuthForm({ mode, initialError }: { mode: 'login' | 'signup'; ini
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) {
-        setError(error.message);
+        setError(authErrorMessage('login', error));
         return;
       }
       router.push('/recipes');
@@ -37,7 +38,7 @@ export function AuthForm({ mode, initialError }: { mode: 'login' | 'signup'; ini
     const { data, error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage('signup', error));
       return;
     }
     if (!data.session) {
