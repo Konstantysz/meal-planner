@@ -53,13 +53,13 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | Gap | Details |
 |---|---|
 | `usePlan`, `useShoppingList` and `RecipeList` set state synchronously in `useEffect` (`react-hooks/set-state-in-effect` is downgraded to a warning in `eslint.config.mjs`) | [[architecture-overview#Known gaps]] |
-| No recipe update endpoint; the edit page is read-only | [[recipe-management#Known gaps]] |
 | Recipe macros silently count macro-less ingredients as 0, and picker-created ingredients persist even if the recipe is never saved | [[ingredient-database#Known gaps]] |
 | Ingredient name, amount and unit quality depends on the model: a 2B model can drop a „- około 160 g" weight or invent amounts | [[ingredient-auto-match#Measuring the model]] |
 | Non-gram units add 0 to recipe macros; no unit conversion | [[macro-calculation#Known gaps]] |
 | The have marks never sync between devices or household members (the banner no longer promises it) | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
+| Recipe edits are last-write-wins: `update_recipe` has no version check, so two household members saving the same recipe overwrite each other silently (`recipes` has no `updated_at`) | [[recipe-management#Known gaps]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
 | Logged-out API calls get a `/login` redirect instead of a 401 | [[auth-session#Invariants and gotchas]] |
 | Most routes and UI, the offline store, `src/lib/db/households.ts` and `src/lib/db/plans.ts` have no tests; there are no RLS tests | [[test-coverage#Not covered]] |

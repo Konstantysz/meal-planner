@@ -59,7 +59,7 @@ async function runPages(
     try {
       const r = await extractRecipe(md, counted, SYSTEM_PROMPT, 2);
       ingredients = r.recipeIngredient?.length ?? 0;
-      steps = r.recipeInstructions?.length ?? 0;
+      steps = r.recipeInstructions.length;
     } catch (e) {
       ok = false;
       error = String(e).replace(/\s+/g, ' ').slice(0, 300);
