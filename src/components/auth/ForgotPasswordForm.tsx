@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { Button, ButtonLink, Input } from '@/components/ui';
+import { AUTH_TITLE, Field, FormMessage } from './AuthFrame';
+import { authErrorMessage } from './auth-errors';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -18,7 +20,7 @@ export function ForgotPasswordForm() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage('forgot', error));
       return;
     }
     // Same message whether or not the account exists, so the form can't be used to probe emails.
@@ -26,31 +28,35 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 max-w-sm mx-auto mt-20">
-      <h1 className="text-2xl font-bold">Nie pamiętam hasła</h1>
+    <form onSubmit={submit} className="space-y-4">
+      <h1 className={AUTH_TITLE}>Nie pamiętam hasła</h1>
       {sent ? (
-        <p className="text-green-600 text-sm">
+        <FormMessage tone="notice">
           Jeśli konto o takim adresie istnieje, wysłaliśmy na nie link do ustawienia nowego hasła.
-        </p>
+        </FormMessage>
       ) : (
         <>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="email"
-            className="w-full border rounded px-3 py-2"
-          />
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button type="submit" disabled={loading} className="w-full bg-green-600 text-white rounded py-2">
-            {loading ? '...' : 'Wyślij link'}
-          </button>
+          <Field label="E-mail" htmlFor="forgot-email">
+            <Input
+              id="forgot-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </Field>
+          {error && <FormMessage tone="error">{error}</FormMessage>}
+          <Button type="submit" variant="primary" disabled={loading} className="w-full">
+            {loading ? 'Chwileczkę…' : 'Wyślij link'}
+          </Button>
         </>
       )}
-      <Link href="/login" className="block text-center text-sm text-green-700 underline">
-        Wróć do logowania
-      </Link>
+      <p className="text-center text-sm">
+        <ButtonLink href="/login" variant="link">
+          Wróć do logowania
+        </ButtonLink>
+      </p>
     </form>
   );
 }

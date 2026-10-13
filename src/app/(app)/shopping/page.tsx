@@ -6,8 +6,11 @@ export default async function ShoppingPage() {
   await connection();
   const week = weekStartOf(new Date());
   return (
-    <div>
-      <h1 className="text-2xl font-bold p-4">Zakupy</h1>
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <header className="space-y-1">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">Zakupy</h1>
+        <p className="text-sm text-muted">{'„Mam to" zapisuje się tylko na tym urządzeniu.'}</p>
+      </header>
       <ShoppingList week={week} />
     </div>
   );
