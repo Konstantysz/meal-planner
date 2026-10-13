@@ -68,6 +68,8 @@ export const ExtractedIngredientSchema = z.object({
   amount: z.number().nullable().default(null),
   unit: z.string().nullable().default(null),
   optional: z.boolean().default(false),
+  // Not in LLM_OUTPUT_SCHEMA: set by applyQuantityRanges when the source line had a range ("1-2 łyżki").
+  range: z.string().optional(),
 });
 export type ExtractedIngredient = z.infer<typeof ExtractedIngredientSchema>;
 
