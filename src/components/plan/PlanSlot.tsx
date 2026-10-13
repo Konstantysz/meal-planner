@@ -7,8 +7,10 @@ import { slotClass } from './slot-colors';
 const MAX_SERVINGS = 99;
 const STEP =
   'grid min-h-11 min-w-11 place-items-center lg:min-h-6 lg:min-w-6 text-base leading-none disabled:opacity-40 hover:bg-hover rounded-control';
-// On desktop the controls appear on hover or keyboard focus, so a filled block reads as just the recipe and its servings.
-const REVEAL = 'lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100';
+// Where there is a mouse and room (`hover-desktop`, globals.css) the controls appear on hover or keyboard focus, so a filled
+// block reads as just the recipe and its servings. Touch devices and phones always see them.
+const REVEAL =
+  'hover-desktop:opacity-0 hover-desktop:group-hover:opacity-100 hover-desktop:group-focus-within:opacity-100';
 const ICON_BUTTON = 'grid min-h-11 min-w-11 place-items-center rounded-control hover:bg-hover lg:min-h-6 lg:min-w-6';
 
 export function PlanSlot({
@@ -38,9 +40,9 @@ export function PlanSlot({
   const filled = !!recipeName;
   return (
     <div
-      className={`flex h-full min-h-12 items-start gap-1 rounded-block px-2 py-1.5 text-sm ${slotClass(position, filled)}`}
+      className={`group flex h-full min-h-12 items-start gap-1 rounded-block px-2 py-1.5 text-sm ${slotClass(position, filled)} ${filled ? 'hover-desktop:hover:outline hover-desktop:hover:outline-2 hover-desktop:hover:-outline-offset-2 hover-desktop:hover:outline-ink/40' : ''}`}
     >
-      {filled && dragHandle}
+      {filled && dragHandle && <span className={REVEAL}>{dragHandle}</span>}
       <div className="min-w-0 flex-1">
         {showLabel && <div className={`text-xs ${filled ? 'text-on-slot' : 'text-muted'}`}>{label}</div>}
         <div className={`break-words leading-tight ${filled ? 'font-semibold' : ''}`}>

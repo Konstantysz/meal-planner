@@ -87,7 +87,9 @@ export function WeekPlanDesktop({
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <td className="w-20 border-b border-line" />
+                <th scope="col" className="w-20 border-b border-line">
+                  <span className="sr-only">Posiłek</span>
+                </th>
                 {days.map((d) => {
                   const isToday = format(d, 'yyyy-MM-dd') === today;
                   return (
@@ -96,10 +98,15 @@ export function WeekPlanDesktop({
                       scope="col"
                       className="border-b border-line px-1.5 pb-2 text-left align-bottom font-normal"
                     >
-                      <span className={`block text-xs ${isToday ? 'font-semibold text-brand' : 'text-muted'}`}>
+                      <span className="sr-only">{format(d, 'EEEE d MMMM', { locale: pl })}</span>
+                      <span
+                        aria-hidden="true"
+                        className={`block text-xs ${isToday ? 'font-semibold text-brand' : 'text-muted'}`}
+                      >
                         {format(d, 'EEE', { locale: pl }).replace(/\.$/, '')}
                       </span>
                       <span
+                        aria-hidden="true"
                         className={`-ml-1.5 mt-0.5 grid size-9 place-items-center rounded-full font-display text-2xl font-semibold leading-none tabular-nums ${isToday ? 'bg-brand text-on-brand' : ''}`}
                       >
                         {format(d, 'd')}
