@@ -64,10 +64,21 @@ describe('PUT /api/recipes/[id]', () => {
     expect((await res.json()).error).toBeTruthy();
   });
 
-  it('returns 400 with the message for other database errors', async () => {
-    rpc.mockResolvedValue({ data: null, error: { code: '23503', message: 'foreign key violation' } });
+  it.each(['22P02', '23503', '22023'])('returns 400 with a fixed message for client error %s', async (code) => {
+    rpc.mockResolvedValue({ data: null, error: { code, message: 'internal pg detail' } });
     const res = await put(body);
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe('foreign key violation');
+    expect((await res.json()).error).toBe('nieprawidłowe dane przepisu');
+  });
+
+  it('returns 500 with a generic message and logs for unknown database errors', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    rpc.mockResolvedValue({ data: null, error: { code: 'XX000', message: 'relation "secret" exploded' } });
+    const res = await put(body);
+    expect(res.status).toBe(500);
+    const text = JSON.stringify(await res.json());
+    expect(text).not.toContain('secret');
+    expect(log).toHaveBeenCalled();
+    log.mockRestore();
   });
 });

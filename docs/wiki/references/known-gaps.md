@@ -62,6 +62,7 @@ This page is an index only, so it doesn't duplicate content (see [[RULES]]). Sev
 | The have-map never syncs; the offline banner promises it will | [[offline-shopping-store#Known gaps]] |
 | No service worker | [[offline-shopping-store#Known gaps]] |
 | N+1 queries in `/api/shopping` | [[shopping-list-aggregation#Known gaps]] |
+| Recipe edits are last-write-wins: `update_recipe` has no version check, so two household members saving the same recipe overwrite each other silently (`recipes` has no `updated_at`) | [[recipe-management#Known gaps]] |
 | Invites need a UUID; there's no invite UI | [[household-model#Known gaps]] |
 | Logged-out API calls get a `/login` redirect instead of a 401 | [[auth-session#Invariants and gotchas]] |
 | Most routes and UI, the offline store, `src/lib/db/households.ts` and `src/lib/db/plans.ts` have no tests; there are no RLS tests | [[test-coverage#Not covered]] |

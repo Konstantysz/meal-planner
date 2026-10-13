@@ -154,11 +154,32 @@ begin
   end;
   results := results || format('%s 7 failed edit leaves the recipe intact', case when has_fn and ok then 'PASS' else 'FAIL' end);
 
-  -- 8. Grants: authenticated only
+  -- 9. An author who has left the household: USING (author_id) passes but WITH CHECK
+  --    (is_member_of) fails, so the edit is refused with 42501 and nothing changes.
+  perform set_config('role', 'postgres', true);
+  delete from household_members where household_id = ha and user_id = a;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  begin
+    execute 'select to_jsonb(update_recipe($1, $2))' into saved using rid, jsonb_set(edited, '{name}', '"verify left"');
+    ok := false;
+  exception
+    when insufficient_privilege then ok := true;
+    when others then ok := false;
+  end;
+  perform set_config('role', 'postgres', true);
+  select count(*) into n from recipes where id = rid and name = 'verify by member';
+  ok := ok and n = 1;
+  select count(*) into n from recipe_ingredients where recipe_id = rid;
+  ok := ok and n = 1;
+  perform set_config('role', 'authenticated', true);
+  results := results || format('%s 9 author who left the household is refused (42501), recipe unchanged', case when has_fn and ok then 'PASS' else 'FAIL' end);
+
+  -- 10. Grants: authenticated only
   ok := has_fn
     and has_function_privilege('authenticated', 'public.update_recipe(uuid, jsonb)', 'execute')
     and not has_function_privilege('anon', 'public.update_recipe(uuid, jsonb)', 'execute');
-  results := results || format('%s 8 update_recipe grants (authenticated only)', case when ok then 'PASS' else 'FAIL' end);
+  results := results || format('%s 10 update_recipe grants (authenticated only)', case when ok then 'PASS' else 'FAIL' end);
 
   perform set_config('role', 'postgres', true);
   select count(*) into fails from unnest(results) t where t like 'FAIL%';

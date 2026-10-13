@@ -33,7 +33,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     // update_recipe raises 42501 when RLS blocks the update (or the recipe does not exist).
     const code = (e as { code?: string } | null)?.code;
     if (code === '42501') return NextResponse.json({ error: 'brak dostępu do przepisu' }, { status: 403 });
-    return NextResponse.json({ error: String((e as { message?: string } | null)?.message ?? e) }, { status: 400 });
+    // Known client errors: bad text/uuid (22P02), unknown ingredient (23503), empty ingredients/steps (22023).
+    if (code === '22P02' || code === '23503' || code === '22023')
+      return NextResponse.json({ error: 'nieprawidłowe dane przepisu' }, { status: 400 });
+    // Anything else is a server fault: log details, never echo them to the client.
+    console.error('update_recipe failed', e);
+    return NextResponse.json({ error: 'nie udało się zapisać przepisu' }, { status: 500 });
   }
 }
 
