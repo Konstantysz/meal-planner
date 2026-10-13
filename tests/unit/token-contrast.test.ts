@@ -24,11 +24,15 @@ function contrast(a: string, b: string): number {
 }
 
 const light = parse(rootBlock);
-const themes = { light, dark: { ...light, ...parse(darkBlock) } };
+const themes = { light, dark: parse(darkBlock) };
 const surfaces = ['background', 'side', 'hover'];
 const slots = ['slot-0', 'slot-1', 'slot-2', 'slot-3', 'slot-4'];
 
-describe.each(Object.entries(themes))('token contrast, %s', (_name, t) => {
+describe.each(Object.entries(themes))('token contrast, %s', (name, t) => {
+  it('finds the theme block', () => {
+    expect(name === 'dark' ? darkBlock : rootBlock).not.toBe('');
+  });
+
   it('has every token', () => {
     for (const k of [...surfaces, ...slots, 'ink', 'muted', 'faint', 'brand', 'on-brand', 'on-slot']) {
       expect(t[k], k).toBeDefined();

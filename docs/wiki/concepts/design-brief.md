@@ -13,7 +13,7 @@ confidence: medium
 llm_generated: true
 llm_model: "claude-sonnet-5-5"
 human_reviewed: false
-verified_commit: e0f0256
+verified_commit: 4329ca9
 sources:
   - title: "Theme tokens"
     path: src/app/globals.css
@@ -54,7 +54,7 @@ Every decision below comes from the style interview of 2026-10-13 (answers cited
 | Section title, day number | Bricolage Grotesque | 600 | 18–24 px |
 | Body | Geist | 400 | 14 px desktop, 16 px mobile |
 | Secondary text | Geist | 400–500 | 13 px |
-| Minimum | Geist | 400 | 12 px (the prototype's 11 px cover time and tab labels are 12 px in the build; `--text-xs` is fixed at 12 px because the root size drops to 14 px on desktop) |
+| Minimum | Geist | 400 | 12 px (the prototype's 11 px cover time and tab labels are 12 px in the build; `--text-xs` is fixed at 12 px and `--text-sm` at 13 px because the root size drops to 14 px on desktop) |
 
 - Body is 16 px on mobile so iOS does not zoom into inputs (interview Q4).
 - Numbers that align (dates, amounts, macros) use `font-variant-numeric: tabular-nums`.
@@ -167,6 +167,7 @@ A cover is 3:4. Without a photo it is the recipe name set large (Bricolage 800, 
 ## Changelog
 
 - 2026-10-13: Foundations wrap-up (#56): contrast table for all token pairs and slot colours; `faint` no longer used for text or placeholders; `--text-xs` fixed at 12 px; prototype source removed.
+- 2026-10-13: Review follow-up (#56): `--text-sm` fixed at 13 px (the secondary size); the add-slot "+" uses `muted`; the contrast test parses the dark block on its own.
 - 2026-10-13: Review follow-up: brand focus ring measured (6.8–7.3:1 dark, 6.0–6.5:1 light); spacing steps map to Tailwind's scale.
 - 2026-10-13: Tokens, primitives and shell implemented (#37, #49). Contrast on slot colours measured; `on-slot` token added. Prototype copy removed.
 - 2026-10-13: Fixed review findings: `faint` and light `muted` darkened for contrast, brand-colour list, tie-break, 12 px minimum note, prototype source lifetime.
