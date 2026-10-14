@@ -1,6 +1,6 @@
 ---
 title: "Recipe Management"
-summary: "Recipe create (atomic save_recipe RPC), edit (atomic update_recipe RPC), list with diet/allergen filters, detail and delete."
+summary: "Recipe create (atomic save_recipe RPC), edit (atomic update_recipe RPC, author or app admin), fork (fork_recipe RPC) for everyone else, list with diet/allergen filters, detail and delete."
 tags: [recipes, ui]
 status: review
 owner: "@konstantysz"
@@ -10,9 +10,9 @@ last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
+llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: a7f8f52
+verified_commit: 1c21fbf
 sources:
   - title: "Recipe data access"
     path: src/lib/db/recipes.ts
@@ -22,12 +22,22 @@ sources:
     path: supabase/migrations/0007_recipe_ingredient_optional.sql
   - title: "update_recipe RPC"
     path: supabase/migrations/0009_update_recipe_rpc.sql
+  - title: "fork_recipe RPC and author-only recipe writes"
+    path: supabase/migrations/0014_recipe_fork.sql
+  - title: "Fork route"
+    path: src/app/api/recipes/[id]/fork/route.ts
+  - title: "Fork button"
+    path: src/components/recipes/ForkEditButton.tsx
+  - title: "Edit access"
+    path: src/lib/recipe-access.ts
   - title: "Recipe photo URL"
     path: supabase/migrations/0011_recipe_image_url.sql
   - title: "Photo layer"
     path: src/components/recipes/RecipePhoto.tsx
   - title: "Allowed image hosts"
     path: src/lib/image-hosts.ts
+  - title: "Schema integrity (row rules, account deletion, updated_at)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Recipe input schema"
     path: src/lib/schemas.ts
   - title: "Recipes routes"
@@ -61,7 +71,7 @@ sources:
 # Recipe Management
 
 > [!tldr]
-> Recipes are created through `POST /api/recipes`, by hand (`RecipeForm`) or through import (`ImportReviewForm`). Both send a `RecipeInput`, which needs at least one ingredient and one step. The list filters by diet tags (in SQL) and excluded allergens (in JS). They are edited through `PUT /api/recipes/[id]`, which replaces the recipe's fields, ingredients and steps in one transaction and answers 403 when RLS blocks it. Delete works only for the author.
+> Recipes are created through `POST /api/recipes`, by hand (`RecipeForm`) or through import (`ImportReviewForm`). Both send a `RecipeInput`, which needs at least one ingredient and one step. The list filters by diet tags (in SQL) and excluded allergens (in JS). Only the member who saved a recipe (`author_id`) or an app admin edits it in place, through `PUT /api/recipes/[id]`, which replaces the recipe's fields, ingredients and steps in one transaction. Anyone else edits a [[0015-recipe-forks|fork]]: „Edytuj" copies the recipe first and opens the copy. Refused edits and deletes answer 403.
 
 ## Context
 
@@ -73,13 +83,27 @@ Recipes are the core entity. Plans and shopping lists are derived from them. See
 |---|---|---|
 | Create | `/recipes/new` → `RecipeForm` (or [[import-pipeline]]) | `POST /api/recipes` → `createRecipe` |
 | List | `/recipes` → `RecipeList` + `RecipeFilters`, one `RecipeCard` per recipe | `GET /api/recipes?diet=&exclude=` → `listRecipes` |
-| Detail | `/recipes/[id]` (server component) | `getRecipe` directly |
+| Detail | `/recipes/[id]` (server component: `getRecipe`, `canEditRecipe`, `getRecipeName` for a fork) → `RecipeDetail` | `getRecipe` directly |
 | Edit | `/recipes/[id]/edit` → `RecipeForm` with `recipeId` | `PUT /api/recipes/[id]` → `updateRecipe` |
-| Delete | `RecipeActions` „Usuń" | `DELETE /api/recipes/[id]` |
+| Fork | `RecipeActions` „Edytuj" (or „Utwórz kopię i edytuj" on the edit page) → `ForkEditButton` | `POST /api/recipes/[id]/fork` → `forkRecipe` |
+| Delete | `RecipeActions` „Usuń" (author or app admin only) | `DELETE /api/recipes/[id]` → `deleteRecipe` |
 
-`createRecipe(supabase, input, householdId)` validates against `RecipeInputSchema`, then makes **one** call: `rpc('save_recipe', { p_household_id, p_recipe })` (migration 0006, redefined in 0007). The function inserts the recipe, its ingredients and its steps in one transaction, so a failure leaves nothing behind. It is `security invoker`, so `rec_insert`, `ri_all` and `rs_all` still apply, and the author is always `auth.uid()` (an `author_id` in the payload is ignored). It also rejects a recipe without ingredients or steps (`22023`). Each ingredient object may carry `optional`; a missing value is stored as `false`.
+`createRecipe(supabase, input, householdId)` validates against `RecipeInputSchema`, then makes **one** call: `rpc('save_recipe', { p_household_id, p_recipe })` (migration 0006, redefined in 0007). The function inserts the recipe, its ingredients and its steps in one transaction, so a failure leaves nothing behind. It is `security invoker`, so `rec_insert`, `ri_insert` and `rs_insert` (`ri_all` and `rs_all` before 0014) still apply, and the author is always `auth.uid()` (an `author_id` in the payload is ignored). It also rejects a recipe without ingredients or steps (`22023`). Each ingredient object may carry `optional`; a missing value is stored as `false`.
 
-`updateRecipe(supabase, id, input)` validates the same `RecipeInputSchema`, then calls `rpc('update_recipe', { p_recipe_id, p_recipe })` (migration 0009). In one transaction it updates the recipe's columns (`author_id`, `household_id` and `created_at` never change), deletes all of its ingredient and step rows and inserts the submitted ones, so adding, removing and reordering need no diffing (row ids are not stable across an edit; nothing references them). It is `security invoker` like `save_recipe`, so `rec_update`, `ri_all` and `rs_all` decide. An `UPDATE` that RLS filters affects 0 rows and raises nothing, so the function raises `42501` when no row was updated; the route turns that into **403** (400 for an invalid body or a known client database error with a fixed message, 401 when signed out, 500 with a generic message for anything else, logged server-side). Any member of the household may edit its recipes (`rec_update`), not only the author.
+`updateRecipe(supabase, id, input)` validates the same `RecipeInputSchema`, then calls `rpc('update_recipe', { p_recipe_id, p_recipe })` (migration 0009). In one transaction it updates the recipe's columns (`author_id`, `household_id` and `created_at` never change), deletes all of its ingredient and step rows and inserts the submitted ones, so adding, removing and reordering need no diffing (row ids are not stable across an edit; nothing references them). It is `security invoker` like `save_recipe`, so `rec_update` and the `ri_*` / `rs_*` write policies decide. An `UPDATE` that RLS filters affects 0 rows and raises nothing, so the function raises `42501` when no row was updated; the route turns that into **403** (400 for an invalid body or a known client database error with a fixed message, 401 when signed out, 500 with a generic message for anything else, logged server-side). Since migration 0014 only the author or an app admin passes `rec_update`, so another member's call raises `42501` too.
+
+### Who edits, and forks
+
+`canEditRecipe(recipe, userId, isAdmin)` (`src/lib/recipe-access.ts`) mirrors the 0014 policies: the author or an app admin (`isAppAdmin`, the `is_app_admin` RPC). The detail and edit pages compute it server-side; it only picks the UI, RLS enforces the rule.
+
+- Author or app admin: `RecipeActions` shows „Edytuj" (a `ButtonLink` to `/recipes/[id]/edit`) and „Usuń".
+- Anyone else: `RecipeActions` shows „Edytuj" as `ForkEditButton` and no „Usuń". The click calls `POST /api/recipes/[id]/fork`, then opens `/recipes/<fork>/edit`. Opening `/recipes/[id]/edit` directly shows „Utwórz kopię i edytuj" instead of the form: forking is a write, so it waits for a click rather than running on page load.
+
+`forkRecipe(supabase, id)` calls `rpc('fork_recipe', { p_recipe_id })` (migration 0014) and returns the new id. In one transaction the function copies the recipe's columns (name, servings, prep time, source URL, source author, photo URL, visibility, diets, allergens), its recipe ingredients (with `optional`) and its steps (with titles) into a new recipe authored by the caller, named „… (kopia)" (the suffix is added once and fits the 200-character limit), with `forked_from_id` pointing at the source. It copies the `recipes` columns as of migration 0011, including `image_url`. 0013 (merged before this one) adds `recipes.updated_at` (default `now()`, set by a trigger) and makes `author_id` nullable; `fork_recipe` copies neither, because a fork gets a fresh timestamp and the caller as author. When the caller already has a fork of the source in that household, the function returns the most recent one instead, so a repeated „Edytuj" opens the same fork. The fork goes into the source's household when the caller is a member (the normal case), otherwise into the caller's own household. It is `security invoker`: the reads and inserts are ones RLS already allows. A recipe the caller cannot read raises `P0002` (404). One that is readable while its ingredients or steps are not (`public_link` from outside the household) raises `22023` (400) rather than producing an empty fork. 401 when signed out, 403 for `42501`, 500 with a generic message otherwise. The original is never changed, and plan slots keep pointing at the recipe they were planned with. The detail page of a fork (`RecipeDetail`, under the title) shows „Kopia przepisu „<name>"" linking to the original, only when `getRecipeName` can read it (deleting the original sets `forked_from_id` to null; an unreadable one shows nothing).
+
+`deleteRecipe(supabase, id)` deletes with `.select('id')` and reports whether a row went. `rec_delete` hides recipes the caller may not delete, so 0 rows means refused (or unknown id) and the route answers **403** instead of 204.
+
+### Edit form
 
 The edit form is `RecipeForm` with `recipeId` set (`recipeToFormValues` maps `getRecipe` output to it). It edits the name, servings, time, `source_author` („Autor przepisu"), diets, allergens, ingredient rows (add, remove, move up/down, optional) and steps (add, remove, move up/down, optional title). Positions are renumbered from list order on submit; steps with blank text are dropped. It also edits the photo URL („Zdjęcie (adres URL)"); a blank value clears it. `source_url` and `visibility` are carried through unchanged (no field edits them).
 
@@ -90,31 +114,36 @@ Filtering:
 - `diet`: `contains('diet_tags', diet)`. A recipe must have **all** the selected diets.
 - `exclude`: rows are fetched first and then filtered in JS (`!r.allergens.some(...)`).
 
-Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Its null macros count as 0 in the recipe totals. Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
+Ingredients are added through `IngredientPicker`. It searches the full ingredient list client-side (2 or more characters, top 8), and it can create a placeholder ingredient with null macros („+ Dodaj nowy składnik"). That ingredient is inserted **immediately**, not when the recipe is saved, so it stays in the global catalog even if the recipe is never saved. Until its macros are filled in, it is left out of the recipe totals and listed under „makra niepełne" on the detail page (see [[macro-calculation]]). Each picked row has an „opcjonalny" checkbox that sets `optional` (new rows default to `false`). See [[ingredient-database]].
 
 ## Invariants and gotchas
 
 - `servings_base` must be an integer above 0 (Zod, plus a DB check). This is what keeps `perServing` from dividing by zero for stored recipes. See [[macro-calculation]].
+- **Row rules (migration 0013).** Ingredient and step positions are unique per recipe and `>= 0`, an ingredient `amount` is null or `> 0`, and step text must contain a non-space character. The database enforces them (unique and check constraints) and `RecipeInputSchema` mirrors them, so a bad body is a 400 before the RPC runs. The forms renumber positions from list order and drop blank steps. An amount of 0 or less is sent as null („no amount", `positiveAmountOrNull` in `src/lib/scaling.ts`): auto-match maps the import model's amount that way, and `RecipeForm` and `ImportReviewForm` map a typed amount on submit. Only a direct API caller sending 0 gets a 400.
+- **`updated_at`** is set to `now()` by a database trigger on every update of the recipe row, whatever the client sends. `update_recipe` always updates that row, so every edit moves it; a direct write to `recipe_ingredients` or `recipe_steps` alone does not.
+- **Deleting the account that saved a recipe** keeps the recipe in its household with `author_id` null (migration 0013). Members still see and edit it (`rec_select`, `rec_update` pass on membership).
 - `visibility` defaults to `household`. No UI offers `private` or `public_link`.
 - The diet and allergen values are Polish slugs without diacritics (`wegetarianska`, `mieso`), duplicated in `types.ts`, `schemas.ts`, `RecipeForm` and `RecipeFilters`. Change all four together.
 - **List cards** (`RecipeCard`): a 3:4 `RecipeCover` (name set large, prep time on top), then source author (when set), servings, per-serving macros, and diet and allergen tags. The cover has a `photo` slot, so a future image fills it without a layout change; its tint is `hover` until covers take the colour of the most-planned slot position (see [[design-brief]]). The grid is 2 columns on mobile and up to 5 on wide screens (the brief's horizontal shelves are not built). The filters are `Chip` toggles. States: skeleton covers while loading, „Brak przepisów. Dodaj pierwszy." with one action, a message for no filter match, for no search match and for a failed fetch.
 - `listRecipes` also selects each recipe's ingredient macro columns and returns `RecipeListItem` (`Recipe` plus `macros_per_serving`, from `toListItem` and `recipePerServing`). `WeekPlan` reads the same endpoint and ignores the extra field.
-- **Per-serving macros** use the rule of the day totals ([[week-plan]]): when any counted ingredient lacks data (a non-gram unit, no macros, or none counted) the value is null and the UI shows „brak danych makro". The detail page used to show a partial sum.
-- **Detail page**: cover band, title, servings and prep time as large tags (plain `RecipeTag`, not the interactive `Chip`), diet and allergen tags, a property list („Na porcję"; „Autor" with the „Źródło" link next to it), then ingredients beside steps on wide screens (one column on mobile).
+- **Per-serving macros** ([[macro-calculation]]): the detail page (`RecipeDetail`) shows `RecipeMacroPanel`, a partial total labelled „co najmniej" with the „makra niepełne" list when an ingredient was left out (no macros, no amount, or a unit `toGrams` can't convert). List cards stay all-or-nothing: `recipePerServing` is null („brak danych makro") unless the total is complete.
+- **Detail page**: `page.tsx` loads the recipe and computes `canEdit` and the original's name for a fork, then renders `RecipeDetail`: cover band, title with `RecipeActions`, the fork's „Kopia przepisu" link when set, servings and prep time as large tags (plain `RecipeTag`, not the interactive `Chip`), diet and allergen tags, a property list („Na porcję"; „Autor" with the „Źródło" link next to it), then ingredients beside steps on wide screens (one column on mobile).
 - `RecipeIngredients` shows `formatAmount(amount, unit)` followed by `raw_text`, with a servings stepper that scales amounts from `servings_base` through `scaleAmount`. Macros per serving do not change with it. Manual entries set `raw_text` to the ingredient name.
 - `RecipeSteps` renders each step as a `<details>` card. A step with a title shows it in the summary and its text when open; a step without one is a numbered card whose text is the summary (two lines closed). The first step starts open; „Rozwiń wszystkie" / „Zwiń wszystkie" toggles all (hidden for a single step).
 - Each ingredient row has an `optional` flag (the „opcjonalny" checkbox in `IngredientPicker`, migration 0007). Optional rows are left out of the recipe macros and labelled „(opcjonalnie)" on the detail page. The shopping list does **not** treat them differently. Import does not tick the box: the extractor drops the „ewentualne dodatki" label, so the user ticks it by hand.
 
 ## Known gaps
 
-- **A non-author delete silently does nothing** (RLS filters the delete, and the API returns 204). See [[rls-authorization#Invariants and gotchas]].
-- **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition and `recipes` has no `updated_at`, so two household members editing the same recipe silently overwrite each other. Accepted for now; a fix needs an `updated_at` column plus a mismatch error mapped to 409.
-- An author who has left the household cannot edit their old recipe: `rec_update` USING passes but WITH CHECK (`is_member_of`) fails, so the RPC raises `42501` (403). Covered by check 9 in the verify script.
+- **Edits are last-write-wins.** `update_recipe` replaces everything with no version precondition, so two sessions editing the same recipe (the author on two devices, or the author and an app admin) silently overwrite each other. `recipes.updated_at` exists since migration 0013; the fix still needs `update_recipe` to compare it and a mismatch error mapped to 409.
+- **A recipe whose author's account was deleted can be deleted through the API only by an app admin**: `rec_delete` allows the author or an app admin, and `author_id` is null. Otherwise only the SQL editor can remove it.
+- An author who has left the household cannot edit their old recipe: `rec_update` USING passes but WITH CHECK (`is_member_of`) fails, so the RPC raises `42501` (403). Covered by check 9 in the 0009 verify script.
+- A fork does not follow later changes to its original, and nothing merges a fork back. Forks of forks point at their direct source.
+- An app admin edits only recipes they can read (a household they belong to): `rec_select` is unchanged.
 - No pagination. `listRecipes` returns every visible recipe.
 
 ## Validation messages
 
-`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. `ImportReviewForm` reads only `error`, so it shows the short Polish sentence instead of JSON.
+`POST /api/recipes` and `PUT /api/recipes/[id]` answer an invalid body with 400 `{ error: 'nieprawidłowe dane przepisu', fields }`, where `fields` maps a form field (`name`, `servings_base`, `prep_time_min`, `source_author`, `ingredients`, `steps`, ...) to one Polish message from `recipeFieldErrors`. `RecipeForm` shows each message under its field; an issue inside an item (`steps.0.text`) is reported on the list field. Duplicate positions (the 0013 row rules, only reachable from a direct API call) report „Składniki mają powtórzone pozycje" / „Kroki mają powtórzone pozycje"; an amount of 0 or less reports its row („Popraw składnik nr N"). `ImportReviewForm` joins the `fields` messages into one line, or shows a status message when there are none.
 
 ## Examples
 
@@ -138,17 +167,27 @@ Ingredients are added through `IngredientPicker`. It searches the full ingredien
 - [[api-routes]]
 - [[design-brief]]
 - [[week-plan]]
+- [[0015-recipe-forks]]
+- [[rls-authorization]]
 
 ## Sources
 
 - `src/lib/db/recipes.ts`, `src/lib/schemas.ts`, `src/app/api/recipes/**`
 - `src/components/recipes/*`, `src/app/(app)/recipes/**`
-- `supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql`, `supabase/migrations/0007_recipe_ingredient_optional.sql`, `supabase/migrations/0009_update_recipe_rpc.sql`
+- `supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql`, `supabase/migrations/0007_recipe_ingredient_optional.sql`, `supabase/migrations/0009_update_recipe_rpc.sql`, `supabase/migrations/0014_recipe_fork.sql`
+- `src/lib/recipe-access.ts`, `src/lib/db/app-admins.ts`
 
 ## Changelog
 
+- 2026-10-13: `recipeFieldErrors` reports duplicate positions as such instead of „Dodaj co najmniej jeden …".
 - 2026-10-13: Recipe list and detail as cards with collapsible, titled steps, scaling and field-level form errors (#39); removed the raw-Zod-JSON gap.
 - 2026-10-13: Added the recipe photo (`image_url`, migration 0011, `RecipePhoto`, form field, detail band). Status set to `review` for the edit.
+- 2026-10-13: Placeholder ingredients are reported under „makra niepełne" instead of counting as 0 (#73).
+- 2026-10-13: Import and the forms now send an amount of 0 or less as null instead of failing the save.
+- 2026-10-13: Documented the row rules, `updated_at` and account-deletion behaviour from migration 0013 (#72), and the matching `RecipeInputSchema` checks; the last-write-wins gap now only lacks the version check; added the author-less recipe delete gap.
+- 2026-10-13: `fork_recipe` (0014) now also copies `image_url` (0011, merged first); it copies the `recipes` columns as of 0011.
+- 2026-10-13: A repeated fork reuses the caller's fork; forks are named „… (kopia)"; `22023` for an empty copy; the original link shows only when readable.
+- 2026-10-13: Recipe forks (migration 0014, issue #75): only the author or an app admin edits or deletes in place; others fork via `POST /api/recipes/[id]/fork`. A refused delete now answers 403; removed the silent-delete gap. Live results pending.
 - 2026-10-13: Step editing extracted into `StepsEditor`, shared with the import review form (#35).
 - 2026-10-13: Added editing (`update_recipe` RPC, migration 0009, `PUT /api/recipes/[id]`, editable `RecipeForm`); removed the no-update gap. Live results pending.
 - 2026-10-09: Re-verified against a7f8f52; added the `optional` ingredient flag (migration 0007, picker checkbox, detail-page macro exclusion), and noted that `save_recipe` is redefined there.

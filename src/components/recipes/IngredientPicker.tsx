@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { Ingredient } from '@/lib/types';
 import { Button, Input } from '@/components/ui';
+import { OffDisclaimer } from './OffDisclaimer';
 
 export interface PickedIngredient {
   ingredient_id: string;
@@ -102,6 +103,7 @@ export function IngredientPicker({
           ))}
         </ul>
       )}
+      {filtered.some((i) => i.source === 'off') && <OffDisclaimer />}
       {query.length >= 2 && filtered.length === 0 && (
         <Button disabled={creating} onClick={() => createAndAdd(query)} className="w-full justify-start">
           {creating ? 'Dodaję…' : `+ Dodaj nowy składnik "${query}"`}

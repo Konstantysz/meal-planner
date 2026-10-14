@@ -44,6 +44,10 @@ _Avoid_: dish, meal (a meal is what a slot holds), przepis (code and UI only)
 One ordered instruction of a recipe: an optional title and its details. A source page may give only a general title (a heading) with the real detail in the text beneath it.
 _Avoid_: instruction, direction, krok (UI label only)
 
+**Fork**:
+A member's own copy of a recipe another member saved, made when they edit it, with its recipe ingredients and steps. Only the member who saved a recipe, or an app admin, changes or deletes it in place; anyone else edits a fork. The fork remembers the recipe it came from; the original and the slots planned with it stay unchanged. A member has at most one fork of a recipe; editing it again reopens it. UI: the name ends in „(kopia)".
+_Avoid_: clone, duplicate, variant, version
+
 **Recipe photo**:
 The optional picture of a recipe: a hotlinked URL from a supported source site, not a stored file. Without one, a recipe cover shows its slot colour.
 _Avoid_: image upload (photos are not uploaded), thumbnail
@@ -57,7 +61,7 @@ A catalogue entry, shared across all households, with macros per 100 g. Any sign
 _Avoid_: product (an Open Food Facts term), food, item
 
 **App admin**:
-A user allowed to change any ingredient, including seed rows that have no creator. Granted only from the database console, never from the app.
+A user allowed to change any ingredient, including seed rows that have no creator, and to change or delete any recipe they can read. Granted only from the database console, never from the app.
 _Avoid_: admin (alone, it is ambiguous with a household's owner), moderator, superuser
 
 **Recipe ingredient**:
@@ -93,8 +97,12 @@ An ingredient created with only a name and no macros, either by hand while build
 _Avoid_: bare ingredient, stub, manual ingredient (for the placeholder ingredient)
 
 **Macro-less ingredient**:
-An ingredient with no macro values at all; it counts as zero in recipe totals and marks shopping items incomplete.
+An ingredient with no macro values at all. It is left out of recipe totals, which makes them an incomplete macro total, and marks shopping items incomplete.
 _Avoid_: missing macros (for the ingredient), empty ingredient
+
+**Incomplete macro total**:
+A recipe or day macro total that leaves out at least one non-optional recipe ingredient because it is a macro-less ingredient, has no amount, or has a unit that cannot be converted to grams (łyżka, szklanka, szt). The total is a lower bound, never a real zero for the missing part. UI: „makra niepełne", with the list of left-out ingredients on the recipe page.
+_Avoid_: partial macros, missing macros (for the total), dane niepełne
 
 ### Import
 

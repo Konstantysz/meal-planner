@@ -12,12 +12,14 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5e8ed97
+verified_commit: 1c21fbf
 sources:
   - title: "Security hardening"
     path: supabase/migrations/0004_security_hardening.sql
   - title: "Share-link RPC"
     path: supabase/migrations/0005_share_link_rpc.sql
+  - title: "Recipe forks"
+    path: supabase/migrations/0014_recipe_fork.sql
   - title: "Atomic recipe save and signup trigger"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
   - title: "Optional ingredient flag"
@@ -30,6 +32,12 @@ sources:
     path: supabase/migrations/0010_ingredient_ownership.sql
   - title: "Migration 0011"
     path: supabase/migrations/0011_recipe_image_url.sql
+  - title: "Ingredient macro range checks"
+    path: supabase/migrations/0012_ingredient_macro_checks.sql
+  - title: "Data-quality report"
+    path: supabase/reports/data_quality.sql
+  - title: "Schema integrity"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Verification record check"
     path: scripts/migration-record.ts
   - title: "Verification scripts"
@@ -43,7 +51,7 @@ sources:
 # Migration History
 
 > [!tldr]
-> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles, `0009` the `update_recipe` RPC for editing saved recipes. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. `0011` adds the optional recipe photo URL. `0004`–`0011` each have a script in `supabase/checks/`; `0008`–`0010` were confirmed live on 2026-10-13. `0008` and `0009` merged without a baseline run first, and CI now blocks that (see Verification). Read this page first if you missed that work.
+> `0001`–`0003` built the MVP schema. On 2026-10-04 a database audit of the live project found that several RLS policies let any user join any household and anyone with the public anon key list every shared plan. `0004`–`0006` fixed that and made signup and recipe saving robust. `0007` later added the optional-ingredient flag and `0008` the source author and step titles, `0009` the `update_recipe` RPC for editing saved recipes. `0010` (from the 2026-10-13 data audit) limits ingredient edits to the creator or an app admin. `0011` adds the optional recipe photo URL. `0012` (#71) corrects two bad Open Food Facts rows and adds range checks on ingredient macros. `0013` adds the integrity rules the app assumed (row positions and amounts, slot dates inside their week, `recipes.updated_at`) and lets a user account be deleted. `0014` (pending) limits recipe edits and deletes to the author or an app admin and adds recipe forks. Every migration from `0004` on (`0004`–`0014`) has a script in `supabase/checks/`; `0008`–`0011` were confirmed live on 2026-10-13. `0008` and `0009` merged without a baseline run first, and CI now blocks that (see Verification). Read this page first if you missed that work.
 
 ## Context
 
@@ -64,10 +72,13 @@ Merging into `main` deploys new migrations to production (Supabase GitHub integr
 | `0009` | Konstantysz/meal-planner#42 | `update_recipe(p_recipe_id, p_recipe)` RPC (`security invoker`): updates the recipe's columns and replaces its ingredients and steps in one transaction; raises `42501` when RLS leaves 0 rows to update | Recipes could not be edited after saving. An RLS-filtered `UPDATE` returns no error, so the function checks the row count to fail loudly. Needs 0008. Rollback: `supabase/rollbacks/0009_update_recipe_rpc.down.sql` (drops the function only); check: `supabase/checks/0009_update_recipe_rpc.verify.sql`. |
 | `0010` | Konstantysz/meal-planner#70 | `app_admins` + `is_app_admin()`; `ingredients.created_by` defaults to `auth.uid()`, `on delete set null`; `ing_insert` requires the caller as creator; `ing_update` needs the creator or an app admin | Any signed-in user could change any ingredient's macros for every household, and no row recorded its creator (all 119 live rows null on 2026-10-13). Must deploy after `0008` and `0009`. See [[0013-ingredient-ownership-and-app-admins]]. |
 | `0011` | Konstantysz/meal-planner#43 | `recipes.image_url` (nullable text, check: `http(s)://…`, at most 2048 chars); `save_recipe` and `update_recipe` store it (blank or missing = null) | Recipes had no photo and the redesign covers take one. A hotlinked URL, not Supabase Storage (Free plan). Needs 0008 and 0009. `update_recipe` clears the photo if `image_url` is omitted. Merge first: 0012 (#97), 0013 (#96) and 0014 (#98) follow this one. Rollback: `supabase/rollbacks/0011_recipe_image_url.down.sql` (restores the 0008 `save_recipe` and 0009 `update_recipe`, drops the column and its data); check: `supabase/checks/0011_recipe_image_url.verify.sql`. See [[0014-recipe-photos-hotlinked]]. |
+| `0012` | Konstantysz/meal-planner#71 | Corrects two live Open Food Facts rows by id, guarded by their current bad values; then CHECK constraints on `ingredients`: protein, fat and carbs each 0–100 g, their sum ≤ 101 g, kcal 0–900 (nulls allowed) | Nothing stopped impossible macros. Live on 2026-10-13: „Peanut Butter Crunchy" (`8e412dad-…`) had protein 75, fat 156.25, carbs 43.75 with a correct 593.75 kcal: each macro ×3.125 too high, corrected to 24 / 50 / 14 (Atwater 602 kcal). „Skyr Wanilia" (`54ccf934-…`) had 22.29 kcal for P 6.5, F 1.5, C 9.5 (Atwater 77.5): kcal ÷3.5 too low, corrected to 78. The Atwater rule stays out of the database (alcohol, fibre-rich spices); `supabase/reports/data_quality.sql` lists rows that miss it, such as „vEGGs roślinny zamiennik jajek" (1.23×). The migration fails if any other row breaks a range rule. Rollback drops the constraints and keeps the corrected values. Merge only after 0011 (#92); 0013 (#96) and 0014 (#98) merge after this one. See [[ingredient-database]]. |
+| `0013` | Konstantysz/meal-planner#72 | `recipe_ingredients` / `recipe_steps`: `unique (recipe_id, position)`, `position >= 0`, `amount > 0` when set, step text not blank. `recipes.author_id` nullable and `on delete set null`; `share_tokens.created_by` `on delete cascade`. `recipes.updated_at` maintained by trigger `recipes_set_updated_at`. Triggers `plan_slots_date_in_week` and `plans_week_keeps_slots` (`security invoker`) keep each slot inside its plan's week (`23514`). `execute` on `create_household_with_owner` revoked from `public`, `anon`, `authenticated` | None of these rules was enforced, and deleting an account failed on the `recipes` and `share_tokens` foreign keys. A CHECK cannot read `plans`, hence the triggers. Plain unique constraints suffice: `update_recipe` deletes the old rows before inserting the new ones (the check script reorders rows through it). No data fix: the live data had no violations on 2026-10-13, and the migration fails if that changed. Does not redefine `save_recipe` / `update_recipe` (`0011` does). Merge only after 0011 (#92) and 0012 (#97), both merged, and before 0014 (#98). |
+| `0014` | pending (issue Konstantysz/meal-planner#75) | `recipes.forked_from_id` (on delete set null) + index; `fork_recipe(p_recipe_id)` RPC (`security invoker`) copies a readable recipe with its recipe ingredients and steps as the caller's recipe (name „… (kopia)"; returns the caller's existing fork of the same source instead of a duplicate; `22023` when no ingredients or steps are readable); `rec_update` / `rec_delete` need the author or an app admin; `ri_all` / `rs_all` split into household reads and author-or-admin writes | Any member could edit another member's recipe, and its ingredients and steps directly. Others now edit a fork. After `0014`, check 3 of the `0009` script (a member who is not the author can edit) fails by design. Needs `0010` (`is_app_admin`). `fork_recipe` copies the `recipes` columns as of migration 0011, including `image_url`. 0013 (merged before this one) adds `recipes.updated_at` (default `now()`, set by a trigger) and makes `author_id` nullable; `fork_recipe` copies neither, because a fork gets a fresh timestamp and the caller as author. Merge only after 0011 (#92), 0012 (#97) and 0013 (#96): this PR (0014, #98) merges last. See [[0015-recipe-forks]]. |
 
 ## Verification
 
-Each of `0004`–`0011` has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It is run in the SQL editor before merging (baseline) and after the deploy. `0008` and `0009` are the exception: they merged without a baseline. On 2026-10-13 the `0010` migration and its rollback were also applied by hand in the SQL editor while baselining; the `FAIL 10` baseline below was taken before that, and the same result after the rollback confirmed the database was back to its pre-`0010` state before the merge deployed it:
+Each migration from `0004` on has a script in `supabase/checks/` that creates throwaway users and rows, plays every attack and legit path as `anon` or `authenticated`, and always ends with an exception, so nothing persists. It is run in the SQL editor before merging (baseline) and after the deploy. `0008` and `0009` are the exception: they merged without a baseline. On 2026-10-13 the `0010` migration and its rollback were also applied by hand in the SQL editor while baselining; the `FAIL 10` baseline below was taken before that, and the same result after the rollback confirmed the database was back to its pre-`0010` state before the merge deployed it:
 
 > [!note] This table is checked by CI
 > `scripts/migration-record.ts` parses it. Keep exactly three columns. A new migration's "Before merge" cell must start with its live result in backticks, for example `` `FAIL 10 (12 checks)` ``, or CI job `db` stays red (`db:order --require-baseline`). Every `(n checks)` in a row must match what the script runs (`pnpm db:verify`).
@@ -81,7 +92,12 @@ Each of `0004`–`0011` has a script in `supabase/checks/` that creates throwawa
 | `0008` | not run (merged without a baseline) | `ALL PASS (5 checks)` (2026-10-13) |
 | `0009` | not run (merged without a baseline) | `ALL PASS (9 checks)` (2026-10-13; the script numbers them 1–7, 9, 10) |
 | `0010` | `FAIL 10 (12 checks)` (2026-10-13) | `ALL PASS (12 checks)` (2026-10-13) |
-| `0011` | `FAIL 7 (9 checks)` (live, SQL editor, 2026-10-13) | pending |
+| `0011` | `FAIL 7 (9 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (9 checks)` (2026-10-13) |
+| `0012` | `FAIL 10 (14 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (14 checks)` (2026-10-13; checks 13–14 report „row corrected”) |
+| `0013` | `FAIL 16 (20 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (20 checks)` (2026-10-13) |
+| `0014` | `FAIL 16 (21 checks)` (live, SQL editor, 2026-10-13) | `ALL PASS (21 checks)` (2026-10-13) |
+
+The live `0012` baseline is `FAIL 10 (14 checks)`, while PGlite (`pnpm db:verify`) gives `FAIL 8 (14 checks)`: checks 13–14 ("the row, if present, is plausible") fail live on the two bad rows and pass on PGlite, where those rows don't exist.
 
 After each deploy the Supabase advisors were re-run. The remaining warnings are deliberate: `get_shared_plan` is executable by `anon` (share links), the other `security definer` functions (including `is_app_admin`) by `authenticated`, and `app_admins` has RLS with no policies (INFO) so no client can reach it. "Unused index" notices are expected on near-empty tables. Leaked-password protection is a dashboard setting.
 
@@ -92,7 +108,7 @@ After each deploy the Supabase advisors were re-run. The remaining warnings are 
 
 Found in the same audit, not fixed yet (ranked list: [[known-gaps]]):
 
-- **Ingredient catalog.** One global table; since `0010` only the creator or an app admin edits a row. Unmatched import lines and picker entries become new ingredients with null macros and category `inne`, which count as 0 in recipe macros. Units are free text with no conversion. Seed values look like mixed bases (rice 349 kcal, lentils 116 kcal; the seed does not label them), and every seed row is tagged `source = 'off'`, while the picker writes `manual`. A redesign (global curated catalog plus household-private items, aliases, unit weights) is proposed but not decided. See [[ingredient-database]].
+- **Ingredient catalog.** One global table; since `0010` only the creator or an app admin edits a row. Unmatched import lines and picker entries become new ingredients with null macros and category `inne`, which recipe macros leave out and report as an incomplete macro total (#73). Units are free text with no conversion. Seed values look like mixed bases (rice 349 kcal, lentils 116 kcal; the seed does not label them), and every seed row is tagged `source = 'off'`, while the picker writes `manual`. A redesign (global curated catalog plus household-private items, aliases, unit weights) is proposed but not decided. See [[ingredient-database]].
 - Slots always plan 1 serving, so shopping amounts are per one serving. See [[week-plan]].
 - Free plan: no downloadable backups (unverified, see the warning above). The weekly backup workflow has run on schedule twice (2026-09-27 and 2026-10-04), and both runs failed; no Actions secrets are configured. See [[github-workflows]].
 
@@ -120,6 +136,7 @@ select version, name from supabase_migrations.schema_migrations order by version
 - [[0008-share-link-rpc]]
 - [[0013-ingredient-ownership-and-app-admins]]
 - [[0014-recipe-photos-hotlinked]]
+- [[0015-recipe-forks]]
 
 ## Sources
 
@@ -130,8 +147,21 @@ select version, name from supabase_migrations.schema_migrations order by version
 
 ## Changelog
 
+- 2026-10-13: Recorded the live 0011 result after deploy (`ALL PASS (9 checks)`).
+- 2026-10-13: Recorded the live 0014 result after deploy (`ALL PASS (21 checks)`).
+- 2026-10-13: Recorded the live 0013 result after deploy (`ALL PASS (20 checks)`).
+- 2026-10-13: Recorded the live 0012 result after deploy (`ALL PASS (14 checks)`, both bad rows corrected).
+- 2026-10-13: Recorded the live 0012 baseline from the SQL editor run on 2026-10-13.
+- 2026-10-13: Added migration 0012 (ingredient macro range checks, two corrected rows). Expected live baseline `FAIL 10 (14 checks)`: checks 13–14 pass on PGlite only because the two live rows are absent there.
 - 2026-10-13: Recorded the live 0011 baseline from the SQL editor run on 2026-10-13 (`FAIL 7 (9 checks)`); after-deploy result pending.
 - 2026-10-13: Added migration 0011 (`recipes.image_url`).
+- 2026-10-13: Null-macro ingredients are reported as an incomplete macro total, not counted as 0 (#73).
+- 2026-10-13: Recorded the live 0013 baseline from the SQL editor run on 2026-10-13.
+- 2026-10-13: 0013: three more checks (upsert path, move to another plan, foreign plan fails on RLS); baseline now `FAIL 16 (20 checks)`.
+- 2026-10-13: Added migration 0013 (schema integrity, #72) with its PGlite baseline; live results pending.
+- 2026-10-13: `fork_recipe` (0014) now also copies `image_url` (0011, merged first); it copies the `recipes` columns as of 0011.
+- 2026-10-13: Recorded the live 0014 baseline from the SQL editor run on 2026-10-13.
+- 2026-10-13: Added `0014` (recipe forks, author-only recipe writes) with its PGlite baseline; live results pending.
 - 2026-10-13: Scoped the "baselined" claims and the uncertainty warning to what was actually run; recorded the hand-applied `0010` migration and rollback during baselining; bumped `verified_commit`.
 - 2026-10-13: Recorded the live 0010 result after deploy (`ALL PASS (12 checks)`); advisors show only the expected `app_admins` (RLS, no policies) and `is_app_admin` notices.
 - 2026-10-13: The Verification table is now parsed by CI (`scripts/migration-record.ts`); added the format note.

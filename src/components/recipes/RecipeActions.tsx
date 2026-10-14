@@ -2,8 +2,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui';
+import { ForkEditButton } from './ForkEditButton';
 
-export function RecipeActions({ recipeId }: { recipeId: string }) {
+/**
+ * Edit and delete for a recipe. `canEdit` (author or app admin, see `canEditRecipe`) edits in place
+ * and allows delete; anyone else gets "Edytuj" that forks the recipe first, and no delete.
+ */
+export function RecipeActions({ recipeId, canEdit }: { recipeId: string; canEdit: boolean }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +25,14 @@ export function RecipeActions({ recipeId }: { recipeId: string }) {
     }
     router.push('/recipes');
     router.refresh();
+  }
+
+  if (!canEdit) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <ForkEditButton recipeId={recipeId} />
+      </div>
+    );
   }
 
   return (

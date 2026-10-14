@@ -2,6 +2,7 @@ import type { Ingredient } from '@/lib/types';
 import type { IngredientInput } from '@/lib/schemas';
 import type { ExtractedIngredient } from './schema';
 import { findBestMatch } from './match-ingredient';
+import { positiveAmountOrNull } from '@/lib/scaling';
 
 export interface AutoMatchResult {
   /** Clean ingredient name — amount/unit live in their own fields, not duplicated here. A source range is appended: "sok (1-2 łyżki)". */
@@ -50,7 +51,16 @@ export async function autoMatchIngredients(
             default_unit: null,
             source: 'manual',
           };
-    results.push({ raw_text: rawText, amount, unit, optional, ingredient, offCandidate, fallbackCandidate });
+    // The model may return 0 for „do smaku"; the database only stores amounts > 0, so that becomes null.
+    results.push({
+      raw_text: rawText,
+      amount: positiveAmountOrNull(amount),
+      unit,
+      optional,
+      ingredient,
+      offCandidate,
+      fallbackCandidate,
+    });
   }
   return results;
 }

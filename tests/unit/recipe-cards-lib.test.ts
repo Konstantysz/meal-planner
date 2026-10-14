@@ -21,6 +21,14 @@ describe('recipePerServing', () => {
     expect(recipePerServing([ing(rice), ing(none)], 2)).toBeNull();
   });
 
+  it('is null for a partial total, so a card never shows a partial sum', () => {
+    expect(recipePerServing([ing(rice), ing(rice, 2, 'łyżka')], 2)).toBeNull();
+  });
+
+  it('counts units toGrams converts', () => {
+    expect(recipePerServing([ing(rice, 0.2, 'kg')], 2)?.kcal).toBeCloseTo(350);
+  });
+
   it('is null for a recipe with no ingredients or zero servings', () => {
     expect(recipePerServing([], 2)).toBeNull();
     expect(recipePerServing([ing(rice)], 0)).toBeNull();
@@ -89,5 +97,43 @@ describe('recipeFieldErrors', () => {
     });
     if (result.success) throw new Error('expected a failure');
     expect(recipeFieldErrors(result.error).ingredients).toBe('Popraw składnik nr 1');
+  });
+
+  describe('row rules (migration 0013)', () => {
+    const row = (position: number, amount: number | null = 1) => ({
+      ingredient_id: '3422d8ca-8907-49c2-8c83-da5fc298948f',
+      amount,
+      unit: 'g',
+      raw_text: 'x',
+      position,
+    });
+    const valid = {
+      ...invalid,
+      name: 'Zupa',
+      servings_base: 2,
+      ingredients: [row(0)],
+      steps: [{ position: 0, text: 'a' }],
+    };
+
+    it('reports a zero amount on its ingredient', () => {
+      const result = RecipeInputSchema.safeParse({ ...valid, ingredients: [row(0, 0)] });
+      if (result.success) throw new Error('expected a failure');
+      expect(recipeFieldErrors(result.error).ingredients).toBe('Popraw składnik nr 1');
+    });
+
+    it('reports duplicate positions without saying the list is empty', () => {
+      const result = RecipeInputSchema.safeParse({
+        ...valid,
+        ingredients: [row(0), row(0)],
+        steps: [
+          { position: 1, text: 'a' },
+          { position: 1, text: 'b' },
+        ],
+      });
+      if (result.success) throw new Error('expected a failure');
+      const fields = recipeFieldErrors(result.error);
+      expect(fields.ingredients).toBe('Składniki mają powtórzone pozycje');
+      expect(fields.steps).toBe('Kroki mają powtórzone pozycje');
+    });
   });
 });

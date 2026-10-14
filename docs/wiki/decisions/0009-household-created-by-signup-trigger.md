@@ -2,18 +2,20 @@
 title: "0009 Household Created by the Signup Trigger"
 summary: "Every new auth user gets a household and an owner membership from the on_auth_user_created trigger, not from a client insert or an RPC call made after signUp."
 tags: [household, auth, database, rls]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: a7f8f52
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: 5ddfe28
 sources:
+  - title: "Schema integrity (migration 0013)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Signup trigger and idempotent RPC (migration 0006)"
     path: supabase/migrations/0006_atomic_recipe_and_signup_trigger.sql
   - title: "Signup RPC (migration 0003, superseded)"
@@ -44,6 +46,9 @@ sources:
 - Execute is revoked from `public`, `anon` and `authenticated`, so only the trigger calls it.
 - Migration 0006 backfills users who have no membership row.
 - `create_household_with_owner` stays, made idempotent: it returns the caller's existing owned household. Nothing in the app calls it.
+
+> [!note] Amendment (2026-10-13, migration 0013)
+> `create_household_with_owner` still exists, but `execute` on it is revoked from `public`, `anon` and `authenticated`, so no client can call it any more. The decision itself is unchanged: the trigger is the only path that creates a household.
 
 ## Alternatives considered
 
@@ -76,4 +81,5 @@ _Not recorded at the time; reconstructed for comparison._
 
 ## Changelog
 
+- 2026-10-13: Amendment: migration 0013 revoked client `execute` on `create_household_with_owner`.
 - 2026-10-09: Recorded retroactively from migration 0006 and commit `dd67b66`.

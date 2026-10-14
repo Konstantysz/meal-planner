@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createRecipe, updateRecipe } from '@/lib/db/recipes';
+import { createRecipe, deleteRecipe, forkRecipe, getRecipeName, updateRecipe } from '@/lib/db/recipes';
 
 const input = {
   name: 'Spaghetti',
@@ -130,5 +130,82 @@ describe('updateRecipe', () => {
     const error = { code: '42501', message: 'recipe not found or not editable' };
     const { client } = mockRpc({ data: null, error });
     await expect(updateRecipe(client, 'r1', input)).rejects.toBe(error);
+  });
+});
+
+describe('forkRecipe', () => {
+  const FORK = '0b6f3f4e-1f7e-4a53-9f43-2b8d0e8f6a11';
+
+  it('forks through the fork_recipe RPC and returns the fork id', async () => {
+    const { client, rpc, from } = mockRpc({ data: FORK, error: null });
+    await expect(forkRecipe(client, 'r1')).resolves.toBe(FORK);
+    expect(rpc).toHaveBeenCalledWith('fork_recipe', { p_recipe_id: 'r1' });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('throws the RPC error (e.g. P0002 for a recipe the caller cannot read)', async () => {
+    const error = { code: 'P0002', message: 'recipe not found' };
+    const { client } = mockRpc({ data: null, error });
+    await expect(forkRecipe(client, 'r1')).rejects.toBe(error);
+  });
+
+  it('rejects a response that is not a uuid', async () => {
+    const { client } = mockRpc({ data: { id: FORK }, error: null });
+    await expect(forkRecipe(client, 'r1')).rejects.toThrow();
+  });
+});
+
+describe('deleteRecipe', () => {
+  function mockDelete(result: { data: unknown; error: unknown }) {
+    const select = vi.fn().mockResolvedValue(result);
+    const eq = vi.fn(() => ({ select }));
+    const del = vi.fn(() => ({ eq }));
+    const from = vi.fn(() => ({ delete: del }));
+    return { client: { from } as unknown as SupabaseClient, from, eq, select };
+  }
+
+  it('returns true when a row was deleted, asking for the deleted rows back', async () => {
+    const { client, from, eq, select } = mockDelete({ data: [{ id: 'r1' }], error: null });
+    await expect(deleteRecipe(client, 'r1')).resolves.toBe(true);
+    expect(from).toHaveBeenCalledWith('recipes');
+    expect(eq).toHaveBeenCalledWith('id', 'r1');
+    expect(select).toHaveBeenCalledWith('id');
+  });
+
+  it('returns false when RLS filtered the delete (0 rows), instead of reporting success', async () => {
+    const { client } = mockDelete({ data: [], error: null });
+    await expect(deleteRecipe(client, 'r1')).resolves.toBe(false);
+  });
+
+  it('throws the database error', async () => {
+    const error = { code: '22P02', message: 'invalid input syntax for type uuid' };
+    const { client } = mockDelete({ data: null, error });
+    await expect(deleteRecipe(client, 'nope')).rejects.toBe(error);
+  });
+});
+
+describe('getRecipeName', () => {
+  function mockSelect(result: { data: unknown; error: unknown }) {
+    const maybeSingle = vi.fn().mockResolvedValue(result);
+    const eq = vi.fn(() => ({ maybeSingle }));
+    const select = vi.fn(() => ({ eq }));
+    const from = vi.fn(() => ({ select }));
+    return { client: { from } as unknown as SupabaseClient, from, eq };
+  }
+
+  it('returns the name of a readable recipe', async () => {
+    const { client, from, eq } = mockSelect({ data: { name: 'Zupa' }, error: null });
+    await expect(getRecipeName(client, 'r1')).resolves.toBe('Zupa');
+    expect(from).toHaveBeenCalledWith('recipes');
+    expect(eq).toHaveBeenCalledWith('id', 'r1');
+  });
+
+  it('returns null for a missing or RLS-hidden recipe', async () => {
+    await expect(getRecipeName(mockSelect({ data: null, error: null }).client, 'r1')).resolves.toBeNull();
+  });
+
+  it('returns null on a database error', async () => {
+    const { client } = mockSelect({ data: null, error: { code: '22P02' } });
+    await expect(getRecipeName(client, 'nope')).resolves.toBeNull();
   });
 });

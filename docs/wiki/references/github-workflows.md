@@ -12,7 +12,7 @@ confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5e8ed97
+verified_commit: 7b03971
 sources:
   - title: "Keepalive workflow"
     path: .github/workflows/keepalive.yml
@@ -56,8 +56,16 @@ A merge of a branch that is behind `main` fails with `Repository rule violations
 
 The ruleset is active on `main`: on 2026-10-09 `gh api repos/Konstantysz/meal-planner/rules/branches/main` listed deletion, non-fast-forward, pull_request (0 required approvals) and required_status_checks (`lint`, `wiki`, `test`, `build`, strict) from ruleset 24806035.
 
-> [!warning] `db` not yet required on GitHub
-> `db` was added to the file on 2026-10-13. Until a repository admin syncs ruleset 24806035 (`main-protection`) from the file, GitHub requires only the four older checks. Steps: [[github-workflows#Syncing the ruleset after editing the file]].
+> [!warning] TODO for @Konstantysz (Kostek), asked by Radek on 2026-10-13: make `db` a required check
+> `db` was added to `.github/rulesets/main-protection.json` on 2026-10-13, but GitHub still enforces the old ruleset. Until a repository admin syncs ruleset 24806035 (`main-protection`) from the file, GitHub requires only `lint`, `wiki`, `test` and `build`, so a migration PR can be merged while `db` is red, and `db` is the check that holds a migration until its live baseline is recorded. Only a repository admin can do this; agents cannot.
+>
+> What to do (about two minutes, details in [[github-workflows#Syncing the ruleset after editing the file]]):
+>
+> 1. `gh api -X PUT repos/Konstantysz/meal-planner/rulesets/24806035 --input .github/rulesets/main-protection.json` from an up-to-date `main` (or add `db` by hand: Settings → Rules → Rulesets → `main-protection` → "Require status checks to pass" → "Add checks" → `db` → "Save changes").
+> 2. Check that the required checks now include `db`: `gh api repos/Konstantysz/meal-planner/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'`.
+> 3. Tell an agent "the ruleset is synced" so it removes this request everywhere (the list below), or remove it yourself.
+>
+> Remove this request when step 2 shows `db`: this callout, the "Open request for Konstantysz" block at the top of `AGENTS.md`, and the `db` row in [[known-gaps]]. Agents show this request first in a session with Kostek, or when the task touches CI, merging or branch protection.
 
 ### Syncing the ruleset after editing the file
 
@@ -83,7 +91,7 @@ Merging a change to `.github/rulesets/main-protection.json` does nothing on GitH
    gh api repos/Konstantysz/meal-planner/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'
    ```
 
-5. Remove the warning above and record the date in this page's Changelog.
+5. Remove the TODO callout above (and the other places it lists) and record the date in this page's Changelog.
 
 First-time setup only (already done for this repo, ruleset 24806035): an admin imports the file once (Settings → Rules → Rulesets → New ruleset → Import a ruleset) or runs:
 
@@ -126,6 +134,7 @@ gh run list --workflow backup.yml --limit 5
 
 ## Changelog
 
+- 2026-10-13: Turned the `db` ruleset warning into an explicit TODO for Konstantysz with the commands and the list of places to remove it from once done.
 - 2026-10-13: Job `db` now requires the live baseline of a new migration in [[migration-history]] and checks the recorded check counts.
 - 2026-10-13: Explained the "required status checks are expected" merge error on a branch behind `main`.
 - 2026-10-13: Added the step-by-step ruleset sync for admins.

@@ -2,18 +2,20 @@
 title: "Household Model"
 summary: "Households own all recipes and plans; how a household is bootstrapped at signup by a database trigger, how membership is resolved per request, and how invites work."
 tags: [household, auth, rls]
-status: stable
+status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-09
+updated: 2026-10-13
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
-llm_model: "claude-haiku-5-5"
-human_reviewed: true
-verified_commit: a7f8f52
+llm_model: "claude-opus-5-5"
+human_reviewed: false
+verified_commit: 5ddfe28
 sources:
+  - title: "Schema integrity (migration 0013)"
+    path: supabase/migrations/0013_schema_integrity.sql
   - title: "Signup RPC migration"
     path: supabase/migrations/0003_household_signup_rpc.sql
   - title: "Security hardening"
@@ -49,7 +51,7 @@ History:
 
 1. Client-side `households.insert().select().single()`: the read-back failed `households_select` (`is_member_of(id)`), because the membership row didn't exist yet.
 2. RPC `create_household_with_owner` (migration 0003, commit `a8b8cef`) called right after `signUp`: needs a session, so it failed with email confirmation on and the user was left without a household.
-3. Trigger (migration 0006). `create_household_with_owner` still exists for compatibility. It is now idempotent: it returns the caller's existing owned household instead of creating a second one. Nothing in the app calls it.
+3. Trigger (migration 0006). `create_household_with_owner` was kept for compatibility and made idempotent (it returns the caller's existing owned household). Nothing in the app calls it, and since migration 0013 no client role (`public`, `anon`, `authenticated`) can execute it; the function still exists.
 
 ### Resolving the household per request
 
@@ -73,7 +75,7 @@ There is no ordering and no "current household" concept.
 ## Invariants and gotchas
 
 - Never insert a household from the client. The trigger creates it; `households` has no insert policy since 0004.
-- Since migration 0004, `hm_insert` allows only `is_member_of(household_id) and role = 'member'`. Only an existing member can add someone, never as `owner`, and nobody can add themselves to a foreign household. The owner row is created by the signup trigger `handle_new_user()` or by `create_household_with_owner`; both are `security definer` and bypass RLS. `inviteMember`'s explicit check is now redundant with RLS, but harmless.
+- Since migration 0004, `hm_insert` allows only `is_member_of(household_id) and role = 'member'`. Only an existing member can add someone, never as `owner`, and nobody can add themselves to a foreign household. The owner row is created by the signup trigger `handle_new_user()` (`security definer`, bypasses RLS). `create_household_with_owner` could also create one until migration 0013 revoked `execute` on it from every client role. `inviteMember`'s explicit check is now redundant with RLS, but harmless.
 - `hm_delete` (0004): a member may remove themselves; the owner may remove anyone else; the owner can't remove themselves.
 - Multiple households per user are possible in the schema but unsupported in the app, because of the `limit(1)` resolution.
 
@@ -81,6 +83,8 @@ There is no ordering and no "current household" concept.
 
 - **No email-to-user lookup.** It would need a service-role admin client (`auth.admin`), which the app doesn't have. A `ponytail:` comment in `households.ts` names that upgrade path.
 - No UI to list or remove members, and no UI to leave a household (RLS allows both since 0004).
+- **Deleting the owner's account leaves the household without an owner.** Since migration 0013 nothing blocks the delete; the `household_members` row cascades away. `is_owner_of` is then false for everyone, so no remaining member can remove another (`hm_delete` lets members remove only themselves), and nothing promotes a new owner.
+- **Deleting a household's only member leaves an unreachable household.** The household row, its recipes (`author_id` null), plans and pantry items stay, but no one is a member, so RLS hides them all. Only the SQL editor can clean them up.
 
 ## Examples
 
@@ -108,6 +112,7 @@ curl -X POST http://localhost:3000/api/household/invite \
 
 ## Changelog
 
+- 2026-10-13: Migration 0013: `create_household_with_owner` is no longer executable by clients; added the owner-less and member-less household gaps that account deletion can now create.
 - 2026-10-09: Linked the trigger decision, [[0009-household-created-by-signup-trigger]].
 - 2026-10-09: Re-verified against a7f8f52. Owner-row source now names the signup trigger as well as `create_household_with_owner`; confirmed no app code calls the RPC.
 - 2026-10-04: Signup now relies on the `on_auth_user_created` trigger (0006); removed the email-confirmation gap.
