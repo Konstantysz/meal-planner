@@ -1,23 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { addDays, format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { usePlan } from '@/hooks/usePlan';
 import { WeekPlanDesktop } from './WeekPlanDesktop';
 import { WeekPlanMobile } from './WeekPlanMobile';
-import { POSITIONS, POSITION_LABELS } from './plan-handlers';
+import { POSITIONS, POSITION_LABELS, type PlanRecipe } from './plan-handlers';
 import { ButtonLink, Icon, Input, Sheet } from '@/components/ui';
 import { freePositions } from '@/lib/plan-slots';
-import { shiftWeek } from '@/lib/week';
-
-type Recipe = { id: string; name: string };
+import { shiftWeek, weekDays, weekRange } from '@/lib/week';
 
 export function WeekPlan({ weekStart }: { weekStart: string }) {
   const { plan, loading, error, assign, remove, update } = usePlan(weekStart);
   const [pickerFor, setPickerFor] = useState<{ date: string; position: number } | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<PlanRecipe[]>([]);
 
   useEffect(() => {
     fetch('/api/recipes')
@@ -26,13 +24,21 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
       .catch(() => {});
   }, []);
 
-  const findRecipe = (id: string) => recipes.find((r) => r.id === id);
+  // New slots start at 1 serving; passing the recipe lets the slot show before the server answers.
+  const addRecipe = (recipeId: string, date: string, position: number) =>
+    assign(
+      date,
+      position,
+      recipeId,
+      1,
+      recipes.find((r) => r.id === recipeId),
+    );
 
   async function handlePick(recipeId: string) {
     if (!pickerFor) return;
     const { date, position } = pickerFor;
     setPickerFor(null);
-    await assign(date, position, recipeId, 1, findRecipe(recipeId));
+    await addRecipe(recipeId, date, position);
   }
 
   const handlers = {
@@ -41,8 +47,7 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
     onMove: (slotId: string, date: string, position: number) => update(slotId, { date, position }),
     onServingsChange: (slotId: string, servings: number) => update(slotId, { servings }),
     onOpenMove: setMovingId,
-    onDropRecipe: (recipeId: string, date: string, position: number) =>
-      assign(date, position, recipeId, 1, findRecipe(recipeId)),
+    onDropRecipe: addRecipe,
   };
 
   const moving = plan?.slots.find((s) => s.id === movingId);
@@ -90,17 +95,6 @@ export function WeekPlan({ weekStart }: { weekStart: string }) {
   );
 }
 
-/** „12–18 października", „29 września – 5 października"; the year only when the week crosses New Year. */
-function weekRange(weekStart: string): string {
-  const from = parse(weekStart, 'yyyy-MM-dd', new Date());
-  const to = addDays(from, 6);
-  if (from.getFullYear() !== to.getFullYear()) {
-    return `${format(from, 'd MMMM yyyy', { locale: pl })} – ${format(to, 'd MMMM yyyy', { locale: pl })}`;
-  }
-  if (from.getMonth() === to.getMonth()) return `${format(from, 'd')}–${format(to, 'd MMMM', { locale: pl })}`;
-  return `${format(from, 'd MMMM', { locale: pl })} – ${format(to, 'd MMMM', { locale: pl })}`;
-}
-
 const ARROW = 'grid size-11 place-items-center rounded-control text-muted hover:bg-hover hover:text-ink lg:size-8';
 
 function WeekNav({ weekStart }: { weekStart: string }) {
@@ -116,8 +110,7 @@ function WeekNav({ weekStart }: { weekStart: string }) {
         </Link>
       </div>
       <ButtonLink href="/plan">Dziś</ButtonLink>
-      <span className="hidden flex-1 lg:block" />
-      <span className="hidden lg:block">
+      <span className="hidden lg:ml-auto lg:block">
         <ButtonLink href="/shopping" variant="primary">
           Lista zakupów
         </ButtonLink>
@@ -137,8 +130,7 @@ function MoveDialog({
   onMove: (date: string, position: number) => void;
   onClose: () => void;
 }) {
-  const start = parse(plan.week_start_date, 'yyyy-MM-dd', new Date());
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  const days = weekDays(plan.week_start_date);
   const free = freePositions(
     plan.slots,
     days.map((d) => format(d, 'yyyy-MM-dd')),
@@ -182,7 +174,7 @@ function RecipePickerDialog({
   onClose,
 }: {
   date: string;
-  recipes: Recipe[];
+  recipes: PlanRecipe[];
   onPick: (id: string) => void;
   onClose: () => void;
 }) {

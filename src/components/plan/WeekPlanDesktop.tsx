@@ -1,6 +1,6 @@
 'use client';
 import { useState, type ComponentProps } from 'react';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
   DndContext,
@@ -19,7 +19,8 @@ import { Icon, Input } from '@/components/ui';
 import { computeDayMacros } from '@/lib/day-macros';
 import { DayTotals } from './DayTotals';
 import { PlanSlot } from './PlanSlot';
-import { POSITIONS, POSITION_LABELS as LABELS, type SlotHandlers } from './plan-handlers';
+import { weekDays } from '@/lib/week';
+import { POSITIONS, POSITION_LABELS as LABELS, slotProps, type PlanRecipe, type SlotHandlers } from './plan-handlers';
 
 type DragData = { type: 'slot'; slotId: string; name: string } | { type: 'recipe'; recipeId: string; name: string };
 type DropData = { date: string; position: number };
@@ -36,14 +37,11 @@ export function WeekPlanDesktop({
   plan,
   recipes = [],
   onAdd,
-  onRemove,
   onMove,
-  onServingsChange,
-  onOpenMove,
   onDropRecipe,
-}: { plan: PlanWithSlots; recipes?: Array<{ id: string; name: string }> } & SlotHandlers) {
-  const start = new Date(plan.week_start_date);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  ...handlers
+}: { plan: PlanWithSlots; recipes?: PlanRecipe[] } & SlotHandlers) {
+  const days = weekDays(plan.week_start_date);
   const dayMacros = computeDayMacros(plan.slots);
   const today = format(new Date(), 'yyyy-MM-dd');
   const hasTotals = days.some((d) => dayMacros[format(d, 'yyyy-MM-dd')]);
@@ -131,16 +129,7 @@ export function WeekPlanDesktop({
                     return (
                       <td key={dateStr + pos} className="h-16 border-b border-l border-line p-1 align-top">
                         {slot ? (
-                          <DraggableSlot
-                            slotId={slot.id}
-                            label={LABELS[pos]}
-                            position={pos}
-                            recipeName={slot.recipe?.name ?? (slot.recipe_id ? 'przepis niedostępny' : null)}
-                            servings={slot.servings}
-                            onRemove={() => onRemove(slot.id)}
-                            onMove={() => onOpenMove(slot.id)}
-                            onServingsChange={(n) => onServingsChange(slot.id, n)}
-                          />
+                          <DraggableSlot slotId={slot.id} position={pos} {...slotProps(slot, handlers)} />
                         ) : (
                           <EmptyCell date={dateStr} position={pos} onAdd={onAdd} />
                         )}
@@ -187,17 +176,18 @@ function DraggableSlot({ slotId, ...slot }: { slotId: string } & Omit<ComponentP
     <div ref={setNodeRef} className={`h-full ${isDragging ? 'opacity-40' : ''}`}>
       <PlanSlot
         {...slot}
-        showLabel={false}
         dragHandle={
-          <button
-            type="button"
-            aria-label="Przeciągnij posiłek"
-            className="grid min-h-6 min-w-6 cursor-grab place-items-center rounded-control text-on-slot hover:bg-hover touch-none"
-            {...attributes}
-            {...listeners}
-          >
-            <Icon name="grip" width={16} height={16} />
-          </button>
+          slot.onMove && (
+            <button
+              type="button"
+              aria-label="Przeciągnij posiłek"
+              className="grid min-h-6 min-w-6 cursor-grab place-items-center rounded-control text-on-slot hover:bg-hover touch-none"
+              {...attributes}
+              {...listeners}
+            >
+              <Icon name="grip" width={16} height={16} />
+            </button>
+          )
         }
       />
     </div>
@@ -223,14 +213,14 @@ function EmptyCell({
       type="button"
       aria-label={`Dodaj posiłek: ${LABELS[position]}, ${date}`}
       onClick={() => onAdd(date, position)}
-      className={`w-full h-full text-faint hover:bg-hover hover:text-muted focus-visible:bg-hover text-xl min-h-14 rounded-block ${isOver ? 'bg-hover outline outline-2 outline-brand' : ''}`}
+      className={`w-full h-full text-muted hover:bg-hover hover:text-ink focus-visible:bg-hover text-xl min-h-14 rounded-block ${isOver ? 'bg-hover outline outline-2 outline-brand' : ''}`}
     >
       +
     </button>
   );
 }
 
-function RecipePanel({ recipes }: { recipes: Array<{ id: string; name: string }> }) {
+function RecipePanel({ recipes }: { recipes: PlanRecipe[] }) {
   const [q, setQ] = useState('');
   const filtered = recipes.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
   return (
@@ -255,7 +245,7 @@ function RecipePanel({ recipes }: { recipes: Array<{ id: string; name: string }>
   );
 }
 
-function RecipeItem({ recipe }: { recipe: { id: string; name: string } }) {
+function RecipeItem({ recipe }: { recipe: PlanRecipe }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `recipe:${recipe.id}`,
     data: { type: 'recipe', recipeId: recipe.id, name: recipe.name } satisfies DragData,

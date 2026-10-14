@@ -13,27 +13,29 @@ export function usePlan(weekStart: string) {
   const latestReload = useRef(0);
 
   // Not touching `loading` here: after the first load a reload swaps data in place instead of blanking the grid.
+  // Returns false when the plan could not be fetched. A reload that was superseded counts as fine: a newer one answers.
   const reload = useCallback(async () => {
     const mine = ++latestReload.current;
-    const r = await fetch(`/api/plans?week=${weekStart}`);
-    if (mine !== latestReload.current) return;
-    if (r.ok) setPlan(await r.json());
-    else setError('Nie udało się wczytać planu.');
+    const r = await fetch(`/api/plans?week=${weekStart}`).catch(() => null);
+    if (mine !== latestReload.current) return true;
+    if (r?.ok) setPlan(await r.json());
+    // Keep a failed write's message: it says more than "could not load".
+    else setError((e) => e ?? 'Nie udało się wczytać planu.');
     setLoading(false);
+    return !!r?.ok;
   }, [weekStart]);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  /** Runs a write; on failure shows `message`. Reloads either way so the screen matches the server again. Returns whether it succeeded. */
-  async function write(request: () => Promise<Response>, message: string): Promise<boolean> {
+  /** Runs a write; on failure shows `message`. Reloads either way so the screen matches the server again. */
+  async function write(request: () => Promise<Response>, message: string) {
     setError(null);
     const r = await request().catch(() => null);
     const ok = !!r?.ok;
     if (!ok) setError(message);
-    await reload();
-    return ok;
+    return { ok, reloaded: await reload() };
   }
 
   /**
@@ -48,9 +50,14 @@ export function usePlan(weekStart: string) {
     recipe?: { id: string; name: string },
   ) {
     if (!plan) return;
+    const pendingId = pendingSlotId(date, position);
+    // What the optimistic slot replaces, to put back if the write fails.
+    const replaced = plan.slots.find((s) => s.date === date && s.position === position);
     if (recipe) {
+      // Invalidate reloads already in flight: their answer predates this slot and would wipe it.
+      latestReload.current++;
       const pending: PlanWithSlots['slots'][number] = {
-        id: pendingSlotId(date, position),
+        id: pendingId,
         plan_id: plan.id,
         date,
         position,
@@ -61,7 +68,7 @@ export function usePlan(weekStart: string) {
       };
       setPlan((p) => (p ? { ...p, slots: placeSlot(p.slots, pending) } : p));
     }
-    const ok = await write(
+    const { ok, reloaded } = await write(
       () =>
         fetch(`/api/plans/${plan.id}/slots`, {
           method: 'POST',
@@ -70,8 +77,14 @@ export function usePlan(weekStart: string) {
         }),
       'Nie udało się dodać posiłku.',
     );
-    // A failed reload (offline) would leave the unsaved slot on screen.
-    if (!ok) setPlan((p) => (p ? { ...p, slots: p.slots.filter((s) => !isPendingSlot(s.id)) } : p));
+    // Only when the reload failed too (offline): otherwise the server's answer already replaced the optimistic slot.
+    if (!ok && !reloaded && recipe) {
+      setPlan((p) => {
+        if (!p) return p;
+        const rest = p.slots.filter((s) => s.id !== pendingId);
+        return { ...p, slots: replaced && !rest.some((s) => s.id === replaced.id) ? [...rest, replaced] : rest };
+      });
+    }
   }
 
   async function remove(slotId: string) {

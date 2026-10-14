@@ -28,3 +28,16 @@ export function resolveWeek(param: string | string[] | undefined, now: Date): st
 export function weekEndOf(weekStart: string): string {
   return format(addDays(parse(weekStart, 'yyyy-MM-dd', new Date()), 6), 'yyyy-MM-dd');
 }
+
+/** The seven days of the week starting on `weekStart`, as local-midnight dates (never `new Date(yyyy-MM-dd)`, which is UTC). */
+export function weekDays(weekStart: string): Date[] {
+  const start = parse(weekStart, 'yyyy-MM-dd', new Date());
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+/** „12–18 października", „28 września – 4 października"; the year only when the week crosses New Year. */
+export function weekRange(weekStart: string): string {
+  const [from, , , , , , to] = weekDays(weekStart);
+  const year = from.getFullYear() === to.getFullYear() ? {} : { year: 'numeric' as const };
+  return new Intl.DateTimeFormat('pl', { day: 'numeric', month: 'long', ...year }).formatRange(from, to);
+}
