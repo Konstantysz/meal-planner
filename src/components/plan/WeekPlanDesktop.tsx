@@ -92,7 +92,7 @@ export function WeekPlanDesktop({
                   const isToday = format(d, 'yyyy-MM-dd') === today;
                   return (
                     <th
-                      key={d.toISOString()}
+                      key={format(d, 'yyyy-MM-dd')}
                       scope="col"
                       className="border-b border-line px-1.5 pb-2 text-left align-bottom font-normal"
                     >

@@ -1,0 +1,7 @@
+#!/bin/sh
+# After a merge or pull that changed the lockfile, bring node_modules up to date.
+# (A merge that stopped on a conflict does not run this hook; pre-commit installs when that merge is committed.)
+if git rev-parse -q --verify ORIG_HEAD >/dev/null && ! git diff --quiet ORIG_HEAD HEAD -- pnpm-lock.yaml; then
+  echo "post-merge: pnpm-lock.yaml changed, installing"
+  pnpm -s install --frozen-lockfile
+fi

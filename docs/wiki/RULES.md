@@ -5,7 +5,7 @@ tags: [meta]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-13
+updated: 2026-10-14
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
@@ -172,6 +172,8 @@ sources:
 
 `pnpm wiki:stale` lists pages whose `sources:` changed since their `verified_commit` (whitespace-only changes ignored). It is informational: CI runs it in the `wiki` job (full checkout) and it exits 0; add `--strict` to fail. Use its output as the worklist for re-verification.
 
+`pnpm wiki:stale --changed` (staged files) and `--changed=<ref>` (the PR, since the merge-base with `<ref>`) list the pages that were left out of a change although one of their `sources:` is in it. This is the "update the page in the same PR" rule of §4 as a check: the pre-commit hook prints it as a warning, the `wiki` job repeats it over the whole PR, and both exit 0 unless `--strict`.
+
 The pre-commit hook also runs `vitest related` on staged `.ts`/`.tsx` files, so a commit that breaks a test stops locally (skipped on merge commits; CI runs the full suite).
 
 **(amended)** Deferred: spell check (it would mostly flag Polish terms), a review label for edits to `stable` pages, and enforced changelog entries for `stable` changes.
@@ -202,6 +204,7 @@ Duplicate pages. Unsourced claims. Orphan pages. Stale `stable` pages. Giant pag
 
 ## Changelog
 
+- 2026-10-14: Added `pnpm wiki:stale --changed` (pages left out of a change) to the pre-commit hook and the `wiki` job.
 - 2026-10-13: Noted that the pre-commit test step is skipped on merge commits. Status set to `review` (`human_reviewed: false`) because LLM text was added.
 - 2026-10-09: Example Polish UI string updated to „przepis niedostępny" (issue #16).
 - 2026-10-09: Added the avoided-term check, `pnpm wiki:stale`, and `vitest related` in the pre-commit hook.

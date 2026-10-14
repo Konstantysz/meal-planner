@@ -13,5 +13,24 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
     },
   },
+  {
+    // Plans are keyed by local calendar days (AGENTS.md, Conventions). Both patterns below read a date as UTC midnight.
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.property.name='toISOString']",
+          message:
+            'toISOString() is UTC. Use format(date, "yyyy-MM-dd") or weekStartOf / weekDays from src/lib/week.ts.',
+        },
+        {
+          selector:
+            "NewExpression[callee.name='Date'] > MemberExpression.arguments[property.name=/^date$|(_date|Start|Date)$/]",
+          message: 'new Date("yyyy-MM-dd") is UTC midnight. Use weekDays / parse from src/lib/week.ts.',
+        },
+      ],
+    },
+  },
   globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', '.bench-chrome/**', '.claude/worktrees/**']),
 ]);

@@ -16,6 +16,8 @@ Creating a batch of related issues: create them all first, take each number from
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+Commit messages and PR descriptions reference the ticket the change implements, never its epic: `/code-review` finds the spec from those numbers. The `commit-msg` hook rejects a reference to an issue whose title starts with `Epic:`.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_

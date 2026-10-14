@@ -1,14 +1,3 @@
-# Open request for Konstantysz (Kostek), asked by Radek on 2026-10-13: temporary
-
-**Show this first** in a session with Konstantysz (the session's git user or GitHub login), or when the task touches CI, merging, branch protection or migrations. Say it in one short paragraph, then continue with the task.
-
-CI job `db` is in `.github/rulesets/main-protection.json`, but GitHub still enforces the old ruleset (id `24806035`), so `db` is **not** a required check and a migration PR can merge while it is red. Only a repository admin can fix that; agents cannot. Radek asked Kostek to:
-
-1. From an up-to-date `main`: `gh api -X PUT repos/Konstantysz/meal-planner/rulesets/24806035 --input .github/rulesets/main-protection.json` (or Settings → Rules → Rulesets → `main-protection` → add the `db` check).
-2. Verify: `gh api repos/Konstantysz/meal-planner/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'` must list `lint`, `wiki`, `db`, `test` and `build`.
-
-Details: `docs/wiki/references/github-workflows.md` ("Syncing the ruleset after editing the file"). **Remove this block** once step 2 shows `db`: also the TODO callout in `github-workflows.md` and the `db` row in `docs/wiki/references/known-gaps.md`.
-
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
@@ -24,7 +13,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 PWA for meal planning: recipe database, URL import (jadłonomia, aniagotuje), week plan, shopping list. Built from `docs/plans/architecture_plan_document.md`, a historical spec: check `docs/wiki/references/spec-drift.md` before trusting it.
 
 ## Stack
-Next.js 16 (App Router; middleware is `src/proxy.ts`) + TypeScript + Tailwind + Supabase (Postgres + Auth + RLS). Vitest + React Testing Library. Zod for all validation. `cheerio`/`turndown` for HTML→Markdown import pipeline, `@mlc-ai/web-llm` (browser) or Ollama (server, `LLM_MODE=server`) for recipe extraction; the Gemini fallback is paused. `idb` for offline shopping-list storage. `@dnd-kit` for drag-and-drop (planned, not yet used).
+Next.js 16 (App Router; middleware is `src/proxy.ts`) + TypeScript + Tailwind + Supabase (Postgres + Auth + RLS). Vitest + React Testing Library. Zod for all validation. `cheerio`/`turndown` for HTML→Markdown import pipeline, `@mlc-ai/web-llm` (browser) or Ollama (server, `LLM_MODE=server`) for recipe extraction; the Gemini fallback is paused. `idb` for offline shopping-list storage. `@dnd-kit` for drag-and-drop in the week plan.
 
 ## Commands
 ```
@@ -35,11 +24,13 @@ pnpm build        # production build
 pnpm lint         # ESLint (flat config, eslint-config-next)
 pnpm format       # Prettier write (CI runs format:check)
 pnpm wiki:check   # validate docs/wiki (frontmatter, links, avoided terms, markdownlint)
-pnpm wiki:stale   # wiki pages whose sources changed since verified_commit
+pnpm wiki:stale   # wiki pages whose sources changed since verified_commit; --changed: pages left out of the staged change
 pnpm db:verify    # migrations, verification scripts and rollbacks on PGlite
 pnpm db:order     # new migrations numbered above origin/main, applied ones unchanged
+pnpm shots        # screenshots of the app at 390 and 1280 px, light and dark, into .shots/ (UI changes)
+pnpm ruleset:check # GitHub's required checks match .github/rulesets/main-protection.json
 ```
-CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:check, db:verify and build on every PR. The pre-commit hook checks staged files the same way.
+CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:check, db:verify and build on every PR. The pre-commit hook checks staged files the same way; `commit-msg` rejects a commit that references an epic.
 
 ## Conventions
 - Shared types in `src/lib/types.ts`; Zod schemas in `src/lib/schemas.ts`. No `any` — use `unknown` + Zod parsing at boundaries.
@@ -48,7 +39,7 @@ CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:c
 - Macros stored per 100g on ingredients, per-serving on recipes (computed, not stored).
 - RLS is the authorization boundary — API routes generally trust it rather than re-implementing checks, except where explicitly noted (see `docs/wiki/concepts/rls-authorization.md` for the exceptions and loose policies).
 - Writes that span tables go through RPCs, not client-side insert chains: recipes via `save_recipe` (`createRecipe`), households via the `on_auth_user_created` trigger (never insert a household from the client). Public share links only via `get_shared_plan` (`getSharedPlan`); never add `anon` select policies for sharing.
-- Plans start on Monday (DB check `plans_week_start_monday`). Compute weeks with `weekStartOf` / `normalizeWeekStart` from `src/lib/week.ts`, not `toISOString()`.
+- Plans start on Monday (DB check `plans_week_start_monday`). Compute weeks and days with `weekStartOf` / `normalizeWeekStart` / `weekDays` from `src/lib/week.ts`; ESLint rejects `toISOString()` and `new Date(<date field>)` in `src/`.
 
 ## Database changes
 - **Merging into `main` deploys new files in `supabase/migrations/` to production** (Supabase GitHub integration, "Deploy to production"; Free plan, no preview branch). There is no staging database.
@@ -60,13 +51,13 @@ CI (`.github/workflows/ci.yml`) runs lint, format:check, typecheck, test, wiki:c
 Subagents editing code at the same time each get `isolation: "worktree"`, one per issue or PR. Base each worktree on the integration branch and run `pnpm install --frozen-lockfile` first. Subagents cannot launch `code-reviewer`, so for them the review gate moves from commit to push: each one commits without pushing, and the orchestrator reviews `git diff <base>...HEAD` with `code-reviewer`, then pushes. Removing one on Windows can fail with "Filename too long": see `docs/wiki/guides/local-dev-setup.md`.
 
 ## Environment
-Node 24 (CI pins 24; vitest 5 and jsdom 30 declare engines that exclude Node 20), pnpm 9.15.9 via corepack. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `SUPABASE_SERVICE_ROLE_KEY` is only for `scripts/backfill-ingredient-macros.ts`; the app never reads it. Gemini fallback is paused.
+Node 24 (CI pins 24; vitest 5 and jsdom 30 declare engines that exclude Node 20), pnpm 9.15.9 via corepack. Live Supabase project ref: `tfysxpkfbumctfuxcend`. `SUPABASE_SERVICE_ROLE_KEY` is only for `scripts/backfill-ingredient-macros.ts`; the app never reads it.
 Before adding or changing an env var: `docs/wiki/references/env-vars.md`. Setup and Windows gotchas: `docs/wiki/guides/local-dev-setup.md`.
 
 ## Where to look next
 - Before changing `supabase/migrations/`, RLS or an RPC: `docs/wiki/references/migration-history.md`.
 - Before proposing or changing a design: its page in `docs/wiki/` (entry `docs/wiki/README.md`, concepts in `concepts/concepts.md`; update it in the same PR) and the ADRs in `docs/wiki/decisions/`. Rules: `docs/wiki/RULES.md`. Open bugs and risks: `docs/wiki/references/known-gaps.md`.
-- Before building or restyling UI: `docs/wiki/concepts/design-brief.md` (tokens, primitives in `src/components/ui`, shell) and the `frontend-design` skill.
+- Before building or restyling UI: `docs/wiki/concepts/design-brief.md` (tokens, primitives in `src/components/ui`, shell) and the `frontend-design` skill. After changing UI, run `pnpm shots` and look at the four images per screen (setup: `docs/wiki/guides/local-dev-setup.md`, "Screenshots").
 - Before changing `SYSTEM_PROMPT`, `LLM_OUTPUT_SCHEMA`, `normalizeUnit` or the default Ollama model: "Measuring the model" in `docs/wiki/concepts/ingredient-auto-match.md` (`pnpm eval:ingredients`, `pnpm bench:llm`).
 - Before naming a domain concept: `GLOSSARY.md`.
 - Review standards: `CODING_STANDARDS.md`.
