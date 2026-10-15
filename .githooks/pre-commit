@@ -9,6 +9,20 @@ fail() {
   exit 1
 }
 
+# Runs a command and prints its output only when it fails, so a passing commit stays short.
+quiet() {
+  if ! out=$("$@" 2>&1); then
+    printf '%s\n' "$out"
+    return 1
+  fi
+}
+
+# A merge that changed the lockfile leaves node_modules behind (new dependencies break typecheck and tests).
+if git rev-parse -q --verify MERGE_HEAD >/dev/null && printf '%s\n' "$staged" | grep -qx 'pnpm-lock.yaml'; then
+  echo "pre-commit: pnpm-lock.yaml changed in this merge, installing"
+  quiet pnpm -s install --frozen-lockfile || fail "pnpm install --frozen-lockfile failed."
+fi
+
 code=$(printf '%s\n' "$staged" | grep -E '\.(ts|tsx|js|mjs|json|css|ya?ml)$')
 if [ -n "$code" ]; then
   printf '%s\n' "$code" | xargs -d '\n' pnpm -s exec prettier --check --ignore-unknown \
@@ -20,7 +34,7 @@ if [ -n "$code" ]; then
     # A merge commit stages every file the merge touched; CI runs the full suite, so skip the per-file run.
     # Hand-resolved conflicts are the likeliest to break a test, and squash merges set no MERGE_HEAD, so those still run the tests.
     if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
-      printf '%s\n' "$lintable" | xargs -d '\n' pnpm -s exec vitest related --run --passWithNoTests \
+      printf '%s\n' "$lintable" | quiet xargs -d '\n' pnpm -s exec vitest related --run --passWithNoTests \
         || fail "tests related to the staged files failed. Run 'pnpm test' for the full report."
     fi
   fi
@@ -36,10 +50,14 @@ if printf '%s\n' "$staged" | grep -qE '^(supabase/|scripts/db-verify\.ts$|script
   if git rev-parse -q --verify origin/main >/dev/null; then
     pnpm -s db:order origin/main || fail "db:order failed. Renumber the new migration, add its rollback and check, or revert edits to applied ones."
   fi
-  pnpm -s db:verify || fail "db:verify failed. See the output above."
+  quiet pnpm -s db:verify || fail "db:verify failed. See the output above."
 fi
 
 # docs/wiki/RULES.md §9
 if printf '%s\n' "$staged" | grep -qE '^(docs/wiki/|scripts/wiki-check\.ts$|\.markdownlint-cli2\.jsonc$)'; then
-  pnpm -s wiki:check || fail "wiki:check failed. 'pnpm wiki:fix' auto-fixes markdown style; fix the rest by hand."
+  quiet pnpm -s wiki:check || fail "wiki:check failed. 'pnpm wiki:fix' auto-fixes markdown style; fix the rest by hand."
 fi
+
+# docs/wiki/RULES.md §4: a page whose `sources:` changed is updated in the same PR. A warning only: a page can land in
+# the next commit of the same PR, and CI repeats the check over the whole PR.
+pnpm -s wiki:stale --changed | grep -v '^wiki-stale:' | sed 's/^/pre-commit: wiki: /' >&2

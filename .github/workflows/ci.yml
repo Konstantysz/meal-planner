@@ -47,6 +47,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm wiki:check
       - run: pnpm wiki:stale # informational: lists pages whose sources changed since verified_commit
+      - if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm wiki:stale --changed="origin/$BASE_REF" # informational: pages left out of this PR whose sources it changed
 
   db:
     name: db
@@ -67,6 +71,24 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: pnpm db:order "origin/$BASE_REF" --require-baseline # red until the live baseline is recorded
       - run: pnpm db:verify # migrations, verification scripts and rollbacks on PGlite
+
+  # Not a required check: it goes red on `main` while GitHub enforces an older ruleset than the file in the repo.
+  ruleset:
+    name: ruleset
+    if: github.event_name == 'push'
+    needs: lint
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ruleset:check
 
   test:
     name: test

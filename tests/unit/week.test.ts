@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeWeekStart, resolveWeek, shiftWeek, weekEndOf, weekStartOf } from '@/lib/week';
+import { normalizeWeekStart, resolveWeek, shiftWeek, weekDays, weekEndOf, weekRange, weekStartOf } from '@/lib/week';
 
 describe('weekStartOf', () => {
   it('returns the Monday for every day of the week', () => {
@@ -56,5 +56,29 @@ describe('weekEndOf', () => {
   it('returns the Sunday of the week, across month and year boundaries', () => {
     expect(weekEndOf('2026-10-12')).toBe('2026-10-18');
     expect(weekEndOf('2026-12-28')).toBe('2027-01-03');
+  });
+});
+
+describe('weekDays', () => {
+  it('returns seven consecutive local dates from the Monday', () => {
+    const days = weekDays('2026-10-26');
+    expect(days).toHaveLength(7);
+    expect([days[0], days[6]].map((d) => [d.getMonth(), d.getDate()])).toEqual([
+      [9, 26],
+      [10, 1],
+    ]);
+  });
+});
+
+// Intl puts thin or no-break spaces around the dash; compare with plain ones.
+const plain = (s: string) => s.replace(/[   ]/g, ' ');
+
+describe('weekRange', () => {
+  it.each([
+    ['2026-10-12', '12–18 października'],
+    ['2026-09-28', '28 września – 4 października'],
+    ['2026-12-28', '28 grudnia 2026 – 3 stycznia 2027'],
+  ])('%s → %s', (weekStart, expected) => {
+    expect(plain(weekRange(weekStart))).toBe(expected);
   });
 });

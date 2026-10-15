@@ -5,7 +5,7 @@ tags: [dev-setup]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-13
+updated: 2026-10-14
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: medium
@@ -18,6 +18,8 @@ sources:
     path: package.json
   - title: "Agent orientation"
     path: AGENTS.md
+  - title: "Screenshot script"
+    path: scripts/shots.ts
   - title: "Supabase CLI config"
     path: supabase/config.toml
 ---
@@ -67,6 +69,15 @@ pnpm build       # also shows which routes are static (○) vs dynamic (ƒ)
 pnpm wiki:check  # if you touched docs/wiki
 ```
 
+## Screenshots
+
+After a UI change, look at it at 390 and 1280 px in light and dark (the design brief and the redesign epic ask for all four). With `pnpm dev` running:
+
+1. Once: `pnpm shots --login`. A Chrome window opens on `/login`; sign in with your account (never sign up a throwaway account against the live Supabase project). The session is saved to `.shots/state.json`.
+2. `pnpm shots` writes `.shots/<screen>-<width>-<scheme>.png` for `/plan`, `/recipes`, `/shopping` and `/settings`; `pnpm shots /plan` limits it to one screen. Open the images with the Read tool (agents) or any viewer.
+
+`.shots/` is gitignored. It needs Google Chrome (Playwright `channel: 'chrome'`, as the LLM benchmark does) and expires with the session: when a screen redirects to `/login`, run `--login` again.
+
 ## Troubleshooting
 
 | Symptom | Cause |
@@ -105,6 +116,7 @@ $env:LLM_MODE='server'; pnpm dev -H 0.0.0.0
 
 ## Changelog
 
+- 2026-10-14: Added "Screenshots" (`pnpm shots`).
 - 2026-10-13: Status set to `review` (`human_reviewed: false`) because LLM text was added to a human-reviewed page. Dropped the Windows `python3` row: the repo has no Python scripts and `uv` is not a prerequisite.
 - 2026-10-10: Added the Windows `git worktree remove` „Filename too long" remedy. Not run in this change, so `verified_commit` stays at dd67b66.
 - 2026-10-09: Checked at a7f8f52: Node 24 CI pin, jsdom/vitest engine ranges, pnpm pin, scripts, hooks, Postgres 17 and seed in `config.toml`, `/signup`, `/recipes`, the `pnpm build` route markers and the test run (148 tests, 25 files, Node 22.23.2). Updated the test count. Left `verified_commit` at dd67b66 because the machine-specific steps are uncertain.

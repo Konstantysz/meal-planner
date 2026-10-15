@@ -5,14 +5,14 @@ tags: [plan, ui]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-13
+updated: 2026-10-14
 last_reviewed: 2026-10-09
 review_interval_days: 90
 confidence: high
 llm_generated: true
 llm_model: "claude-opus-5-5"
 human_reviewed: false
-verified_commit: 5ddfe28
+verified_commit: 37f5b96
 sources:
   - title: "Slot PATCH route"
     path: src/app/api/plans/[id]/slots/[slotId]/route.ts
@@ -26,6 +26,12 @@ sources:
     path: src/components/plan/WeekPlanDesktop.tsx
   - title: "Mobile list"
     path: src/components/plan/WeekPlanMobile.tsx
+  - title: "Slot helpers (patch, pending, free positions)"
+    path: src/lib/plan-slots.ts
+  - title: "Week helpers (days, range)"
+    path: src/lib/week.ts
+  - title: "Servings label"
+    path: src/lib/servings-label.ts
   - title: "Plan page"
     path: src/app/(app)/plan/page.tsx
   - title: "Day macro totals"
@@ -53,8 +59,9 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 - `/plan` (rendered per request: `await connection()`, and it reads `searchParams`) turns `?week=` into a Monday with `resolveWeek` (`normalizeWeekStart`, falling back to the current week when missing or malformed) and renders `<WeekPlan key={weekStart} weekStart>`. The `key` remounts the plan on a week change. `/` redirects to `/recipes` (the start screen), so a plan link must target `/plan` directly. `WeekNav` links to `shiftWeek(weekStart, ±1)` and to plain `/plan` for „Dziś", so the URL always carries the week.
 - `usePlan(weekStart)` calls `GET /api/plans?week=`, which runs `getOrCreatePlan` and then `getWeekPlan`. That returns the plan with `slots: plan_slots(*, recipe:recipes(id, name, servings_base, ingredients:recipe_ingredients(amount, unit, optional, ingredients(<macro columns>))))`: one query for the whole week, so day totals need no per-slot fetching.
-- `assign(date, position, recipeId, servings)` sends `POST /api/plans/[id]/slots` (`upsertSlot`, `onConflict: 'plan_id,date,position'`) and then reloads. `remove(slotId)` sends `DELETE` and reloads. `update(slotId, patch)` sends `PATCH /api/plans/[id]/slots/[slotId]` with `date`, `position` and/or `servings` (`PlanSlotPatchSchema`). The screen updates optimistically (`applySlotPatch`) and then reloads. Every write that fails shows a Polish message in a `role="alert"` line and reloads, so the screen matches the server again.
+- `assign(date, position, recipeId, servings, recipe?)` sends `POST /api/plans/[id]/slots` (`upsertSlot`, `onConflict: 'plan_id,date,position'`) and then reloads. With `recipe` (id and name, from the loaded list) the slot shows at once as a **pending slot** (`pending:<date>:<position>`, `placeSlot`): it replaces whatever was in that cell, has no ingredients (so its day reads „brak danych makro" until the reload) and gets no remove, move, stepper or drag handle (`slotProps`), because it has no row to PATCH or DELETE yet. Starting a pending slot invalidates reloads already in flight (`latestReload`), so a late answer cannot wipe it. If the write fails, only that cell's pending slot goes and the slot it replaced comes back, even when the reload fails too (offline). `remove(slotId)` sends `DELETE` and reloads. `update(slotId, patch)` sends `PATCH /api/plans/[id]/slots/[slotId]` with `date`, `position` and/or `servings` (`PlanSlotPatchSchema`). The screen updates optimistically (`applySlotPatch`) and then reloads. Every write that fails shows a Polish message in a `role="alert"` line and reloads, so the screen matches the server again.
 - `WeekPlan` renders both views and CSS shows one: the desktop table from the `lg` breakpoint (1024 px), the mobile list below it. There is no JavaScript viewport check, so nothing re-lays out after hydration. Slots are tinted by position with the `slot-0`…`slot-4` tokens; empty slots and positions above 4 stay neutral.
+- **Look (design brief, Calendar style):** the heading is the week range („12–18 października") with borderless arrows, „Dziś" and one filled „Lista zakupów" link (desktop). Desktop day headers are a small day name over a large date, today circled in the brand colour; the grid has hairlines only, and a filled block shows the recipe and „N porcje" (`servingsLabel`). Move, remove, drag handle and the − / + stepper show on hover or keyboard focus where there is a mouse and room (`hover-desktop`: `(hover: hover) and (min-width: 1024px)`, `globals.css`); touch devices and phones always see them. Mobile is an agenda: date column, then the day's slots.
 
 | View | Layout | Positions | Slot label |
 |---|---|---|---|
@@ -65,7 +72,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 
 ### Day macro totals
 
-`computeDayMacros(plan.slots)` (`src/lib/day-macros.ts`, pure) runs in both views on the already loaded plan, so the stepper and moves update the totals at once. Per slot with a recipe: `recipeMacros` (`src/lib/macros.ts`, rules in [[macro-calculation]]) gives the recipe's per-serving macros, which are multiplied by the slot's planned servings. A day is an **incomplete macro total** (`incomplete`) when any slot's recipe left out an ingredient (macro-less, no amount, or a unit `toGrams` cannot convert), when a recipe has no counted ingredients, is unavailable, or has a `servings_base` of 0 or less, or when the planned servings are 0 or less. `known` is true when at least one slot added macros. `DayTotals` shows „brak danych makro" when nothing is known, and otherwise the sum; an incomplete sum gets a „≥" before the kcal and a „makra niepełne" line, so it never reads as a real total. A day with no recipe slot shows nothing. Desktop renders the totals in a „Razem" footer row, mobile in each day's heading.
+`computeDayMacros(plan.slots)` (`src/lib/day-macros.ts`, pure) runs in both views on the already loaded plan, so the stepper and moves update the totals at once. Per slot with a recipe: `recipeMacros` (`src/lib/macros.ts`, rules in [[macro-calculation]]) gives the recipe's per-serving macros, which are multiplied by the slot's planned servings. A day is an **incomplete macro total** (`incomplete`) when any slot's recipe left out an ingredient (macro-less, no amount, or a unit `toGrams` cannot convert), when a recipe has no counted ingredients, is unavailable, or has a `servings_base` of 0 or less, or when the planned servings are 0 or less. `known` is true when at least one slot added macros. `DayTotals` shows „brak danych makro" when nothing is known, and otherwise the sum; an incomplete sum gets a „≥" before the kcal and a „makra niepełne" line, so it never reads as a real total. A day with no recipe slot shows nothing. Desktop renders the totals in a „Razem" footer row (left out while no day has a recipe), mobile in each day's heading.
 
 ### Moving slots and servings
 
@@ -84,7 +91,7 @@ The plan drives the shopping list (see [[shopping-list-aggregation]]) and share 
 - **New slots start at 1 serving** (picker and drop alike); change it with the stepper.
 - **Labels aren't stored.** `label` is always sent as null. Desktop derives the label from the position and mobile shows „posiłek N", so the same slot is labelled differently in the two views.
 - A mobile slot at position 5 or higher doesn't appear in the desktop grid, and can't be moved to such a position (the move sheet offers 0–4).
-- `new Date(plan.week_start_date)` parses `yyyy-MM-dd` as **UTC midnight**. That's fine in Poland (UTC+1/+2), but in a timezone west of UTC the columns shift back one day.
+- Never build a day with `new Date(plan.week_start_date)`: it parses `yyyy-MM-dd` as **UTC midnight**, so west of UTC the columns shift back one day. Every view takes its days from `weekDays` (`src/lib/week.ts`), which parses to local midnight.
 - `getOrCreatePlan` is a select followed by an insert. Two concurrent first loads can race; the loser hits the unique constraint and gets a 500.
 
 ## Known gaps
@@ -114,6 +121,7 @@ upsertSlot(supabase, { plan_id, date: '2026-10-05', position: 2, label: null, re
 
 ## Changelog
 
+- 2026-10-14: Restyled to the design brief's Calendar style (week-range heading, hairline grid, controls on hover); a planned recipe shows at once as a pending slot and rolls back on failure; `weekDays` and `weekRange` in `week.ts`; `servingsLabel` uses `Intl.PluralRules`.
 - 2026-10-13: Day totals show a labelled lower bound instead of hiding an incomplete total; kg, l and other mass and volume units now count (#73).
 - 2026-10-13: The slot-date-in-week rule is enforced in the database (migration 0013, #72).
 - 2026-10-13: Per-day macro totals (#44).

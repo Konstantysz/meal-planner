@@ -5,7 +5,7 @@ tags: [ci]
 status: review
 owner: "@konstantysz"
 created: 2026-10-04
-updated: 2026-10-13
+updated: 2026-10-14
 last_reviewed: 2026-10-09
 review_interval_days: 180
 confidence: high
@@ -22,6 +22,8 @@ sources:
     path: .github/workflows/ci.yml
   - title: "Main branch ruleset"
     path: .github/rulesets/main-protection.json
+  - title: "Ruleset sync check"
+    path: scripts/ruleset-check.ts
   - title: "Supabase CLI: db dump"
     url: "https://github.com/supabase/cli/blob/develop/apps/cli/docs/supabase/db/dump.md"
     accessed: 2026-10-04
@@ -42,8 +44,9 @@ The project runs on the Supabase free tier. A free-tier project that sees no act
 |---|---|---|---|
 | `keepalive.yml` | cron `0 6 */5 * *` (06:00 UTC on days 1, 6, 11, … of each month) + manual | `curl -sf $SUPABASE_URL/rest/v1/ingredients?select=id&limit=1` with the `apikey` header | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | `backup.yml` | cron `0 3 * * 0` (Sundays 03:00 UTC) + manual | Installs the **latest** Supabase CLI from GitHub releases (unpinned), runs `supabase db dump --db-url …`, uploads `backups/` as an artifact kept 90 days | `SUPABASE_DB_URL` |
-| `ci.yml` | every PR, push to `main` | Four chained jobs (`needs`), each on Node 24 after `pnpm install --frozen-lockfile`: `lint` (`pnpm lint`, `format:check`, `typecheck`) → `wiki` (full-history checkout; `pnpm wiki:check`, then the informational `pnpm wiki:stale`) → `test` (`pnpm test`) → `build` (`pnpm build` with placeholder `NEXT_PUBLIC_SUPABASE_*` vars, `.next/cache` cached) | none |
+| `ci.yml` | every PR, push to `main` | Four chained jobs (`needs`; `db` and `ruleset` are separate rows), each on Node 24 after `pnpm install --frozen-lockfile`: `lint` (`pnpm lint`, `format:check`, `typecheck`) → `wiki` (full-history checkout; `pnpm wiki:check`, then the informational `pnpm wiki:stale`, and on PRs `pnpm wiki:stale --changed=origin/$BASE_REF`) → `test` (`pnpm test`) → `build` (`pnpm build` with placeholder `NEXT_PUBLIC_SUPABASE_*` vars, `.next/cache` cached) | none |
 | `ci.yml`, job `db` | every PR, push to `main` | After `lint`: full-history checkout; on PRs `pnpm db:order "origin/$BASE_REF" --require-baseline` (new migrations above the base branch with rollback and check, and their live baseline recorded in [[migration-history]]; applied migrations unchanged); then `pnpm db:verify` (migrations, verification scripts and rollbacks on PGlite; every check count recorded in [[migration-history]] matches its script) | none |
+| `ci.yml`, job `ruleset` | push to `main` | After `lint`; not a required check. `pnpm ruleset:check` fails while the required checks GitHub enforces differ from `.github/rulesets/main-protection.json` (`GH_TOKEN` is the workflow token) | none |
 
 > [!danger] Neither scheduled workflow has ever succeeded
 > As of 2026-10-09, `gh secret list` on `Konstantysz/meal-planner` returns nothing, and `gh run list --status success` returns no runs for either workflow. The latest keepalive run failed on 2026-10-06 and the latest backup run on 2026-10-04. In the 2026-10-04 keepalive log, `curl -sf "/rest/v1/ingredients…" -H "apikey: "` meant the secrets were empty. So the free-tier project isn't being kept awake and there are no backups. Fix it with [[configure-ci-secrets]].
@@ -62,10 +65,8 @@ The ruleset is active on `main`: on 2026-10-09 `gh api repos/Konstantysz/meal-pl
 > What to do (about two minutes, details in [[github-workflows#Syncing the ruleset after editing the file]]):
 >
 > 1. `gh api -X PUT repos/Konstantysz/meal-planner/rulesets/24806035 --input .github/rulesets/main-protection.json` from an up-to-date `main` (or add `db` by hand: Settings → Rules → Rulesets → `main-protection` → "Require status checks to pass" → "Add checks" → `db` → "Save changes").
-> 2. Check that the required checks now include `db`: `gh api repos/Konstantysz/meal-planner/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'`.
-> 3. Tell an agent "the ruleset is synced" so it removes this request everywhere (the list below), or remove it yourself.
->
-> Remove this request when step 2 shows `db`: this callout, the "Open request for Konstantysz" block at the top of `AGENTS.md`, and the `db` row in [[known-gaps]]. Agents show this request first in a session with Kostek, or when the task touches CI, merging or branch protection.
+> 2. Check that the required checks now include `db`: `pnpm ruleset:check` exits 0 (it compares GitHub's required checks with the file; the CI job `ruleset` runs it on every push to `main` and stays red until the sync is done).
+> 3. Close issue #101 and remove this callout and the `db` row in [[known-gaps]].
 
 ### Syncing the ruleset after editing the file
 
@@ -134,6 +135,7 @@ gh run list --workflow backup.yml --limit 5
 
 ## Changelog
 
+- 2026-10-14: Added the `ruleset` job (`pnpm ruleset:check`) and the `wiki:stale --changed` step; the `db` request moved from `AGENTS.md` to issue #101.
 - 2026-10-13: Turned the `db` ruleset warning into an explicit TODO for Konstantysz with the commands and the list of places to remove it from once done.
 - 2026-10-13: Job `db` now requires the live baseline of a new migration in [[migration-history]] and checks the recorded check counts.
 - 2026-10-13: Explained the "required status checks are expected" merge error on a branch behind `main`.

@@ -1,6 +1,6 @@
 'use client';
 import { useState, type ComponentProps } from 'react';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
   DndContext,
@@ -19,7 +19,8 @@ import { Icon, Input } from '@/components/ui';
 import { computeDayMacros } from '@/lib/day-macros';
 import { DayTotals } from './DayTotals';
 import { PlanSlot } from './PlanSlot';
-import { POSITIONS, POSITION_LABELS as LABELS, type SlotHandlers } from './plan-handlers';
+import { weekDays } from '@/lib/week';
+import { POSITIONS, POSITION_LABELS as LABELS, slotProps, type PlanRecipe, type SlotHandlers } from './plan-handlers';
 
 type DragData = { type: 'slot'; slotId: string; name: string } | { type: 'recipe'; recipeId: string; name: string };
 type DropData = { date: string; position: number };
@@ -36,15 +37,14 @@ export function WeekPlanDesktop({
   plan,
   recipes = [],
   onAdd,
-  onRemove,
   onMove,
-  onServingsChange,
-  onOpenMove,
   onDropRecipe,
-}: { plan: PlanWithSlots; recipes?: Array<{ id: string; name: string }> } & SlotHandlers) {
-  const start = new Date(plan.week_start_date);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  ...handlers
+}: { plan: PlanWithSlots; recipes?: PlanRecipe[] } & SlotHandlers) {
+  const days = weekDays(plan.week_start_date);
   const dayMacros = computeDayMacros(plan.slots);
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const hasTotals = days.some((d) => dayMacros[format(d, 'yyyy-MM-dd')]);
   // distance: a click on the handle or a step button is not a drag.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -82,37 +82,54 @@ export function WeekPlanDesktop({
       <div>
         <RecipePanel recipes={recipes} />
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-[55rem] table-fixed border-collapse">
             <thead>
               <tr>
-                <th className="border border-line p-2"></th>
-                {days.map((d) => (
-                  <th key={d.toISOString()} className="border border-line p-2 text-sm">
-                    {format(d, 'EEE d.MM', { locale: pl })}
-                  </th>
-                ))}
+                <th scope="col" className="w-24 border-b border-line">
+                  <span className="sr-only">Posiłek</span>
+                </th>
+                {days.map((d) => {
+                  const isToday = format(d, 'yyyy-MM-dd') === today;
+                  return (
+                    <th
+                      key={format(d, 'yyyy-MM-dd')}
+                      scope="col"
+                      className="border-b border-line px-1.5 pb-2 text-left align-bottom font-normal"
+                    >
+                      <span className="sr-only">{format(d, 'EEEE d MMMM', { locale: pl })}</span>
+                      <span
+                        aria-hidden="true"
+                        className={`block text-xs ${isToday ? 'font-semibold text-brand' : 'text-muted'}`}
+                      >
+                        {format(d, 'EEE', { locale: pl }).replace(/\.$/, '')}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={`-ml-1.5 mt-0.5 grid size-9 place-items-center rounded-full font-display text-2xl font-semibold leading-none tabular-nums ${isToday ? 'bg-brand text-on-brand' : ''}`}
+                      >
+                        {format(d, 'd')}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {POSITIONS.map((pos) => (
                 <tr key={pos}>
-                  <td className="border border-line p-2 text-xs text-muted">{LABELS[pos]}</td>
+                  <th
+                    scope="row"
+                    className="w-24 border-b border-line pr-2 pt-2 text-right align-top text-xs font-normal text-muted"
+                  >
+                    {LABELS[pos]}
+                  </th>
                   {days.map((d) => {
                     const dateStr = format(d, 'yyyy-MM-dd');
                     const slot = plan.slots.find((s) => s.date === dateStr && s.position === pos);
                     return (
-                      <td key={dateStr + pos} className="border border-line p-1 align-top min-w-28">
+                      <td key={dateStr + pos} className="h-16 border-b border-l border-line p-1 align-top">
                         {slot ? (
-                          <DraggableSlot
-                            slotId={slot.id}
-                            label={LABELS[pos]}
-                            position={pos}
-                            recipeName={slot.recipe?.name ?? (slot.recipe_id ? 'przepis niedostępny' : null)}
-                            servings={slot.servings}
-                            onRemove={() => onRemove(slot.id)}
-                            onMove={() => onOpenMove(slot.id)}
-                            onServingsChange={(n) => onServingsChange(slot.id, n)}
-                          />
+                          <DraggableSlot slotId={slot.id} position={pos} {...slotProps(slot, handlers)} />
                         ) : (
                           <EmptyCell date={dateStr} position={pos} onAdd={onAdd} />
                         )}
@@ -122,21 +139,23 @@ export function WeekPlanDesktop({
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" className="border border-line p-2 text-left text-xs font-normal text-muted">
-                  Razem
-                </th>
-                {days.map((d) => {
-                  const dateStr = format(d, 'yyyy-MM-dd');
-                  return (
-                    <td key={dateStr} className="border border-line p-2 align-top">
-                      <DayTotals day={dayMacros[dateStr]} />
-                    </td>
-                  );
-                })}
-              </tr>
-            </tfoot>
+            {hasTotals && (
+              <tfoot>
+                <tr>
+                  <th scope="row" className="pr-2 pt-2 text-right align-top text-xs font-normal text-muted">
+                    Razem
+                  </th>
+                  {days.map((d) => {
+                    const dateStr = format(d, 'yyyy-MM-dd');
+                    return (
+                      <td key={dateStr} className="border-l border-line px-1.5 pt-2 align-top">
+                        <DayTotals day={dayMacros[dateStr]} />
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
@@ -154,19 +173,21 @@ function DraggableSlot({ slotId, ...slot }: { slotId: string } & Omit<ComponentP
     data: { type: 'slot', slotId, name: slot.recipeName ?? '' } satisfies DragData,
   });
   return (
-    <div ref={setNodeRef} className={isDragging ? 'opacity-40' : undefined}>
+    <div ref={setNodeRef} className={`h-full ${isDragging ? 'opacity-40' : ''}`}>
       <PlanSlot
         {...slot}
         dragHandle={
-          <button
-            type="button"
-            aria-label="Przeciągnij posiłek"
-            className="grid min-h-6 min-w-6 cursor-grab place-items-center rounded-control text-on-slot hover:bg-hover touch-none"
-            {...attributes}
-            {...listeners}
-          >
-            <Icon name="grip" width={16} height={16} />
-          </button>
+          slot.onMove && (
+            <button
+              type="button"
+              aria-label="Przeciągnij posiłek"
+              className="grid min-h-6 min-w-6 cursor-grab place-items-center rounded-control text-on-slot hover:bg-hover touch-none"
+              {...attributes}
+              {...listeners}
+            >
+              <Icon name="grip" width={16} height={16} />
+            </button>
+          )
         }
       />
     </div>
@@ -192,18 +213,18 @@ function EmptyCell({
       type="button"
       aria-label={`Dodaj posiłek: ${LABELS[position]}, ${date}`}
       onClick={() => onAdd(date, position)}
-      className={`w-full h-full text-muted hover:text-brand text-xl min-h-11 rounded-block ${isOver ? 'bg-hover outline outline-2 outline-brand' : ''}`}
+      className={`w-full h-full text-muted hover:bg-hover hover:text-ink focus-visible:bg-hover text-xl min-h-14 rounded-block ${isOver ? 'bg-hover outline outline-2 outline-brand' : ''}`}
     >
       +
     </button>
   );
 }
 
-function RecipePanel({ recipes }: { recipes: Array<{ id: string; name: string }> }) {
+function RecipePanel({ recipes }: { recipes: PlanRecipe[] }) {
   const [q, setQ] = useState('');
   const filtered = recipes.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
   return (
-    <section className="mx-3 mb-3 border-y border-line py-2" aria-label="Przepisy">
+    <section className="mb-5 rounded-block bg-side px-3 py-2" aria-label="Przepisy">
       <div className="mb-2 flex items-center gap-3">
         <h3 className="font-display text-base font-semibold">Przepisy</h3>
         <Input
@@ -215,7 +236,7 @@ function RecipePanel({ recipes }: { recipes: Array<{ id: string; name: string }>
         />
         <p className="text-xs text-muted">Przeciągnij przepis na puste miejsce w planie.</p>
       </div>
-      <ul className="flex max-h-28 flex-wrap gap-2 overflow-y-auto">
+      <ul className="flex gap-2 overflow-x-auto pb-1">
         {filtered.map((r) => (
           <RecipeItem key={r.id} recipe={r} />
         ))}
@@ -224,16 +245,16 @@ function RecipePanel({ recipes }: { recipes: Array<{ id: string; name: string }>
   );
 }
 
-function RecipeItem({ recipe }: { recipe: { id: string; name: string } }) {
+function RecipeItem({ recipe }: { recipe: PlanRecipe }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `recipe:${recipe.id}`,
     data: { type: 'recipe', recipeId: recipe.id, name: recipe.name } satisfies DragData,
   });
   return (
-    <li ref={setNodeRef} className={isDragging ? 'opacity-40' : undefined}>
+    <li ref={setNodeRef} className={`shrink-0 ${isDragging ? 'opacity-40' : ''}`}>
       <button
         type="button"
-        className="min-h-9 cursor-grab touch-none rounded-control border border-line px-3 text-sm hover:bg-hover"
+        className="min-h-8 cursor-grab touch-none whitespace-nowrap rounded-control border border-line bg-background px-3 text-sm hover:bg-hover"
         {...attributes}
         {...listeners}
       >

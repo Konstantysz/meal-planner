@@ -2,7 +2,10 @@
  * Lists wiki pages whose `sources:` paths changed since the page's `verified_commit`
  * (RULES §4). Whitespace-only changes are ignored. Informational: exits 0 unless `--strict`.
  *
- * Usage: pnpm wiki:stale [--strict]
+ * `--changed` (staged files) or `--changed=<ref>` (files changed since the merge-base with <ref>) instead lists the
+ * pages that were left out of the change though one of their `sources:` is in it (RULES §4, "same PR").
+ *
+ * Usage: pnpm wiki:stale [--strict] [--changed[=<ref>]]
  */
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -40,6 +43,28 @@ export function stalePages(files: WikiFile[], diff: DiffFn): StalePage[] {
   });
 }
 
+export interface NotUpdatedPage {
+  page: string;
+  sources: string[];
+}
+
+/** Pages with a `sources:` path among `changed` (repo-relative) whose own file is not among them. */
+export function pagesNotUpdated(files: WikiFile[], changed: string[]): NotUpdatedPage[] {
+  const touched = new Set(changed);
+  return files.flatMap((f) => {
+    if (touched.has(`docs/wiki/${f.path}`)) return [];
+    const paths = (frontmatter(f.content).sources ?? []).flatMap((s) =>
+      s.path && touched.has(s.path) ? [s.path] : [],
+    );
+    return paths.length ? [{ page: f.path, sources: paths }] : [];
+  });
+}
+
+/** Names the first few paths so a page with many changed sources stays on one short line. */
+export function summarize(paths: string[], max = 3): string {
+  return paths.length <= max ? paths.join(', ') : `${paths.slice(0, max).join(', ')} (+${paths.length - max} more)`;
+}
+
 /** `git diff -w --numstat`: files with only whitespace changes report 0/0 and are dropped. */
 export function parseNumstat(out: string): ChangedFile[] {
   return out
@@ -70,12 +95,27 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     path: relative(root, abs).split(sep).join('/'),
     content: readFileSync(abs, 'utf8'),
   }));
+  const strict = process.argv.includes('--strict');
+  const mode = process.argv.find((a) => a === '--changed' || a.startsWith('--changed='));
+  if (mode) {
+    const ref = mode.split('=')[1];
+    const out = execFileSync(
+      'git',
+      ref ? ['diff', '--name-only', `${ref}...HEAD`] : ['diff', '--cached', '--name-only'],
+      {
+        encoding: 'utf8',
+      },
+    );
+    const left = pagesNotUpdated(files, out.split('\n').filter(Boolean));
+    for (const p of left)
+      console.log(`docs/wiki/${p.page}: not in this change, but its sources are: ${summarize(p.sources)}`);
+    console.log(`wiki-stale: ${left.length} page(s) with changed sources left out of the change`);
+    process.exit(left.length && strict ? 1 : 0);
+  }
   const stale = stalePages(files, gitDiff);
   for (const s of stale) {
-    console.log(
-      `${s.page} (verified ${s.commit}): ${s.changed.map((c) => `${c.path} +${c.added}/-${c.deleted}`).join(', ')}`,
-    );
+    console.log(`${s.page} (verified ${s.commit}): ${summarize(s.changed.map((c) => c.path))}`);
   }
   console.log(`wiki-stale: ${stale.length} page(s) with sources changed since verified_commit`);
-  process.exit(stale.length && process.argv.includes('--strict') ? 1 : 0);
+  process.exit(stale.length && strict ? 1 : 0);
 }

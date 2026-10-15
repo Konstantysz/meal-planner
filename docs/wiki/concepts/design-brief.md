@@ -172,6 +172,7 @@ The recipe list and detail (#39) use the cover as above with two deviations: the
 
 ## Changelog
 
+- 2026-10-14: Week plan built in the Calendar style (see [[week-plan]]); its add-slot "+" is back on `muted`.
 - 2026-10-13: Recipe list and detail built (#39); deviations noted under "Status of the recipe screens".
 - 2026-10-13: Described the photo layer (`RecipePhoto`) and `image_url`.
 - 2026-10-13: Foundations wrap-up (#56): contrast table for all token pairs and slot colours; `faint` no longer used for text or placeholders; `--text-xs` fixed at 12 px; prototype source removed.

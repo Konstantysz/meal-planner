@@ -69,6 +69,9 @@
   --radius-sheet: 10px;
 }
 
+/* A pointer that can hover and a desktop-wide viewport: hover-only affordances are safe here. */
+@custom-variant hover-desktop (@media (hover: hover) and (min-width: 1024px));
+
 html {
   font-size: 16px;
 }

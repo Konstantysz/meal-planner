@@ -1,0 +1,16 @@
+#!/bin/sh
+# A commit references the ticket it implements, never an epic: /code-review finds the spec from the numbers in the
+# commit messages, and an epic (#47 for a plan restyle) sends it to the wrong place.
+# Skips merges and reverts, and stays quiet without gh or network. Bypass: git commit --no-verify
+case "$(head -n1 "$1")" in Merge*|Revert*) exit 0 ;; esac
+command -v gh >/dev/null 2>&1 || exit 0
+
+for n in $(grep -oE '#[0-9]+' "$1" | tr -d '#' | sort -u); do
+  title=$(timeout 5 gh issue view "$n" --json title --jq .title 2>/dev/null) || continue
+  case "$title" in
+    Epic:*)
+      echo "commit-msg: #$n is an epic (\"$title\"). Reference the child ticket instead." >&2
+      exit 1
+      ;;
+  esac
+done

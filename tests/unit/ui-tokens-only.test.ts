@@ -17,6 +17,20 @@ const FORBIDDEN = [
   /\b(?:bg|text|border|ring|fill|stroke)-(?:gray|zinc|slate|neutral|stone|red|green|blue|white|black)\b/,
 ];
 
+// `faint` is 3:1 against the surfaces: fine for icons, too weak for text and placeholders (design brief, "Colour").
+describe('faint is for icons only', () => {
+  const files = readdirSync('src', { recursive: true, encoding: 'utf8' })
+    .filter((f) => f.endsWith('.tsx'))
+    .map((f) => join('src', f));
+  it.each(files)('%s uses text-faint only on an <Icon>', (file) => {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    const bad = lines.filter(
+      (l) => /\b(?:text|placeholder)-faint\b|placeholder:text-faint/.test(l) && !l.includes('<Icon'),
+    );
+    expect(bad).toEqual([]);
+  });
+});
+
 describe('tokens only', () => {
   const files = DIRS.flatMap((d) => readdirSync(d).map((f) => join(d, f)));
   it.each(files)('%s has no hard-coded colours', (file) => {

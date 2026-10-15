@@ -19,6 +19,8 @@
     "wiki:stale": "tsx scripts/wiki-stale.ts",
     "db:verify": "tsx scripts/db-verify.ts",
     "db:order": "tsx scripts/migration-order-check.ts",
+    "ruleset:check": "tsx scripts/ruleset-check.ts",
+    "shots": "tsx scripts/shots.ts",
     "coverage:check": "tsx scripts/test-coverage-check.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
